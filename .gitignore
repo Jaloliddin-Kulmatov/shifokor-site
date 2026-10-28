@@ -1,0 +1,11 @@
+# private: business plan page, early landing page, letters
+/index.html
+/product.html
+/letters/
+
+# raw data inputs for data-build/build.py (downloaded, not committed)
+data-build/hs.csv
+data-build/adm/
+data-build/*.zip
+
+.DS_Store

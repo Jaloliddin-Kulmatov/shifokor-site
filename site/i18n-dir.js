@@ -1,0 +1,88 @@
+/* Copy for the state clinic directory (real data) and the rural-first home page. */
+(function (T) {
+  var add = function (lang, o) { Object.keys(o).forEach(function (k) { T[lang][k] = o[k]; }); };
+
+  add("en", {
+    dir_eye: "All of Uzbekistan", dir_h1: "Find a hospital near you", f_own: "Ownership",
+    dir_p: "Village doctor points, family polyclinics and district hospitals in all 14 regions of Uzbekistan, on one map.",
+    f_region: "Region", all_regions: "All regions", f_district: "District", all_districts: "All districts", f_type: "Type", all_types: "All types", f_name: "Clinic or village name", f_name_ph: "e.g. QVP, oilaviy poliklinika",
+    near_btn: "Hospitals near me", nav_near: "Hospitals near me", fac_map: "On the map", near_on: "Sorted by distance from you", near_err: "Location is off. Choose your region and district instead.", near_wait: "Finding your location…",
+    km: function (n) { return n + " km"; }, d_count: function (n) { return n === 1 ? "1 clinic found" : n + " clinics found"; }, more_btn: "Show more",
+    cat: { fdp: "Village doctor point (QVP)", fpc: "Family polyclinic", polyclinic: "Polyclinic", district: "District medical centre", hospital: "Hospital", children: "Children’s hospital or polyclinic", maternity: "Maternity hospital", emergency: "Emergency and ambulance", special: "Specialised centre", clinic: "Clinic" },
+    own: { s: "State", p: "Private", u: "Not sure" }, own_f: { s: "State clinics", p: "Private", all: "All" },
+    src_note: "Clinic list from OpenStreetMap (ODbL), data of 29 Sep 2026. Ownership is estimated from the name. Some clinics are still missing.",
+    empty_dist: "No state clinic in this district is on the map yet. The nearest ones are below.",
+    add_missing: "Add a missing clinic", fac_dir: "Directions", fac_dir_y: "Yandex Maps", fac_dir_g: "Google Maps",
+    fac_book_no: "Online booking is not open for this clinic yet.", fac_demo: "See how booking will work", fac_assist: "Book with a village helper",
+    fac_hours: "Opening hours", fac_addr: "Address", fac_phone: "Phone", fac_none: "Not listed yet", fac_where: "Region and district", fac_coords: "Coordinates", fac_type: "Type", fac_own: "Ownership",
+    fac_own_note: "Estimated from the clinic’s name.", fac_src: "Source: OpenStreetMap contributors. Help keep it right.", fac_wrong: "Report wrong info or add a phone",
+    copy: "Copy", copied2: "Copied",
+    rural_h: "Where to go first", rural_p: "In villages, your first stop is usually the village doctor point (QVP) or the family polyclinic. They refer you to the district hospital when needed. In an emergency, call 103.",
+    emerg_bar: "Emergency? Call 103", village: "Village", city: "City",
+    reg_h: "Browse all regions", reg_p: "Pick your region to see its districts and state clinics.",
+    reg_line: function (s, d) { return s + " state clinics · " + d + " districts"; }, dist_line: function (s) { return s + " state"; },
+    stats: function (s, r, d) { return s + " state clinics · " + r + " regions · " + d + " districts"; },
+    br_regions: "Regions and districts", br_types: "Clinic types", nav_state: "State clinics", nav_demo: "Booking demo",
+    br_d_rg: "All 14 regions and their districts and cities.", br_d_ty: "Village doctor points, polyclinics, hospitals and more.", br_d_dm: "Try booking, reminders and the clinic workspace with sample clinics.",
+    ms_h_missing: "Add a missing clinic", ms_h_wrong: "Report wrong info", ms_name: "Clinic name", ms_where: "Village, district or address", ms_phone: "Clinic phone (if you know it)", ms_note: "What should change?",
+    ms_msg_missing: "Shifokor: missing clinic", ms_msg_wrong: "Shifokor: wrong info", ms_send: "Copy message", ms_tg: "Send on Telegram", ms_err: "Please fill in the clinic name or what should change.",
+    ms_done: "Copied. Send this message to Shifokor on Telegram. Thank you for helping your village.",
+    foot: "Shifokor is a marketplace and scheduling tool, not a medical provider. In an emergency call 103. The state clinic list comes from OpenStreetMap; booking, prices and times in the demo are sample data."
+  });
+
+  add("uz", {
+    dir_eye: "Butun O‘zbekiston bo‘ylab", dir_h1: "Sizga yaqin shifoxonani toping", f_own: "Mulk shakli",
+    dir_p: "O‘zbekistonning 14 ta hududidagi qishloq vrachlik punktlari, oilaviy poliklinikalar va tuman shifoxonalari bitta xaritada.",
+    f_region: "Viloyat", all_regions: "Barcha viloyatlar", f_district: "Tuman", all_districts: "Barcha tumanlar", f_type: "Turi", all_types: "Barcha turlar", f_name: "Klinika yoki qishloq nomi", f_name_ph: "masalan: QVP, oilaviy poliklinika",
+    near_btn: "Yonimdagi shifoxonalar", nav_near: "Yonimdagi shifoxonalar", fac_map: "Xaritada", near_on: "Sizdan masofa bo‘yicha saralangan", near_err: "Joylashuv o‘chirilgan. Viloyat va tumanni tanlang.", near_wait: "Joylashuvingiz aniqlanmoqda…",
+    km: function (n) { return n + " km"; }, d_count: function (n) { return n + " ta klinika topildi"; }, more_btn: "Yana ko‘rsatish",
+    cat: { fdp: "Qishloq vrachlik punkti (QVP)", fpc: "Oilaviy poliklinika", polyclinic: "Poliklinika", district: "Tuman tibbiyot birlashmasi", hospital: "Shifoxona", children: "Bolalar shifoxonasi yoki poliklinikasi", maternity: "Tug‘ruqxona", emergency: "Tez va shoshilinch yordam", special: "Ixtisoslashgan markaz", clinic: "Klinika" },
+    own: { s: "Davlat", p: "Xususiy", u: "Aniqlanmagan" }, own_f: { s: "Davlat klinikalari", p: "Xususiy", all: "Hammasi" },
+    src_note: "Klinikalar ro‘yxati OpenStreetMap (ODbL) ma’lumotlari, 2026-yil 29-sentabr holatiga. Mulk shakli nomidan taxmin qilingan. Ayrim klinikalar hali yo‘q.",
+    empty_dist: "Bu tumandagi davlat klinikalari hali xaritada yo‘q. Eng yaqinlari quyida.",
+    add_missing: "Yo‘q klinikani qo‘shish", fac_dir: "Yo‘nalish", fac_dir_y: "Yandex Xaritalar", fac_dir_g: "Google Xaritalar",
+    fac_book_no: "Bu klinika uchun onlayn yozilish hali ochilmagan.", fac_demo: "Yozilish qanday ishlashini ko‘ring", fac_assist: "Qishloq yordamchisi orqali yozilish",
+    fac_hours: "Ish vaqti", fac_addr: "Manzil", fac_phone: "Telefon", fac_none: "Hali ko‘rsatilmagan", fac_where: "Viloyat va tuman", fac_coords: "Koordinatalar", fac_type: "Turi", fac_own: "Mulk shakli",
+    fac_own_note: "Klinika nomidan taxmin qilingan.", fac_src: "Manba: OpenStreetMap ishtirokchilari. Ma’lumotni to‘g‘ri saqlashga yordam bering.", fac_wrong: "Xatoni xabar qilish yoki telefon qo‘shish",
+    copy: "Nusxalash", copied2: "Nusxalandi",
+    rural_h: "Avval qayerga borish kerak", rural_p: "Qishloqda odatda birinchi navbatda qishloq vrachlik punkti (QVP) yoki oilaviy poliklinikaga murojaat qilinadi. Kerak bo‘lsa, ular tuman shifoxonasiga yo‘llanma beradi. Shoshilinch holatda 103 ga qo‘ng‘iroq qiling.",
+    emerg_bar: "Shoshilinch holat? 103 ga qo‘ng‘iroq qiling", village: "Qishloq", city: "Shahar",
+    reg_h: "Barcha viloyatlar", reg_p: "Tumanlar va davlat klinikalarini ko‘rish uchun viloyatingizni tanlang.",
+    reg_line: function (s, d) { return s + " ta davlat klinikasi · " + d + " ta tuman"; }, dist_line: function (s) { return s + " ta davlat"; },
+    stats: function (s, r, d) { return s + " ta davlat klinikasi · " + r + " ta viloyat · " + d + " ta tuman"; },
+    br_regions: "Viloyat va tumanlar", br_types: "Klinika turlari", nav_state: "Davlat klinikalari", nav_demo: "Yozilish demosi",
+    br_d_rg: "14 ta viloyat, ularning tumanlari va shaharlari.", br_d_ty: "Qishloq vrachlik punktlari, poliklinikalar, shifoxonalar va boshqalar.", br_d_dm: "Namuna klinikalarda yozilish, eslatmalar va klinika kabinetini sinab ko‘ring.",
+    ms_h_missing: "Yo‘q klinikani qo‘shish", ms_h_wrong: "Xatoni xabar qilish", ms_name: "Klinika nomi", ms_where: "Qishloq, tuman yoki manzil", ms_phone: "Klinika telefoni (bilsangiz)", ms_note: "Nimani o‘zgartirish kerak?",
+    ms_msg_missing: "Shifokor: yo‘q klinika", ms_msg_wrong: "Shifokor: noto‘g‘ri ma’lumot", ms_send: "Xabarni nusxalash", ms_tg: "Telegramda yuborish", ms_err: "Klinika nomini yoki nimani o‘zgartirish kerakligini yozing.",
+    ms_done: "Nusxalandi. Bu xabarni Telegramda Shifokorga yuboring. Qishlog‘ingizga yordam berganingiz uchun rahmat.",
+    foot: "Shifokor marketplace va yozilish vositasi, tibbiyot xizmati ko‘rsatuvchi emas. Shoshilinch holatda 103 ga qo‘ng‘iroq qiling. Davlat klinikalari ro‘yxati OpenStreetMap ma’lumotlari; demodagi yozilish, narx va vaqtlar namuna."
+  });
+
+  add("ru", {
+    dir_eye: "По всему Узбекистану", dir_h1: "Найдите больницу рядом с вами", f_own: "Форма собственности",
+    dir_p: "Сельские врачебные пункты, семейные поликлиники и районные больницы во всех 14 регионах Узбекистана на одной карте.",
+    f_region: "Регион", all_regions: "Все регионы", f_district: "Район", all_districts: "Все районы", f_type: "Тип", all_types: "Все типы", f_name: "Название клиники или села", f_name_ph: "например: СВП, семейная поликлиника",
+    near_btn: "Больницы рядом со мной", nav_near: "Больницы рядом", fac_map: "На карте", near_on: "Отсортировано по расстоянию от вас", near_err: "Геолокация отключена. Выберите регион и район.", near_wait: "Определяем местоположение…",
+    km: function (n) { return n + " км"; }, d_count: function (n) { return "Найдено: " + n; }, more_btn: "Показать ещё",
+    cat: { fdp: "Сельский врачебный пункт (СВП)", fpc: "Семейная поликлиника", polyclinic: "Поликлиника", district: "Районное медобъединение", hospital: "Больница", children: "Детская больница или поликлиника", maternity: "Роддом", emergency: "Скорая и экстренная помощь", special: "Специализированный центр", clinic: "Клиника" },
+    own: { s: "Государственная", p: "Частная", u: "Не определено" }, own_f: { s: "Госклиники", p: "Частные", all: "Все" },
+    src_note: "Список клиник из OpenStreetMap (ODbL), данные на 29 сентября 2026. Форма собственности определена по названию. Некоторых клиник пока нет.",
+    empty_dist: "Госклиник этого района пока нет на карте. Ниже ближайшие.",
+    add_missing: "Добавить клинику", fac_dir: "Маршрут", fac_dir_y: "Яндекс Карты", fac_dir_g: "Google Карты",
+    fac_book_no: "Онлайн-запись в эту клинику пока не открыта.", fac_demo: "Как будет работать запись", fac_assist: "Записаться через помощника в селе",
+    fac_hours: "Часы работы", fac_addr: "Адрес", fac_phone: "Телефон", fac_none: "Пока не указано", fac_where: "Регион и район", fac_coords: "Координаты", fac_type: "Тип", fac_own: "Форма собственности",
+    fac_own_note: "Определено по названию клиники.", fac_src: "Источник: участники OpenStreetMap. Помогите поддерживать данные точными.", fac_wrong: "Сообщить об ошибке или добавить телефон",
+    copy: "Копировать", copied2: "Скопировано",
+    rural_h: "Куда обращаться сначала", rural_p: "В селе обычно сначала обращаются в сельский врачебный пункт (СВП) или семейную поликлинику. При необходимости они направят в районную больницу. В экстренном случае звоните 103.",
+    emerg_bar: "Экстренный случай? Звоните 103", village: "Село", city: "Город",
+    reg_h: "Все регионы", reg_p: "Выберите регион, чтобы увидеть районы и госклиники.",
+    reg_line: function (s, d) { return "Госклиник: " + s + " · районов: " + d; }, dist_line: function (s) { return "гос.: " + s; },
+    stats: function (s, r, d) { return "Госклиник: " + s + " · регионов: " + r + " · районов: " + d; },
+    br_regions: "Регионы и районы", br_types: "Типы клиник", nav_state: "Госклиники", nav_demo: "Демо записи",
+    br_d_rg: "Все 14 регионов, их районы и города.", br_d_ty: "Сельские врачебные пункты, поликлиники, больницы и другое.", br_d_dm: "Попробуйте запись, напоминания и кабинет клиники на примерах.",
+    ms_h_missing: "Добавить клинику", ms_h_wrong: "Сообщить об ошибке", ms_name: "Название клиники", ms_where: "Село, район или адрес", ms_phone: "Телефон клиники (если знаете)", ms_note: "Что нужно исправить?",
+    ms_msg_missing: "Shifokor: недостающая клиника", ms_msg_wrong: "Shifokor: ошибка в данных", ms_send: "Скопировать сообщение", ms_tg: "Отправить в Telegram", ms_err: "Укажите название клиники или что нужно исправить.",
+    ms_done: "Скопировано. Отправьте это сообщение Shifokor в Telegram. Спасибо за помощь вашему селу.",
+    foot: "Shifokor — маркетплейс и инструмент записи, а не медицинская организация. В экстренном случае звоните 103. Список госклиник — из OpenStreetMap; запись, цены и время в демо — примеры."
+  });
+})(window.SHIFOKOR_T);

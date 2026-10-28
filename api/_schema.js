@@ -87,6 +87,25 @@ create table if not exists app_appts (
 create index if not exists app_appts_patient_idx on app_appts (patient_id);
 create index if not exists app_appts_clinic_idx on app_appts (clinic_id);
 
+-- Reviews: only a patient whose consultation with the doctor is finished, or whose visit at the clinic was
+-- confirmed and its day has come, can rate them, once per consultation or visit. Admins can hide a review.
+create table if not exists app_reviews (
+  id uuid primary key default gen_random_uuid(),
+  patient_id uuid not null references app_users (id) on delete cascade,
+  target_id uuid not null references app_users (id) on delete cascade,
+  consult_id uuid unique references app_consults (id) on delete cascade,
+  appt_id uuid unique references app_appts (id) on delete cascade,
+  stars int not null check (stars between 1 and 5),
+  body text check (body is null or char_length(body) <= 600),
+  author text not null default '' check (char_length(author) <= 60),
+  hidden boolean not null default false,
+  reply text check (reply is null or char_length(reply) <= 400),
+  replied_at timestamptz,
+  created_at timestamptz not null default now(),
+  check (consult_id is not null or appt_id is not null)
+);
+create index if not exists app_reviews_target_idx on app_reviews (target_id);
+
 -- Added later; "add column if not exists" upgrades databases created before.
 -- verified_at: an admin checked this clinic or doctor. For a clinic it covers the hospital in verified_fac only.
 -- tg_chat: the Telegram chat that gets this user's notices, linked through tg_code (a one-hour code, stored hashed).
@@ -102,4 +121,5 @@ alter table app_sessions enable row level security;
 alter table app_consults enable row level security;
 alter table app_messages enable row level security;
 alter table app_appts enable row level security;
+alter table app_reviews enable row level security;
 `;

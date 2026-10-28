@@ -145,7 +145,12 @@ const ACTIONS = {
       }
       appts = (await q("select * from app_appts where patient_id = $1 or clinic_id = $1 order by created_at desc limit 300", [me.id])).rows;
     }
-    return { me: mine, users, consults, appts, notify: { tg: N.TG, sms: N.SMS } };
+    // shown reviews for everyone; the author also sees their own (and which consultation or visit it was for)
+    const reviews = (await q(
+      "select id, target_id, stars, body, author, hidden, reply, replied_at, created_at, consult_id is not null as by_consult, patient_id = $1::uuid as mine, case when patient_id = $1::uuid then consult_id end as consult_id, case when patient_id = $1::uuid then appt_id end as appt_id from app_reviews where not hidden or patient_id = $1::uuid order by created_at desc limit 1000",
+      [me ? me.id : null]
+    )).rows;
+    return { me: mine, users, consults, appts, reviews, notify: { tg: N.TG, sms: N.SMS } };
   },
 
   async signup(b) {
@@ -336,6 +341,46 @@ const ACTIONS = {
     return { ok: true };
   },
 
+  // ---------- reviews ----------
+  async review_create(b, me) {
+    need(me);
+    const stars = Math.round(Number(b.stars));
+    if (!(stars >= 1 && stars <= 5)) bad("stars");
+    let row;
+    if (b.consult) {
+      if (!UUID.test(String(b.consult))) bad("id");
+      row = (await q("select id, doctor_id as target from app_consults where id = $1 and patient_id = $2 and status = 'done' and doctor_id is not null", [b.consult, me.id])).rows[0];
+    } else if (b.appt) {
+      if (!UUID.test(String(b.appt))) bad("id");
+      row = (await q("select id, clinic_id as target from app_appts where id = $1 and patient_id = $2 and status = 'confirmed' and day <= $3", [b.appt, me.id, today()])).rows[0];
+    } else bad("id");
+    if (!row) throw new Fail(403, "forbidden");
+    const parts = String(me.name || "").trim().split(/\s+/);
+    const author = b.anon ? "" : (parts[0] + (parts[1] ? " " + parts[1].charAt(0) + "." : "")).slice(0, 60);   // "Ali V."
+    try {
+      await q("insert into app_reviews (patient_id, target_id, consult_id, appt_id, stars, body, author) values ($1, $2, $3, $4, $5, $6, $7)", [me.id, row.target, b.consult ? row.id : null, b.appt ? row.id : null, stars, opt(b.body, 600), author]);
+    } catch (e) {
+      if (e.code === "23505") throw new Fail(409, "reviewed");
+      throw e;
+    }
+    await notifyUser(row.target, "Shifokor: sizga yangi sharh, " + stars + " yulduz. " + SITE + "/#/account");
+    return { ok: true };
+  },
+  // the doctor or clinic answers a review about them, once or by editing the answer
+  async review_reply(b, me) {
+    need(me);
+    if (!UUID.test(String(b.id || ""))) bad("id");
+    const r = await q("update app_reviews set reply = $3, replied_at = case when $3::text is null then null else now() end where id = $1 and target_id = $2 returning id", [b.id, me.id, opt(b.reply, 400)]);
+    if (!r.rows[0]) throw new Fail(403, "forbidden");
+    return { ok: true };
+  },
+  async admin_review(b, me) {
+    if (!isAdmin(need(me))) throw new Fail(403, "forbidden");
+    if (!UUID.test(String(b.id || ""))) bad("id");
+    await q("update app_reviews set hidden = $2 where id = $1", [b.id, b.hidden === true]);
+    return { ok: true };
+  },
+
   // ---------- Telegram notices ----------
   // returns a t.me link; opening it and pressing Start links this account's chat (see telegramHook)
   async tg_link(b, me) {
@@ -355,7 +400,8 @@ const ACTIONS = {
   async admin_list(b, me) {
     if (!isAdmin(need(me))) throw new Fail(403, "forbidden");
     const r = await q("select id, role, name, email, phone, tg, profile, created_at, updated_at, verified_at, verified_fac from app_users where role in ('clinic', 'doctor') order by verified_at nulls first, created_at desc limit 500");
-    return { users: r.rows.map((u) => Object.assign(userOut(u), { email: u.email || "", phone: u.phone || "", created_at: u.created_at, verified_at: u.verified_at })), webhook: N.TG };
+    const rv = await q("select r.id, r.target_id, t.name as target_name, r.stars, r.body, r.author, r.hidden, r.created_at from app_reviews r join app_users t on t.id = r.target_id order by r.created_at desc limit 300");
+    return { users: r.rows.map((u) => Object.assign(userOut(u), { email: u.email || "", phone: u.phone || "", created_at: u.created_at, verified_at: u.verified_at })), reviews: rv.rows, webhook: N.TG };
   },
   async admin_verify(b, me) {
     if (!isAdmin(need(me))) throw new Fail(403, "forbidden");

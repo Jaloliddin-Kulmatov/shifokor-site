@@ -66,7 +66,7 @@
   var bookings = function () { return store.get(K.bookings, []); };
   var saveBookings = function (l) { store.set(K.bookings, l); };
   var BE = window.SB || null;   /* server connection from backend.js, or null in demo mode */
-  function beMsg(t, x) { var c = (x && x.code) || ""; return { exists: t.e_exists, login: t.e_login, email: t.e_email, phone: t.e_phone, tg: t.e_tg, password: t.e_pw, name: t.e_name, contact: t.e_contact, date: t.e_ap_date, limit: t.e_ap_limit, dup: t.e_ap_dup, clinic: t.e_ap_clinic, time: t.e_ap_time, closed: t.e_ap_closed, unverified: t.e_ap_unv, no_tg: t.nt_off, forbidden: t.adm_forbidden }[c] || t.be_err; }
+  function beMsg(t, x) { var c = (x && x.code) || ""; return { exists: t.e_exists, login: t.e_login, email: t.e_email, phone: t.e_phone, tg: t.e_tg, password: t.e_pw, name: t.e_name, contact: t.e_contact, date: t.e_ap_date, limit: t.e_ap_limit, dup: t.e_ap_dup, clinic: t.e_ap_clinic, time: t.e_ap_time, closed: t.e_ap_closed, unverified: t.e_ap_unv, no_tg: t.nt_off, forbidden: t.adm_forbidden, reviewed: t.e_reviewed, stars: t.e_stars }[c] || t.be_err; }
   if (BE) ["en", "uz", "ru"].forEach(function (l) { T[l].acc_demo = T[l].be_online; T[l].cs_demo = T[l].be_online; });
 
   /* ---------------- sample directory ---------------- */
@@ -655,7 +655,7 @@
     var del = ACC_DEL ? '<div class="confirm-row"><b>' + t.acc_del_q + '</b><button class="btn danger sm" type="button" data-act="accdel-yes">' + t.acc_del_yes + '</button><button class="btn ghost sm" type="button" data-act="accdel-no">' + t.v_keep + "</button></div>" : "";
     var pub = role === "doctor" ? "#/doc/" + u.id : role === "clinic" ? "#/c/" + u.id : "";
     return '<div class="wrap pad acc"><div class="sechead"><div><div class="eyebrow">' + t.role[role] + "</div><h1>" + esc(u.name) + '</h1></div><div class="btns">' + (pub ? '<a class="btn ghost sm" href="' + pub + '">' + t.acc_view + "</a>" : "") + '<button class="btn ghost sm" type="button" data-act="logout">' + t.logout + '</button></div></div><div class="demo" style="margin:14px 0 20px">' + t.acc_demo + "</div>" +
-      trustCard(u) + notifyCard(u) + (role === "doctor" ? docInbox(u) : role === "clinic" ? clinicInbox(u) : "") + '<form class="form accform" id="accform" novalidate>' + contact + body + '<div class="err" id="a-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.acc_save + "</button></form>" +
+      trustCard(u) + notifyCard(u) + (role === "doctor" ? docInbox(u) : role === "clinic" ? clinicInbox(u) : "") + (role !== "patient" ? rvMine(u) : "") + '<form class="form accform" id="accform" novalidate>' + contact + body + '<div class="err" id="a-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.acc_save + "</button></form>" +
       '<p style="margin-top:20px"><button class="linkbtn" type="button" data-act="accdel">' + t.acc_del + "</button></p>" + del + "</div>";
   }
 
@@ -671,11 +671,11 @@
     var t = L(), u = userById(id); if (!u || u.role !== "doctor") return '<div class="wrap pad"><div class="empty">' + t.not_found + "</div></div>";
     var pr = u.profile || {}, langs = (pr.langs || []).map(function (l) { return { kaa: "Qaraqalpaq", tg: "Tojik" }[l] || t.lg[l]; }).join(", ");
     var region = pr.district && disByCode[pr.district] ? nmL(disByCode[pr.district]) + ", " + nmL(REG[disByCode[pr.district].r]) : pr.region && regByCode[pr.region] ? nmL(regByCode[pr.region]) : "";
-    return '<div class="wrap"><a class="back" href="#/doctors">‹ ' + t.nav_doctors + '</a><div class="pf"><div><div class="who">' + personAv(u) + "<div><h1>" + esc(u.name) + '</h1><div class="spec">' + esc(specName(pr)) + (pr.years ? " · " + t.exp(pr.years) : "") + '</div><div class="badges"><span class="badge">' + t.on_sh + "</span>" + vBadge(u) + ((pr.modes || []).indexOf("on") > -1 ? '<span class="badge plain">' + ic("video") + t.online_b + "</span>" : "") + "</div></div></div>" +
+    return '<div class="wrap"><a class="back" href="#/doctors">‹ ' + t.nav_doctors + '</a><div class="pf"><div><div class="who">' + personAv(u) + "<div><h1>" + esc(u.name) + '</h1><div class="spec">' + esc(specName(pr)) + (pr.years ? " · " + t.exp(pr.years) : "") + '</div><div class="badges"><span class="badge">' + t.on_sh + "</span>" + vBadge(u) + (ratingOf(u.id).n ? '<a href="#reviews" data-scroll="reviews" class="badge plain rbadge">' + ratingLine(u.id) + "</a>" : "") + ((pr.modes || []).indexOf("on") > -1 ? '<span class="badge plain">' + ic("video") + t.online_b + "</span>" : "") + "</div></div></div>" +
       (pr.bio ? '<div class="sect"><p class="lead" style="margin:0">' + esc(pr.bio) + "</p></div>" : "") +
       ((pr.work || []).length ? '<div class="sect"><h2>' + t.works_at + '</h2><ul class="list">' + pr.work.map(function (w) { return "<li>" + wpLink(w) + "</li>"; }).join("") + "</ul></div>" : "") +
       cpBlock(u) +
-      ((pr.svc || []).some(function (x) { return x.name; }) ? '<div class="sect"><h2>' + t.svc_h + "</h2>" + svcTable(pr.svc, true) + "</div>" : "") +
+      ((pr.svc || []).some(function (x) { return x.name; }) ? '<div class="sect"><h2>' + t.svc_h + "</h2>" + svcTable(pr.svc, true) + "</div>" : "") + rvList(u) +
       (pr.edu ? '<div class="sect"><h2>' + t.sec_bg + '</h2><p class="pre">' + esc(pr.edu) + "</p></div>" : "") +
       '<div class="sect"><dl class="kv">' + (langs ? "<dt>" + t.p_langs + "</dt><dd>" + esc(langs) + "</dd>" : "") + (region ? "<dt>" + t.p_area + "</dt><dd>" + esc(region) + "</dd>" : "") + (pr.lic ? "<dt>" + t.d_lic + "</dt><dd>" + esc(pr.lic) + (u.verified ? "" : ' <span class="muted">· ' + t.verified_no + "</span>") + "</dd>" : "") + "</dl></div>" +
       '<p class="fine" style="margin-top:20px">' + t.acc_demo + (u.updated ? " · " + t.updated(fmt(fromIso(u.updated), { day: "numeric", month: "short" })) : "") + "</p></div>" +
@@ -693,11 +693,12 @@
     if (f) pendingMap = { fac: [f], single: true };
     var place = d ? nmL(d) + ", " + nmL(REG[d.r]) : f ? placeOf(f) : "";
     var dl = f ? dirLinks(f) : null;
-    return '<div class="wrap"><a class="back" href="#/doctors">‹ ' + t.clinics_reg_h + '</a><div class="pf"><div><div class="who"><div class="ficon big c-' + (pr.ctype || "clinic") + '">' + ic(CAT_IC[pr.ctype || "clinic"]) + "</div><div><h1>" + esc(u.name) + '</h1><div class="spec">' + t.cat[pr.ctype || "clinic"] + '</div><div class="badges"><span class="badge">' + t.on_sh + "</span>" + (pr.own ? '<span class="badge ' + (pr.own === "s" ? "ok" : "plain") + '">' + t.own[pr.own] + "</span>" : "") + vBadge(u) + "</div></div></div>" +
+    return '<div class="wrap"><a class="back" href="#/doctors">‹ ' + t.clinics_reg_h + '</a><div class="pf"><div><div class="who"><div class="ficon big c-' + (pr.ctype || "clinic") + '">' + ic(CAT_IC[pr.ctype || "clinic"]) + "</div><div><h1>" + esc(u.name) + '</h1><div class="spec">' + t.cat[pr.ctype || "clinic"] + '</div><div class="badges"><span class="badge">' + t.on_sh + "</span>" + (pr.own ? '<span class="badge ' + (pr.own === "s" ? "ok" : "plain") + '">' + t.own[pr.own] + "</span>" : "") + vBadge(u) + (ratingOf(u.id).n ? '<span class="badge plain rbadge">' + ratingLine(u.id) + "</span>" : "") + "</div></div></div>" +
       (pr.about ? '<div class="sect"><p class="lead" style="margin:0">' + esc(pr.about) + "</p></div>" : "") +
       '<div class="sect"><dl class="kv">' + (place ? "<dt>" + t.fac_where + "</dt><dd>" + esc(place) + "</dd>" : "") + (pr.addr ? "<dt>" + t.fac_addr + "</dt><dd>" + esc(pr.addr) + "</dd>" : "") + (pr.hours ? "<dt>" + t.fac_hours + "</dt><dd>" + esc(pr.hours) + "</dd>" : "") + (u.phone ? "<dt>" + t.fac_phone + '</dt><dd class="nums">' + esc(fmtPhone(u.phone)) + "</dd>" : "") + (pr.lic ? "<dt>" + t.c_lic + "</dt><dd>" + esc(pr.lic) + "</dd>" : "") + "</dl></div>" +
       ((pr.svc || []).some(function (x) { return x.name; }) ? '<div class="sect"><h2>' + t.svc_h + "</h2>" + svcTable(pr.svc, false) + (u.updated ? '<p style="margin-top:10px"><span class="confline">' + t.updated(fmt(fromIso(u.updated), { day: "numeric", month: "short" })) + "</span></p>" : "") + "</div>" : "") +
       (canBook(u) ? apForm(u, pr.fac) : '<div class="sect"><div class="note-box">' + t.ap_unv + "</div></div>") +
+      rvList(u) +
       '<div class="sect"><h2>' + t.c_docs_h + "</h2>" + (docs.length ? '<div class="results" style="padding:0">' + docs.map(docCard).join("") + "</div>" : '<p class="muted">' + t.c_no_docs + "</p>") + "</div>" +
       '<p class="fine" style="margin-top:20px">' + t.acc_demo + "</p></div>" +
       '<aside class="stick"><h2>' + t.fac_map + "</h2>" + (f ? '<div id="map" class="map small" role="region" aria-label="' + t.p_loc + '"></div>' : "") + '<div class="stack" style="margin-top:12px">' + (canBook(u) ? '<a class="btn block" href="#book" data-scroll="book">' + ic("cal") + t.ap_h + "</a>" : "") + tgBtn(u) + (dl ? '<a class="btn ghost block" href="' + dl.y + '" target="_blank" rel="noopener">' + ic("nav") + t.fac_dir_y + "</a>" : "") + "</div></aside></div></div>";
@@ -715,7 +716,8 @@
     return list.slice().sort(function (a, b) {
       if (how === "cheap") return cm(a) - cm(b) || (b.verified ? 1 : 0) - (a.verified ? 1 : 0);
       if (how === "exp") return yrs(b) - yrs(a);
-      return (b.verified ? 1 : 0) - (a.verified ? 1 : 0) || (cm(a) === Infinity ? 1 : 0) - (cm(b) === Infinity ? 1 : 0) || yrs(b) - yrs(a);
+      if (how === "rating") return rankScore(b.id) - rankScore(a.id) || ratingOf(b.id).n - ratingOf(a.id).n;
+      return (b.verified ? 1 : 0) - (a.verified ? 1 : 0) || rankScore(b.id) - rankScore(a.id) || (cm(a) === Infinity ? 1 : 0) - (cm(b) === Infinity ? 1 : 0) || yrs(b) - yrs(a);
     });
   }
   function docCard(u) {
@@ -723,7 +725,7 @@
     var region = pr.district && disByCode[pr.district] ? nmL(disByCode[pr.district]) : pr.region && regByCode[pr.region] ? nmL(regByCode[pr.region]) : "";
     var meta2 = [region, (pr.langs || []).map(langName).join(", ")].filter(Boolean).join(" · ");
     return '<article class="fcard doccard"><div class="pav sm">' + esc(initials(u.name)) + '</div><div class="fmain"><h3><a href="#/doc/' + u.id + '">' + esc(u.name) + '</a></h3><div class="spec">' + esc(specName(pr)) + (pr.years ? " · " + t.exp(pr.years) : "") + "</div>" +
-      '<div class="badges">' + (u.verified ? vBadge(u) : "") + (on ? '<span class="badge plain">' + ic("video") + t.online_b + "</span>" : "") + "</div>" +
+      '<div class="badges">' + (ratingOf(u.id).n ? ratingLine(u.id) : "") + (u.verified ? vBadge(u) : "") + (on ? '<span class="badge plain">' + ic("video") + t.online_b + "</span>" : "") + "</div>" +
       (w ? '<div class="meta">' + ic("hosp") + esc(wpLabel(w)) + "</div>" : "") + (meta2 ? '<div class="meta">' + ic("pin") + esc(meta2) + "</div>" : "") + "</div>" +
       '<div class="facts">' + (m != null ? '<div class="cpfrom"><small>' + t.cp_h + '</small><b class="nums">' + (m === 0 ? t.free_c : esc(t.cp_from(num(m) + " " + unit()))) + "</b></div>" : "") +
       (on ? '<a class="btn sm" href="#/consult?' + qs({ doc: u.id }) + '">' + ic("chat") + t.pr_consult + "</a>" : "") + '<a class="btn ghost sm" href="#/doc/' + u.id + '">' + t.view + "</a></div></article>";
@@ -743,7 +745,7 @@
       sel("df-s", t.d_spec, [["", t.all_specs]].concat(DOC_SP.map(function (k) { return [k, t.docsp[k]]; })), q.s || "") +
       sel("df-r", t.f_region, [["", t.all_regions]].concat(REG.map(function (r) { return [r.code, nmL(r)]; })), q.r || "") +
       sel("df-lg", t.df_lang, [["", t.df_any_lang]].concat(["uz", "ru", "en", "kaa", "tg"].map(function (l) { return [l, langName(l)]; })), q.lg || "") +
-      sel("df-sort", t.df_sort, ["best", "cheap", "exp"].map(function (k) { return [k, t.df_sorts[k]]; }), q.sort || "best") +
+      sel("df-sort", t.df_sort, ["best", "rating", "cheap", "exp"].map(function (k) { return [k, t.df_sorts[k]]; }), q.sort || "best") +
       '<label class="sel">' + t.ds_name + ' <input id="df-q" class="pinput" style="width:180px;text-align:left" value="' + esc(q.q || "") + '" placeholder="' + esc(t.ds_name_ph) + '"></label>' +
       '<label class="sel chkf"><input type="checkbox" id="df-on"' + (q.on ? " checked" : "") + "> " + t.df_online + "</label></form>";
     return '<div class="band deep"><div class="wrap bhead"><div class="eyebrow">' + t.nav_doctors + "</div><h1>" + t.doctors_h2 + '</h1><p class="sub">' + t.doctors_p2 + '</p><p style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap"><a class="btn light" href="#/consult">' + ic("chat") + t.hf_consult + '</a><a class="btn ghost" style="color:var(--deep-ink);border-color:var(--deep-line)" href="#/register" data-regrole-link="doctor">' + t.reg_doc_cta + "</a></p></div></div>" +
@@ -841,7 +843,7 @@
       '<fieldset class="accsec"><legend>' + t.cs_safe_h + '</legend><p class="muted">' + t.rf_p + "</p>" + safety + "</fieldset>" + form + "</form></div>";
   }
   function csBadge(st) { var t = L(); return '<span class="badge ' + (st === "done" ? "ok" : st === "accepted" ? "" : "warn") + '">' + t.cs_st[st] + "</span>"; }
-  function csRow(c) { var t = L(); return '<a class="visit cs-row" href="#/consult/' + c.id + '"><div class="date"><span>' + fmt(new Date(c.at), { month: "short" }) + "</span><b>" + new Date(c.at).getDate() + '</b></div><div><h3>' + t.cs_no(c.n) + " " + csBadge(c.status) + '</h3><div class="muted" style="font-size:.92rem">' + t.cs_types[c.type][0] + " · " + esc(c.name) + " · " + esc(c.complaint.slice(0, 80)) + (c.complaint.length > 80 ? "…" : "") + '</div></div><div class="acts">' + ic(c.type === "text" ? "chat" : c.type === "audio" ? "mic" : "video") + "</div></a>"; }
+  function csRow(c) { var t = L(), mu = me(), rate = c.status === "done" && c.doctorId && !(mu && mu.role === "doctor") && !myReview("c", c.id); return '<a class="visit cs-row" href="#/consult/' + c.id + '"><div class="date"><span>' + fmt(new Date(c.at), { month: "short" }) + "</span><b>" + new Date(c.at).getDate() + '</b></div><div><h3>' + t.cs_no(c.n) + " " + csBadge(c.status) + (rate ? ' <span class="badge warn">★ ' + t.rv_rate_badge + "</span>" : "") + '</h3><div class="muted" style="font-size:.92rem">' + t.cs_types[c.type][0] + " · " + esc(c.name) + " · " + esc(c.complaint.slice(0, 80)) + (c.complaint.length > 80 ? "…" : "") + '</div></div><div class="acts">' + ic(c.type === "text" ? "chat" : c.type === "audio" ? "mic" : "video") + "</div></a>"; }
   function docInbox(u) {
     var t = L(), sp = (u.profile || {}).spec;
     var list = consults().filter(function (c) { return c.doctorId === u.id || (c.status === "new" && (c.doc ? c.doc === u.id : !c.spec || c.spec === sp || (sp === "gp" && !c.spec))); }).sort(function (a, b) { return b.at - a.at; });
@@ -864,7 +866,7 @@
       '<details class="finish"><summary>' + t.cs_finish + '</summary><form id="csfinish" data-id="' + c.id + '" novalidate><div class="radio">' + t.on_out.map(function (o, i) { return '<label><input type="radio" name="csout" value="' + i + '">' + o + "</label>"; }).join("") + '</div><div class="fld"><label for="cs-sum">' + t.vs_note + '</label><textarea id="cs-sum" maxlength="600"></textarea></div><div class="err" id="csf-err"></div><button class="btn" type="submit">' + t.vs_save + "</button></form></details>";
     if (!isDoc && c.status === "accepted" && c.call) actions = '<button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "mic") + t.cs_join + "</button>";
     return '<div class="wrap"><a class="back" href="' + (isDoc ? "#/account" : "#/visits") + '">‹ ' + (isDoc ? t.nav_account : t.nav_visits) + '</a><div class="sechead" style="padding-top:12px"><div><h1 style="font-size:clamp(1.6rem,1.3rem + 1.4vw,2.3rem)">' + t.cs_no(c.n) + "</h1><div class=\"badges\">" + csBadge(c.status) + '<span class="badge plain">' + t.cs_types[c.type][0] + "</span></div></div>" + (isDoc ? '<span class="sample">' + t.cs_doc_view + "</span>" : "") + "</div>" +
-      '<div class="pf" style="padding-top:18px"><div><div class="dcard"><h2>' + t.cs_details + "</h2>" + details + "</div>" + (isDoc && !mineDoc && c.status !== "new" ? "" : "") + '<p class="fine" style="margin-top:14px">' + t.cs_demo + "</p></div>" +
+      '<div class="pf" style="padding-top:18px"><div>' + (!isDoc && c.status === "done" && c.doctorId && (u ? c.userId === u.id : !c.userId) ? rvCard("c", c.id, c.doctorName, false) : "") + '<div class="dcard"><h2>' + t.cs_details + "</h2>" + details + "</div>" + (isDoc && !mineDoc && c.status !== "new" ? "" : "") + '<p class="fine" style="margin-top:14px">' + t.cs_demo + "</p></div>" +
       '<aside class="dcard chatcard"><h2>' + t.cs_thread + '</h2><div class="room-log" id="cslog">' + (msgs || '<div class="sys">' + t.cs_sent + "</div>") + "</div>" +
       (canWrite ? '<form class="room-send" id="csmsg" data-id="' + c.id + '" style="margin-top:10px"><input id="csmsg-in" class="pinput" style="width:100%;text-align:left" placeholder="' + esc(t.cs_write) + '" aria-label="' + esc(t.cs_write) + '" autocomplete="off"><button class="btn" type="submit">' + t.cs_send_msg + "</button></form>" : "") +
       (actions ? '<div class="stack" style="margin-top:12px">' + actions + "</div>" : "") + (!isDoc && c.status === "new" ? "" : "") + '<p class="fine" style="margin-top:10px">' + t.cs_sms_note + "</p></aside></div></div>";
@@ -930,6 +932,10 @@
     var acts = forClinic ? (open ? '<button class="btn sm" type="button" data-apx="ok" data-id="' + a.id + '">' + ic("check") + t.ap_ok + '</button><button class="btn ghost sm" type="button" data-apx="no" data-id="' + a.id + '">' + t.ap_decline + "</button>" : "") + tel(a.phone)
       : (c && c.phone ? tel(c.phone) : "") + (open ? '<button class="btn ghost sm" type="button" data-act="apcancel" data-id="' + a.id + '">' + t.ap_cancel + "</button>" : "");
     var extra = "";
+    var rateable = !forClinic && a.status === "confirmed" && a.day <= iso(today0()) && !myReview("v", a.id);
+    if (rateable && !(RV && RV.key === "v" + a.id)) acts += '<button class="btn sm" type="button" data-act="rvopen" data-id="' + a.id + '">★ ' + t.rv_rate_btn + "</button>";
+    if (!forClinic && RV && RV.key === "v" + a.id && rateable) extra = '<div class="rvinline">' + rvCard("v", a.id, a.clinicName, true) + "</div>";
+    else if (!forClinic && myReview("v", a.id)) note += '<div class="apnote">' + t.rv_yours + ": " + starsTxt(myReview("v", a.id).stars) + "</div>";
     if (!forClinic && apAsk === a.id) extra = '<div class="confirm-row"><b>' + t.ap_cancel_q + '</b><button class="btn danger sm" type="button" data-act="apcancel-yes" data-id="' + a.id + '">' + t.ap_cancel_yes + '</button><button class="btn ghost sm" type="button" data-act="apcancel-no">' + t.v_keep + "</button></div>";
     if (forClinic && APX && APX.id === a.id) {
       var ok = APX.mode === "ok", days = apDays(30, 0); if (days.indexOf(a.day) < 0 && a.day >= iso(today0())) days.unshift(a.day);
@@ -939,6 +945,45 @@
     }
     return '<div class="visit' + (open ? "" : " past") + '"><div class="date"><span>' + fmt(d, { weekday: "short" }) + "</span><b>" + d.getDate() + "</b><span>" + fmt(d, { month: "short" }) + "</span></div><div><h3>" + t.ap_no(a.n) + " " + apBadge(a.status) + '</h3><div class="muted" style="font-size:.92rem">' + sub + "</div>" + note + '</div><div class="acts">' + acts + "</div>" + extra + "</div>";
   }
+  /* ---------------- reviews: only after a finished consultation or a visit ---------------- */
+  var KR = "shifokor-reviews";
+  var reviews = function () { return store.get(KR, []); };
+  var RV = null, RR = null;   /* open review form { key, stars, body, anon }; open reply { id, text } */
+  function ratingOf(id) { var l = reviews().filter(function (r) { return r.target === id && !r.hidden; }), n = l.length; return { n: n, avg: n ? l.reduce(function (a, r) { return a + r.stars; }, 0) / n : 0 }; }
+  /* a few reviews say less than many: pull small counts towards 4 stars before ranking */
+  var rankScore = function (id) { var r = ratingOf(id); return (r.avg * r.n + 4 * 3) / (r.n + 3); };
+  var avgTxt = function (a) { return a.toFixed(1).replace(".", lang === "en" ? "." : ","); };
+  function starsTxt(n) { var full = Math.round(n); return '<span class="stars" aria-label="' + esc(L().rv_star_l(full)) + '">' + "★★★★★".slice(0, full) + '<span class="off">' + "★★★★★".slice(full) + "</span></span>"; }
+  function ratingLine(id) { var r = ratingOf(id); return r.n ? '<span class="rating">' + starsTxt(r.avg) + " <b>" + avgTxt(r.avg) + "</b> · " + L().rv_n(r.n) + "</span>" : ""; }
+  var myReview = function (kind, id) { return reviews().filter(function (r) { return r.mine && (kind === "c" ? r.consult === id : r.appt === id); })[0] || null; };
+  function rvCollect() { if (!RV) return; var b = $("rv-body"), a = $("rv-anon"); if (b) RV.body = b.value; if (a) RV.anon = a.checked; }
+  /* the form, or the review already sent; kind "c" (consultation, rates the doctor) or "v" (visit, rates the clinic) */
+  function rvCard(kind, id, targetName, forClinic) {
+    var t = L(), mine = myReview(kind, id), key = kind + id;
+    if (mine) return '<div class="dcard rvcard"><h2>' + t.rv_yours + "</h2><p>" + starsTxt(mine.stars) + "</p>" + (mine.body ? '<p class="pre" style="margin:6px 0 0">' + esc(mine.body) + "</p>" : "") + (mine.reply ? '<div class="rvreply"><b>' + t.rv_reply_h + ":</b> " + esc(mine.reply) + "</div>" : "") + "</div>";
+    if (!RV || RV.key !== key) RV = { key: key, stars: 0, body: "", anon: false };
+    return '<form class="dcard rvcard" id="rvform" data-kind="' + kind + '" data-id="' + id + '" novalidate><h2>' + (forClinic ? t.rv_ask_h_c : t.rv_ask_h) + '</h2><p class="muted" style="margin:4px 0 12px">' + esc(targetName) + " · " + t.rv_ask_p + "</p>" +
+      '<div class="rvstars" role="group" aria-label="' + t.rv_stars + '">' + [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" data-rvstar="' + n + '" aria-pressed="' + (RV.stars >= n) + '" aria-label="' + esc(t.rv_star_l(n)) + '">★</button>'; }).join("") + "</div>" +
+      '<div class="fld" style="margin-top:12px"><label for="rv-body">' + t.rv_body + '</label><textarea id="rv-body" maxlength="600" placeholder="' + esc(t.rv_body_ph) + '">' + esc(RV.body) + "</textarea></div>" +
+      '<label class="chk"><input type="checkbox" id="rv-anon"' + (RV.anon ? " checked" : "") + "><span>" + t.rv_anon + '</span></label><div class="err" id="rv-err" aria-live="polite"></div><button class="btn block" type="submit">' + t.rv_send + "</button></form>";
+  }
+  function rvList(u) {
+    var t = L(), l = reviews().filter(function (r) { return r.target === u.id && !r.hidden; }).sort(function (a, b) { return b.at - a.at; });
+    var item = function (r) { return '<div class="rvitem"><div class="rvtop">' + starsTxt(r.stars) + " <b>" + esc(r.author || t.rv_anon_name) + '</b><span class="muted"> · ' + t.rv_kind[r.kind] + " · " + fmt(new Date(r.at), { day: "numeric", month: "short" }) + "</span></div>" + (r.body ? '<p class="pre">' + esc(r.body) + "</p>" : "") + (r.reply ? '<div class="rvreply"><b>' + t.rv_reply_h + ":</b> " + esc(r.reply) + "</div>" : "") + "</div>"; };
+    return '<div class="sect" id="reviews"><h2>' + t.rv_h + " " + ratingLine(u.id) + "</h2>" + (l.length ? l.map(item).join("") : '<p class="muted">' + t.rv_none + "</p>") + '<p class="fine" style="margin-top:10px">' + t.rv_only + "</p></div>";
+  }
+  /* account page: reviews about this doctor or clinic, each with a reply box */
+  function rvMine(u) {
+    var t = L(), l = reviews().filter(function (r) { return r.target === u.id; }).sort(function (a, b) { return b.at - a.at; });
+    var item = function (r) {
+      var open = RR && RR.id === r.id;
+      return '<div class="rvitem"><div class="rvtop">' + starsTxt(r.stars) + " <b>" + esc(r.author || t.rv_anon_name) + '</b><span class="muted"> · ' + t.rv_kind[r.kind] + " · " + fmt(new Date(r.at), { day: "numeric", month: "short" }) + "</span></div>" + (r.body ? '<p class="pre">' + esc(r.body) + "</p>" : "") +
+        (open ? '<form class="rvreplyform" id="rvreply" data-id="' + r.id + '"><input id="rvreply-in" maxlength="400" value="' + esc(RR.text) + '" placeholder="' + esc(t.rv_reply_ph) + '"><button class="btn sm" type="submit">' + t.rv_reply_send + '</button><button class="btn ghost sm" type="button" data-rr="close">' + t.ap_back + "</button></form>"
+          : (r.reply ? '<div class="rvreply"><b>' + t.rv_reply_h + ":</b> " + esc(r.reply) + "</div>" : "") + '<button class="linkbtn" type="button" data-rr="' + r.id + '">' + t.rv_reply_btn + "</button>") + "</div>";
+    };
+    return '<div class="dcard" style="margin-bottom:22px"><h2>' + t.rv_mine_h + " " + ratingLine(u.id) + "</h2>" + (l.length ? l.map(item).join("") : '<p class="muted" style="margin-top:8px">' + t.rv_mine_none + "</p>") + "</div>";
+  }
+
   /* ---------------- checking clinics and doctors, Telegram notices, unread counts ---------------- */
   function trustCard(u) {
     var t = L(), pr = u.profile || {}; if (!BE || (u.role !== "clinic" && u.role !== "doctor")) return "";
@@ -972,7 +1017,7 @@
   var ADM = { list: null, busy: false, err: "" };
   function admLoad() {
     if (!BE || ADM.busy) return; ADM.busy = true;
-    BE.adminList().then(function (j) { ADM.list = j.users || []; ADM.tg = j.webhook; ADM.err = ""; }, function (x) { ADM.err = beMsg(L(), x); ADM.list = ADM.list || []; }).then(function () { ADM.busy = false; if (current.path === "/admin") render(true); });
+    BE.adminList().then(function (j) { ADM.list = j.users || []; ADM.reviews = j.reviews || []; ADM.tg = j.webhook; ADM.err = ""; }, function (x) { ADM.err = beMsg(L(), x); ADM.list = ADM.list || []; }).then(function () { ADM.busy = false; if (current.path === "/admin") render(true); });
   }
   function viewAdmin() {
     var t = L(), u = me();
@@ -992,6 +1037,7 @@
     return '<div class="wrap pad" style="max-width:900px"><h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.adm_h + '</h1><p class="lead">' + t.adm_p + "</p>" + (ADM.err ? '<p class="err">' + esc(ADM.err) + "</p>" : "") +
       '<h2 class="subh" style="margin-top:24px">' + t.adm_pending + " (" + pend.length + ")</h2>" + (pend.length ? pend.map(row).join("") : '<p class="muted">' + t.adm_none + "</p>") +
       '<h2 class="subh" style="margin-top:28px">' + t.adm_done + " (" + done.length + ")</h2>" + (done.length ? done.map(row).join("") : '<p class="muted">' + t.adm_none + "</p>") +
+      '<h2 class="subh" style="margin-top:28px">' + t.adm_rv_h + " (" + (ADM.reviews || []).length + ')</h2><p class="muted">' + t.adm_rv_p + "</p>" + ((ADM.reviews || []).length ? (ADM.reviews || []).map(function (r) { return '<div class="dcard admrow' + (r.hidden ? " past" : "") + '"><div class="rvtop">' + starsTxt(r.stars) + " <b>" + esc(r.author || t.rv_anon_name) + '</b><span class="muted"> · ' + t.adm_rv_about + ": " + esc(r.target_name) + " · " + fmt(new Date(r.created_at), { day: "numeric", month: "short" }) + (r.hidden ? " · " + t.rv_hidden : "") + "</span></div>" + (r.body ? '<p class="pre">' + esc(r.body) + "</p>" : "") + '<button class="btn ghost sm" type="button" data-admrv="' + (r.hidden ? "show" : "hide") + '" data-id="' + r.id + '">' + (r.hidden ? t.adm_rv_show : t.adm_rv_hide) + "</button></div>"; }).join("") : '<p class="muted">' + t.adm_none + "</p>") +
       (ADM.tg ? '<p style="margin-top:28px"><button class="btn ghost sm" type="button" data-act="admtg">' + ic("chat") + t.adm_tg + "</button></p>" : "") + "</div>";
   }
 
@@ -1227,6 +1273,10 @@
       APX = ds.apx === "back" || !ax ? null : { id: ax.id, mode: ds.apx, day: ax.day, time: ax.time || (ax.part === "am" ? "09:00" : "14:00"), note: ax.note || "" };
       render(true); if ($("apx-time")) $("apx-time").focus(); else if ($("apx-note")) $("apx-note").focus(); return;
     }
+    if (ds.rvstar) { rvCollect(); RV.stars = +ds.rvstar; render(true); return; }
+    if (ds.act === "rvopen") { RV = { key: "v" + ds.id, stars: 0, body: "", anon: false }; render(true); return; }
+    if (ds.rr) { if (current.path === "/account") accCollect(); var rr0 = reviews().filter(function (x) { return x.id === ds.rr; })[0]; RR = ds.rr === "close" || !rr0 ? null : { id: rr0.id, text: rr0.reply || "" }; render(true); if ($("rvreply-in")) $("rvreply-in").focus(); return; }
+    if (ds.admrv && BE) { el.disabled = true; BE.adminReview(ds.id, ds.admrv === "hide").then(function () { ADM.list = null; BE.refresh().catch(function () {}); render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
     if (ds.act === "apcancel") { apAsk = ds.id; render(true); return; }
     if (ds.act === "tglink" && BE) {
       var tw = null; try { tw = window.open("", "_blank"); } catch (x) {}   /* opened now, inside the click, so it isn't blocked as a pop-up */
@@ -1264,7 +1314,7 @@
     if (ds.act === "cleardata") { SET_ASK = true; render(true); return; }
     if (ds.act === "cleardata-no") { SET_ASK = false; render(true); return; }
     if (ds.act === "cleardata-yes") {
-      ["bookings", "status", "prices", "conf", "reports", "consults", "appts"].concat(BE ? [] : ["users", "session"]).forEach(function (k) { try { localStorage.removeItem("shifokor-" + k); } catch (x) {} });
+      ["bookings", "status", "prices", "conf", "reports", "consults", "appts", "reviews"].concat(BE ? [] : ["users", "session"]).forEach(function (k) { try { localStorage.removeItem("shifokor-" + k); } catch (x) {} });
       SET_ASK = false; cal = {}; toast(t.set_data_done); if (BE) BE.refresh().catch(function () {}); render(true); return;
     }
     if (ds.act === "near") { e.preventDefault(); closeMenu(); askLocation(); return; }
@@ -1351,6 +1401,23 @@
       accCollect();
       if (BE) { BE.apptAction(xid, okm ? "confirm" : "decline", okm ? { day: X.day, time: X.time, note: X.note } : { note: X.note }).then(xdone, function (x) { xer.textContent = beMsg(t, x); }); return; }
       var al3 = appts(); al3.forEach(function (x) { if (x.id === xid && (x.status === "new" || x.status === "confirmed")) { x.status = okm ? "confirmed" : "declined"; if (okm) { x.day = X.day; x.time = X.time; } x.note = X.note.slice(0, 300); } }); saveAppts(al3); xdone(); return;
+    }
+    if (id === "rvform") {
+      rvCollect(); var rk = e.target.dataset.kind, rid = e.target.dataset.id, rer = $("rv-err"), R0 = RV;
+      if (!(R0.stars >= 1)) { rer.textContent = t.rv_err_stars; return; }
+      var rdone = function () { RV = null; toast(t.rv_thanks); render(true); };
+      if (BE) { var ro = { stars: R0.stars, body: R0.body.trim(), anon: R0.anon }; ro[rk === "c" ? "consult" : "appt"] = rid; BE.reviewCreate(ro).then(rdone, function (x) { rer.textContent = beMsg(t, x); }); return; }
+      var rsrc = rk === "c" ? consultById(rid) : appts().filter(function (x) { return x.id === rid; })[0], rmu = me();
+      if (!rsrc || myReview(rk, rid)) { rer.textContent = t.e_reviewed; return; }
+      var nm = String((rmu && rmu.name) || (rk === "c" ? rsrc.name : rsrc.name) || "").trim().split(/\s+/);
+      var rl = reviews(); rl.push({ id: "r" + Date.now().toString(36), target: rk === "c" ? rsrc.doctorId : rsrc.clinicId, stars: R0.stars, body: R0.body.trim().slice(0, 600), author: R0.anon ? "" : nm[0] + (nm[1] ? " " + nm[1].charAt(0) + "." : ""), hidden: false, reply: "", at: Date.now(), kind: rk, consult: rk === "c" ? rid : "", appt: rk === "v" ? rid : "", mine: true });
+      store.set(KR, rl); rdone(); return;
+    }
+    if (id === "rvreply") {
+      var rpid = e.target.dataset.id, rtxt = $("rvreply-in").value.trim(); accCollect();
+      var rpdone = function () { RR = null; toast(t.rv_reply_done); render(true); };
+      if (BE) { BE.reviewReply(rpid, rtxt).then(rpdone, function (x) { toast(beMsg(t, x)); }); return; }
+      var rl2 = reviews(); rl2.forEach(function (x) { if (x.id === rpid) x.reply = rtxt.slice(0, 400); }); store.set(KR, rl2); rpdone(); return;
     }
     if (id === "hfform") { go("#/doctors?" + qs({ s: $("hf-s").value, r: $("hf-r").value })); return; }
     if (id === "prform") { go("#/prices?" + qs(prQuery())); return; }
@@ -1478,7 +1545,7 @@
   });
   /* another tab booked or changed something: refresh so a taken slot disappears here too */
   window.addEventListener("storage", function (e) { if (e.key && e.key.indexOf("shifokor-") === 0) rerender(); });
-  window.addEventListener("hashchange", function () { cancelAsk = null; apAsk = null; APX = null; render(false); });
+  window.addEventListener("hashchange", function () { cancelAsk = null; apAsk = null; APX = null; RR = null; render(false); });
 
   render(false);
   if (BE) BE.on(function () {
@@ -1487,6 +1554,8 @@
     if (p === "/account") accCollect();
     if ($("apform")) apCollect();
     if ($("apreply")) apxCollect();
+    if ($("rvform")) rvCollect();
+    if ($("rvreply-in") && RR) RR.text = $("rvreply-in").value;
     var fe = document.activeElement, fid = fe && fe.id, sel = null;
     try { sel = fid && fe.selectionStart != null ? [fe.selectionStart, fe.selectionEnd] : null; } catch (x) {}
     rerender();

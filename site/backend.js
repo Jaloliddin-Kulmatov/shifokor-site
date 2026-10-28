@@ -42,6 +42,10 @@
     };
   }
 
+  function toReview(r) {
+    return { id: r.id, target: r.target_id, stars: r.stars, body: r.body || "", author: r.author || "", hidden: !!r.hidden, reply: r.reply || "", at: Date.parse(r.created_at), kind: r.by_consult ? "c" : "v", consult: r.consult_id || "", appt: r.appt_id || "", mine: !!r.mine };
+  }
+
   function refresh() {
     if (busy) return busy;
     busy = (async function () {
@@ -55,6 +59,7 @@
       set("shifokor-session", uid);
       set("shifokor-consults", (j.consults || []).map(toConsult));
       set("shifokor-appts", (j.appts || []).map(toAppt));
+      set("shifokor-reviews", (j.reviews || []).map(toReview));
       ready = true;
       var raw = JSON.stringify(j), changed = raw !== last; last = raw;
       if (changed) listeners.forEach(function (f) { try { f(); } catch (e) { console.warn(e); } });   /* polls that bring nothing new don't redraw the page */
@@ -84,6 +89,10 @@
     tgLink: async function () { return (await call("tg_link")).url; },
     tgUnlink: async function () { await call("tg_unlink"); await refresh(); },
     adminList: function () { return call("admin_list"); },
+    adminReview: function (id, hidden) { return call("admin_review", { id: id, hidden: hidden }); },
+    /* o: { consult | appt, stars, body, anon } */
+    reviewCreate: async function (o) { await call("review_create", o); await refresh(); },
+    reviewReply: async function (id, reply) { await call("review_reply", { id: id, reply: reply }); await refresh(); },
     adminVerify: function (id, ok) { return call("admin_verify", { id: id, ok: ok }); },
     adminTgSetup: function () { return call("admin_tg_setup"); },
     createAppt: async function (a) { var j = await call("create_appt", { a: a }); await refresh(); return j.id; },

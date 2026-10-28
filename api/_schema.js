@@ -63,8 +63,33 @@ create table if not exists app_messages (
 );
 create index if not exists app_messages_consult_idx on app_messages (consult_id);
 
+-- Visit requests to a clinic: the patient picks a day and morning or afternoon, the clinic confirms the hour.
+create table if not exists app_appts (
+  id uuid primary key default gen_random_uuid(),
+  n bigint generated always as identity (start with 5001),
+  patient_id uuid not null references app_users (id) on delete cascade,
+  clinic_id uuid not null references app_users (id) on delete cascade,
+  clinic_name text not null check (char_length(clinic_name) between 1 and 200),
+  fac text check (fac is null or char_length(fac) <= 40),
+  day date not null,
+  part text not null check (part in ('am', 'pm')),
+  who text not null default 'self' check (who in ('self', 'other')),
+  name text not null check (char_length(name) between 1 and 200),
+  phone text not null check (phone ~ '^998[0-9]{9}$'),
+  spec text check (spec is null or char_length(spec) <= 20),
+  reason text check (reason is null or char_length(reason) <= 500),
+  status text not null default 'new' check (status in ('new', 'confirmed', 'declined', 'cancelled')),
+  appt_time text check (appt_time is null or appt_time ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
+  note text check (note is null or char_length(note) <= 300),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists app_appts_patient_idx on app_appts (patient_id);
+create index if not exists app_appts_clinic_idx on app_appts (clinic_id);
+
 alter table app_users enable row level security;
 alter table app_sessions enable row level security;
 alter table app_consults enable row level security;
 alter table app_messages enable row level security;
+alter table app_appts enable row level security;
 `;

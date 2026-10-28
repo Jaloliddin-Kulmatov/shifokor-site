@@ -1,4 +1,4 @@
-/* Server connection: accounts, profiles, consultation applications and messages through /api/app.
+/* Server connection: accounts, profiles, consultation applications, messages and visit requests through /api/app.
    The browser never sees the database connection string; it only holds a sign-in token.
    Without config.api (local preview, or no DATABASE_URL on Vercel) window.SB stays null and the site runs in demo mode.
    Server data is mirrored into the same localStorage keys the app already reads, so the views stay unchanged. */
@@ -6,7 +6,7 @@
   var C = window.SHIFOKOR_CONFIG || {};
   if (!C.api) { window.SB = null; return; }
 
-  var TK = "shifokor-token", token = null, uid = null, listeners = [], ready = false, busy = null;
+  var TK = "shifokor-token", token = null, uid = null, listeners = [], ready = false, busy = null, last = "";
   try { token = localStorage.getItem(TK); } catch (e) {}
   var set = function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   function setToken(t) { token = t || null; try { if (token) localStorage.setItem(TK, token); else localStorage.removeItem(TK); } catch (e) {} }
@@ -34,6 +34,14 @@
     };
   }
 
+  function toAppt(a) {
+    return {
+      id: a.id, n: Number(a.n), at: Date.parse(a.created_at), userId: a.patient_id, clinicId: a.clinic_id, clinicName: a.clinic_name, fac: a.fac || "",
+      day: String(a.day).slice(0, 10), part: a.part, who: a.who, name: a.name, phone: a.phone, spec: a.spec || "", reason: a.reason || "",
+      status: a.status, time: a.appt_time || "", note: a.note || ""
+    };
+  }
+
   function refresh() {
     if (busy) return busy;
     busy = (async function () {
@@ -45,8 +53,10 @@
       set("shifokor-users", (j.users || []).map(toUser));
       set("shifokor-session", uid);
       set("shifokor-consults", (j.consults || []).map(toConsult));
+      set("shifokor-appts", (j.appts || []).map(toAppt));
       ready = true;
-      listeners.forEach(function (f) { try { f(); } catch (e) { console.warn(e); } });
+      var raw = JSON.stringify(j), changed = raw !== last; last = raw;
+      if (changed) listeners.forEach(function (f) { try { f(); } catch (e) { console.warn(e); } });   /* polls that bring nothing new don't redraw the page */
     })().finally(function () { busy = null; });
     return busy;
   }
@@ -68,6 +78,9 @@
     saveProfile: async function (u) { await call("save_profile", u); await refresh(); },
     createConsult: async function (r, notes) { var j = await call("create_consult", { c: r, notes: notes || [] }); await refresh(); return j.id; },
     addMessage: async function (cid, kind, name, body) { await call("message", { id: cid, body: body }); await refresh(); },
+    createAppt: async function (a) { var j = await call("create_appt", { a: a }); await refresh(); return j.id; },
+    /* action: "confirm" (data: day, time, note), "decline" (note) or "cancel" */
+    apptAction: async function (id, action, data) { await call("appt_" + action, Object.assign({ id: id }, data || {})); await refresh(); },
     updateConsult: async function (cid, patch, note) {
       var action = patch.status === "accepted" ? "accept" : patch.status === "done" ? "finish" : patch.call ? "call" : "";
       if (!action) return;

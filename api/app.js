@@ -1,8 +1,10 @@
 // Shifokor server API (Vercel function). The only place that reads the database connection string.
 // POST /api/app with JSON { action, ... }; signed-in requests send "Authorization: Bearer <token>".
-const { Pool } = require("pg");
+const { Pool, types } = require("pg");
 const crypto = require("crypto");
 const SCHEMA = require("./_schema");
+
+types.setTypeParser(1082, (v) => v);   // keep "date" columns as YYYY-MM-DD strings, not local-midnight Date objects
 
 // pg lets a connection-string sslmode override the ssl option below, so strip it and set TLS here.
 const RAW = (process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.SUPABASE_DB_URL || "").trim();
@@ -116,6 +118,7 @@ const ACTIONS = {
     const pub = await q("select id, role, name, case when role = 'clinic' then phone end as phone, tg, profile, updated_at from app_users where role in ('doctor', 'clinic') order by created_at");
     const users = pub.rows.map(userOut);
     let consults = [];
+    let appts = [];
     let mine = null;
     if (me) {
       mine = Object.assign(userOut(me), { email: me.email || "", phone: me.phone || "" });
@@ -132,8 +135,9 @@ const ACTIONS = {
         ms.rows.forEach((m) => { (by[m.consult_id] = by[m.consult_id] || []).push(m); });
         consults.forEach((c) => { c.messages = by[c.id] || []; });
       }
+      appts = (await q("select * from app_appts where patient_id = $1 or clinic_id = $1 order by created_at desc limit 300", [me.id])).rows;
     }
-    return { me: mine, users, consults };
+    return { me: mine, users, consults, appts };
   },
 
   async signup(b) {
@@ -259,8 +263,68 @@ const ACTIONS = {
     await q("update app_consults set status = 'done', outcome = $2 where id = $1", [c.id, outcome]);
     await sysNote(c.id, b.note);
     return { ok: true };
+  },
+
+  // ---------- visit requests ----------
+  async create_appt(b, me) {
+    need(me);
+    const a = b.a || {};
+    if (!UUID.test(String(a.clinic || ""))) bad("clinic");
+    const clinic = (await q("select id, name from app_users where id = $1 and role = 'clinic'", [a.clinic])).rows[0];
+    if (!clinic) bad("clinic");
+    if (clinic.id === me.id) throw new Fail(403, "forbidden");
+    const day = dayOf(a.day);
+    const part = a.part === "am" || a.part === "pm" ? a.part : bad("part");
+    const who = a.who === "other" ? "other" : "self";
+    const name = str(a.name, 200) || bad("name");
+    const phone = phoneOf(a.phone) || bad("phone");
+    const open = (await q("select count(*)::int as n, count(*) filter (where clinic_id = $2 and day = $3)::int as same from app_appts where patient_id = $1 and status in ('new', 'confirmed') and day >= $4", [me.id, clinic.id, day, today()])).rows[0];
+    if (open.same) throw new Fail(409, "dup");
+    if (open.n >= 5) throw new Fail(429, "limit");
+    const r = await q(
+      "insert into app_appts (patient_id, clinic_id, clinic_name, fac, day, part, who, name, phone, spec, reason) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning id",
+      [me.id, clinic.id, clinic.name, opt(a.fac, 40), day, part, who, name, phone, opt(a.spec, 20), opt(a.reason, 500)]
+    );
+    return { id: r.rows[0].id };
+  },
+
+  // the clinic sets the hour (and may move the day); the patient sees it in "My visits"
+  async appt_confirm(b, me) {
+    need(me);
+    if (!UUID.test(String(b.id || ""))) bad("id");
+    const time = /^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(String(b.time || "")) ? b.time : bad("time");
+    const r = await q("update app_appts set status = 'confirmed', day = $3, appt_time = $4, note = $5, updated_at = now() where id = $1 and clinic_id = $2 and status in ('new', 'confirmed') returning id", [b.id, me.id, dayOf(b.day), time, opt(b.note, 300)]);
+    if (!r.rows[0]) throw new Fail(409, "closed");
+    return { ok: true };
+  },
+
+  async appt_decline(b, me) {
+    need(me);
+    if (!UUID.test(String(b.id || ""))) bad("id");
+    const r = await q("update app_appts set status = 'declined', note = $3, updated_at = now() where id = $1 and clinic_id = $2 and status in ('new', 'confirmed') returning id", [b.id, me.id, opt(b.note, 300)]);
+    if (!r.rows[0]) throw new Fail(409, "closed");
+    return { ok: true };
+  },
+
+  async appt_cancel(b, me) {
+    need(me);
+    if (!UUID.test(String(b.id || ""))) bad("id");
+    const r = await q("update app_appts set status = 'cancelled', updated_at = now() where id = $1 and patient_id = $2 and status in ('new', 'confirmed') returning id", [b.id, me.id]);
+    if (!r.rows[0]) throw new Fail(409, "closed");
+    return { ok: true };
   }
 };
+
+// Uzbekistan is UTC+5 all year. Requests may be made for today and the next 30 days.
+const today = () => new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);
+function dayOf(v) {
+  const s = String(v || "");
+  const ms = /^\d{4}-\d{2}-\d{2}$/.test(s) ? Date.parse(s + "T00:00:00Z") : NaN;
+  if (isNaN(ms) || new Date(ms).toISOString().slice(0, 10) !== s) bad("date");
+  const max = new Date(Date.parse(today() + "T00:00:00Z") + 30 * 864e5).toISOString().slice(0, 10);
+  if (s < today() || s > max) bad("date");
+  return s;
+}
 
 function send(res, status, data) {
   res.statusCode = status;

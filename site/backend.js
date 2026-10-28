@@ -6,7 +6,7 @@
   var C = window.SHIFOKOR_CONFIG || {};
   if (!C.api) { window.SB = null; return; }
 
-  var TK = "shifokor-token", token = null, uid = null, listeners = [], ready = false, busy = null, last = "";
+  var TK = "shifokor-token", token = null, uid = null, listeners = [], ready = false, busy = null, last = "", notify = { tg: false, sms: false };
   try { token = localStorage.getItem(TK); } catch (e) {}
   var set = function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   function setToken(t) { token = t || null; try { if (token) localStorage.setItem(TK, token); else localStorage.removeItem(TK); } catch (e) {} }
@@ -22,7 +22,7 @@
   }
 
   function toUser(u) {
-    return { id: u.id, role: u.role, name: u.name, email: u.email || "", phone: u.phone || "", tg: u.tg || "", profile: u.profile || {}, updated: String(u.updated_at || "").slice(0, 10), remote: true };
+    return { id: u.id, role: u.role, name: u.name, email: u.email || "", phone: u.phone || "", tg: u.tg || "", profile: u.profile || {}, updated: String(u.updated_at || "").slice(0, 10), verified: !!u.verified, tgLinked: !!u.tg_linked, admin: !!u.admin, remote: true };
   }
   function toConsult(c) {
     return {
@@ -49,6 +49,7 @@
       try { j = await call("sync"); }
       catch (e) { if (e.status === 401 && token) { setToken(null); j = await call("sync"); } else throw e; }
       uid = j.me ? j.me.id : null;
+      notify = j.notify || notify;
       if (!uid && token) setToken(null);
       set("shifokor-users", (j.users || []).map(toUser));
       set("shifokor-session", uid);
@@ -78,6 +79,13 @@
     saveProfile: async function (u) { await call("save_profile", u); await refresh(); },
     createConsult: async function (r, notes) { var j = await call("create_consult", { c: r, notes: notes || [] }); await refresh(); return j.id; },
     addMessage: async function (cid, kind, name, body) { await call("message", { id: cid, body: body }); await refresh(); },
+    notify: function () { return notify; },
+    /* opens the bot in Telegram; pressing Start there links this account */
+    tgLink: async function () { return (await call("tg_link")).url; },
+    tgUnlink: async function () { await call("tg_unlink"); await refresh(); },
+    adminList: function () { return call("admin_list"); },
+    adminVerify: function (id, ok) { return call("admin_verify", { id: id, ok: ok }); },
+    adminTgSetup: function () { return call("admin_tg_setup"); },
     createAppt: async function (a) { var j = await call("create_appt", { a: a }); await refresh(); return j.id; },
     /* action: "confirm" (data: day, time, note), "decline" (note) or "cancel" */
     apptAction: async function (id, action, data) { await call("appt_" + action, Object.assign({ id: id }, data || {})); await refresh(); },

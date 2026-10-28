@@ -87,6 +87,16 @@ create table if not exists app_appts (
 create index if not exists app_appts_patient_idx on app_appts (patient_id);
 create index if not exists app_appts_clinic_idx on app_appts (clinic_id);
 
+-- Added later; "add column if not exists" upgrades databases created before.
+-- verified_at: an admin checked this clinic or doctor. For a clinic it covers the hospital in verified_fac only.
+-- tg_chat: the Telegram chat that gets this user's notices, linked through tg_code (a one-hour code, stored hashed).
+alter table app_users add column if not exists verified_at timestamptz;
+alter table app_users add column if not exists verified_fac text;
+alter table app_users add column if not exists tg_chat bigint;
+alter table app_users add column if not exists tg_code text;
+alter table app_users add column if not exists tg_code_at timestamptz;
+create unique index if not exists app_users_tg_code_idx on app_users (tg_code);
+
 alter table app_users enable row level security;
 alter table app_sessions enable row level security;
 alter table app_consults enable row level security;

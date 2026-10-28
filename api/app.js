@@ -3,6 +3,7 @@
 const { Pool, types } = require("pg");
 const crypto = require("crypto");
 const SCHEMA = require("./_schema");
+const N = require("./_notify");
 
 types.setTypeParser(1082, (v) => v);   // keep "date" columns as YYYY-MM-DD strings, not local-midnight Date objects
 
@@ -91,7 +92,7 @@ async function newSession(userId) {
 async function whoAmI(req) {
   const m = /^Bearer\s+([A-Za-z0-9_-]{20,100})$/.exec(req.headers.authorization || "");
   if (!m) return null;
-  const r = await q("select u.id, u.role, u.name, u.email, u.phone, u.tg, u.profile, u.updated_at from app_sessions s join app_users u on u.id = s.user_id where s.token_hash = $1 and s.expires_at > now()", [sha(m[1])]);
+  const r = await q("select u.id, u.role, u.name, u.email, u.phone, u.tg, u.profile, u.updated_at, u.verified_at, u.verified_fac, u.tg_chat from app_sessions s join app_users u on u.id = s.user_id where s.token_hash = $1 and s.expires_at > now()", [sha(m[1])]);
   return r.rows[0] ? Object.assign(r.rows[0], { tokenHash: sha(m[1]) }) : null;
 }
 const need = (me) => { if (!me) throw new Fail(401, "auth"); return me; };
@@ -100,7 +101,14 @@ const DEFAULT_PROFILE = {
   clinic: { ctype: "clinic", own: "s", svc: [] },
   patient: {}
 };
-const userOut = (u) => ({ id: u.id, role: u.role, name: u.name, phone: u.phone || "", tg: u.tg || "", profile: u.profile || {}, updated_at: u.updated_at });
+// A clinic's check covers the hospital it claimed at the time; claiming another one needs a new check.
+const isVerified = (u) => !!u.verified_at && (u.role !== "clinic" || (u.verified_fac || "") === String((u.profile || {}).fac || ""));
+const userOut = (u) => ({ id: u.id, role: u.role, name: u.name, phone: u.phone || "", tg: u.tg || "", profile: u.profile || {}, updated_at: u.updated_at, verified: isVerified(u) });
+// Admins are named only in the server's environment: ADMIN_EMAILS and/or ADMIN_PHONES, comma-separated.
+const listEnv = (k) => (process.env[k] || "").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
+const isAdmin = (me) => !!me && ((me.email && listEnv("ADMIN_EMAILS").includes(me.email)) || (me.phone && listEnv("ADMIN_PHONES").map((x) => x.replace(/\D/g, "")).includes(me.phone)));
+let SITE = "";   // this deployment's address, for links in notices
+const notifyUser = async (id, text) => { const r = (await q("select tg_chat from app_users where id = $1", [id])).rows[0]; return !!(r && r.tg_chat) && N.tgSend(r.tg_chat, text); };
 async function consultFor(me, id) {
   if (!UUID.test(String(id || ""))) bad("id");
   const r = await q("select * from app_consults where id = $1", [id]);
@@ -115,13 +123,13 @@ async function sysNote(consultId, note) {
 // ---------- actions ----------
 const ACTIONS = {
   async sync(b, me) {
-    const pub = await q("select id, role, name, case when role = 'clinic' then phone end as phone, tg, profile, updated_at from app_users where role in ('doctor', 'clinic') order by created_at");
+    const pub = await q("select id, role, name, case when role = 'clinic' then phone end as phone, tg, profile, updated_at, verified_at, verified_fac from app_users where role in ('doctor', 'clinic') order by created_at");
     const users = pub.rows.map(userOut);
     let consults = [];
     let appts = [];
     let mine = null;
     if (me) {
-      mine = Object.assign(userOut(me), { email: me.email || "", phone: me.phone || "" });
+      mine = Object.assign(userOut(me), { email: me.email || "", phone: me.phone || "", tg_linked: !!me.tg_chat, admin: isAdmin(me) });
       const i = users.findIndex((u) => u.id === me.id);
       if (i > -1) users[i] = mine; else users.push(mine);
       const cs = await q(
@@ -137,7 +145,7 @@ const ACTIONS = {
       }
       appts = (await q("select * from app_appts where patient_id = $1 or clinic_id = $1 order by created_at desc limit 300", [me.id])).rows;
     }
-    return { me: mine, users, consults, appts };
+    return { me: mine, users, consults, appts, notify: { tg: N.TG, sms: N.SMS } };
   },
 
   async signup(b) {
@@ -189,8 +197,10 @@ const ACTIONS = {
     const email = emailOf(b.email);
     const phone = phoneOf(b.phone);
     if (!email && !phone) bad("contact");
+    const prof = profileOf(b.profile), was = me.profile || {};
+    const recheck = name !== me.name || String(prof.lic || "") !== String(was.lic || "") || (me.role === "clinic" && String(prof.fac || "") !== String(was.fac || ""));
     try {
-      await q("update app_users set name = $2, email = $3, phone = $4, tg = $5, profile = $6, updated_at = now() where id = $1", [me.id, name, email, phone, tgOf(b.tg), profileOf(b.profile)]);
+      await q("update app_users set name = $2, email = $3, phone = $4, tg = $5, profile = $6, verified_at = case when $7::boolean then null else verified_at end, updated_at = now() where id = $1", [me.id, name, email, phone, tgOf(b.tg), prof, recheck]);
     } catch (e) {
       if (e.code === "23505") throw new Fail(409, "exists");
       throw e;
@@ -219,6 +229,7 @@ const ACTIONS = {
     );
     const id = r.rows[0].id;
     for (const note of (Array.isArray(b.notes) ? b.notes : []).slice(0, 3)) await sysNote(id, note);
+    if (doc) await notifyUser(doc, "Shifokor: sizga yangi onlayn maslahat arizasi. " + SITE + "/#/consult/" + id);
     return { id };
   },
 
@@ -232,6 +243,8 @@ const ACTIONS = {
     else throw new Fail(403, "forbidden");
     const body = str(b.body, 2000) || bad("body");
     await q("insert into app_messages (consult_id, sender, kind, name, body) values ($1, $2, $3, $4, $5)", [c.id, me.id, kind, name, body]);
+    if (kind === "d") await notifyUser(c.patient_id, "Shifokor: shifokor " + me.name + " javob yozdi (ariza №" + c.n + "). " + SITE + "/#/consult/" + c.id);
+    else if (c.doctor_id) await notifyUser(c.doctor_id, "Shifokor: bemor yangi xabar yozdi (ariza №" + c.n + "). " + SITE + "/#/consult/" + c.id);
     return { ok: true };
   },
 
@@ -239,9 +252,10 @@ const ACTIONS = {
     need(me);
     if (me.role !== "doctor") throw new Fail(403, "forbidden");
     if (!UUID.test(String(b.id || ""))) bad("id");
-    const r = await q("update app_consults set status = 'accepted', doctor_id = $1, doctor_name = $2 where id = $3 and status = 'new' and (doc is null or doc = $1) returning id", [me.id, me.name, b.id]);
+    const r = await q("update app_consults set status = 'accepted', doctor_id = $1, doctor_name = $2 where id = $3 and status = 'new' and (doc is null or doc = $1) returning id, n, patient_id", [me.id, me.name, b.id]);
     if (!r.rows[0]) throw new Fail(409, "taken");
     await sysNote(b.id, b.note);
+    await notifyUser(r.rows[0].patient_id, "Shifokor: shifokor " + me.name + " arizangizni qabul qildi (№" + r.rows[0].n + "). " + SITE + "/#/consult/" + b.id);
     return { ok: true };
   },
 
@@ -270,9 +284,10 @@ const ACTIONS = {
     need(me);
     const a = b.a || {};
     if (!UUID.test(String(a.clinic || ""))) bad("clinic");
-    const clinic = (await q("select id, name from app_users where id = $1 and role = 'clinic'", [a.clinic])).rows[0];
+    const clinic = (await q("select id, role, name, profile, verified_at, verified_fac, tg_chat from app_users where id = $1 and role = 'clinic'", [a.clinic])).rows[0];
     if (!clinic) bad("clinic");
     if (clinic.id === me.id) throw new Fail(403, "forbidden");
+    if (!isVerified(clinic)) throw new Fail(403, "unverified");
     const day = dayOf(a.day);
     const part = a.part === "am" || a.part === "pm" ? a.part : bad("part");
     const who = a.who === "other" ? "other" : "self";
@@ -282,9 +297,10 @@ const ACTIONS = {
     if (open.same) throw new Fail(409, "dup");
     if (open.n >= 5) throw new Fail(429, "limit");
     const r = await q(
-      "insert into app_appts (patient_id, clinic_id, clinic_name, fac, day, part, who, name, phone, spec, reason) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning id",
+      "insert into app_appts (patient_id, clinic_id, clinic_name, fac, day, part, who, name, phone, spec, reason) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning id, n",
       [me.id, clinic.id, clinic.name, opt(a.fac, 40), day, part, who, name, phone, opt(a.spec, 20), opt(a.reason, 500)]
     );
+    if (clinic.tg_chat) await N.tgSend(clinic.tg_chat, "Shifokor: yangi qabul so‘rovi №" + r.rows[0].n + ". " + name + ", " + N.dayUz(day) + ", " + (part === "am" ? "ertalab" : "tushdan keyin") + ". " + SITE + "/#/account");
     return { id: r.rows[0].id };
   },
 
@@ -293,27 +309,100 @@ const ACTIONS = {
     need(me);
     if (!UUID.test(String(b.id || ""))) bad("id");
     const time = /^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(String(b.time || "")) ? b.time : bad("time");
-    const r = await q("update app_appts set status = 'confirmed', day = $3, appt_time = $4, note = $5, updated_at = now() where id = $1 and clinic_id = $2 and status in ('new', 'confirmed') returning id", [b.id, me.id, dayOf(b.day), time, opt(b.note, 300)]);
+    const r = await q("update app_appts set status = 'confirmed', day = $3, appt_time = $4, note = $5, updated_at = now() where id = $1 and clinic_id = $2 and status in ('new', 'confirmed') returning *", [b.id, me.id, dayOf(b.day), time, opt(b.note, 300)]);
     if (!r.rows[0]) throw new Fail(409, "closed");
+    const a = r.rows[0];
+    await tellPatient(a, "Shifokor: " + a.clinic_name + " qabulingizni tasdiqladi: " + N.dayUz(a.day) + ", soat " + a.appt_time + "." + (a.note ? " " + a.note : ""));
     return { ok: true };
   },
 
   async appt_decline(b, me) {
     need(me);
     if (!UUID.test(String(b.id || ""))) bad("id");
-    const r = await q("update app_appts set status = 'declined', note = $3, updated_at = now() where id = $1 and clinic_id = $2 and status in ('new', 'confirmed') returning id", [b.id, me.id, opt(b.note, 300)]);
+    const r = await q("update app_appts set status = 'declined', note = $3, updated_at = now() where id = $1 and clinic_id = $2 and status in ('new', 'confirmed') returning *", [b.id, me.id, opt(b.note, 300)]);
     if (!r.rows[0]) throw new Fail(409, "closed");
+    const a = r.rows[0];
+    await tellPatient(a, "Shifokor: " + a.clinic_name + " " + N.dayUz(a.day) + " uchun so‘rovingizni rad etdi." + (a.note ? " " + a.note : "") + " Boshqa kunni tanlang.");
     return { ok: true };
   },
 
   async appt_cancel(b, me) {
     need(me);
     if (!UUID.test(String(b.id || ""))) bad("id");
-    const r = await q("update app_appts set status = 'cancelled', updated_at = now() where id = $1 and patient_id = $2 and status in ('new', 'confirmed') returning id", [b.id, me.id]);
+    const r = await q("update app_appts set status = 'cancelled', updated_at = now() where id = $1 and patient_id = $2 and status in ('new', 'confirmed') returning *", [b.id, me.id]);
     if (!r.rows[0]) throw new Fail(409, "closed");
+    const a = r.rows[0];
+    await notifyUser(a.clinic_id, "Shifokor: so‘rov №" + a.n + " bekor qilindi (" + a.name + ", " + N.dayUz(a.day) + ").");
     return { ok: true };
+  },
+
+  // ---------- Telegram notices ----------
+  // returns a t.me link; opening it and pressing Start links this account's chat (see telegramHook)
+  async tg_link(b, me) {
+    need(me);
+    if (!N.TG) throw new Fail(503, "no_tg");
+    const code = crypto.randomBytes(12).toString("base64url");
+    await q("update app_users set tg_code = $2, tg_code_at = now() where id = $1", [me.id, sha(code)]);
+    return { url: "https://t.me/" + (await N.tgBotName()) + "?start=" + code };
+  },
+  async tg_unlink(b, me) {
+    need(me);
+    await q("update app_users set tg_chat = null where id = $1", [me.id]);
+    return { ok: true };
+  },
+
+  // ---------- checking clinics and doctors (admins only) ----------
+  async admin_list(b, me) {
+    if (!isAdmin(need(me))) throw new Fail(403, "forbidden");
+    const r = await q("select id, role, name, email, phone, tg, profile, created_at, updated_at, verified_at, verified_fac from app_users where role in ('clinic', 'doctor') order by verified_at nulls first, created_at desc limit 500");
+    return { users: r.rows.map((u) => Object.assign(userOut(u), { email: u.email || "", phone: u.phone || "", created_at: u.created_at, verified_at: u.verified_at })), webhook: N.TG };
+  },
+  async admin_verify(b, me) {
+    if (!isAdmin(need(me))) throw new Fail(403, "forbidden");
+    if (!UUID.test(String(b.id || ""))) bad("id");
+    const ok = b.ok === true;
+    const r = await q("update app_users set verified_at = case when $2::boolean then now() end, verified_fac = case when $2::boolean then profile->>'fac' end where id = $1 and role in ('clinic', 'doctor') returning id", [b.id, ok]);
+    if (!r.rows[0]) throw new Fail(404, "not_found");
+    await notifyUser(b.id, ok ? "Shifokor: hisobingiz tekshirildi va tasdiqlandi." + " " + SITE + "/#/account" : "Shifokor: hisobingiz tasdiqlanmadi. Ma’lumotlarni tekshirib, qayta saqlang. " + SITE + "/#/account");
+    return { ok: true };
+  },
+  // points the bot at this deployment (the build does this too, when it can)
+  async admin_tg_setup(b, me) {
+    if (!isAdmin(need(me))) throw new Fail(403, "forbidden");
+    if (!N.TG) throw new Fail(503, "no_tg");
+    await N.tgApi("setWebhook", { url: SITE + "/api/app?tg=hook", secret_token: N.TG_SECRET, allowed_updates: ["message"] });
+    return { ok: true, bot: await N.tgBotName() };
   }
 };
+
+// a visit request's patient: Telegram if they linked it, otherwise an SMS to the phone on the request
+async function tellPatient(a, text) {
+  if (await notifyUser(a.patient_id, text)) return;
+  await N.sms(a.phone, text);
+}
+
+// Telegram calls POST /api/app?tg=hook for messages to the bot. "/start <code>" links the chat, "/stop" unlinks it.
+async function telegramHook(req, res) {
+  if (!N.TG || req.headers["x-telegram-bot-api-secret-token"] !== N.TG_SECRET) return send(res, 403, { error: "forbidden" });
+  let u = req.body;
+  if (typeof u === "string") { try { u = JSON.parse(u); } catch (e) { u = null; } }
+  const m = u && u.message, chat = m && m.chat && m.chat.id, text = String((m && m.text) || "").trim();
+  if (!chat || !m.chat || m.chat.type !== "private") return send(res, 200, { ok: true });
+  try {
+    await migrate();
+    const start = /^\/start(?:\s+([A-Za-z0-9_-]{8,64}))?$/.exec(text);
+    if (start && start[1]) {
+      const r = await q("update app_users set tg_chat = $2, tg_code = null where tg_code = $1 and tg_code_at > now() - interval '1 hour' returning name", [sha(start[1]), chat]);
+      await N.tgSend(chat, r.rows[0] ? "Ulandi, " + r.rows[0].name + ". Qabul va maslahat javoblari shu yerga keladi. O‘chirish uchun /stop yozing." : "Havola eskirgan. Shifokor saytida «Telegramni ulash» tugmasini qayta bosing.");
+    } else if (/^\/stop$/.test(text)) {
+      await q("update app_users set tg_chat = null where tg_chat = $1", [chat]);
+      await N.tgSend(chat, "Xabarnomalar o‘chirildi.");
+    } else {
+      await N.tgSend(chat, "Bu Shifokor xabarnomalari boti. Ulash uchun saytda «Telegramni ulash» tugmasini bosing.");
+    }
+  } catch (e) { console.error("tg hook", e && e.message); }
+  return send(res, 200, { ok: true });
+}
 
 // Uzbekistan is UTC+5 all year. Requests may be made for today and the next 30 days.
 const today = () => new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);
@@ -356,6 +445,8 @@ module.exports = async function handler(req, res) {
   }
   if (req.method !== "POST") return send(res, 405, { error: "method" });
   if (!CONN) return send(res, 503, { error: "no_database" });
+  SITE = "https://" + String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim();
+  if (/[?&]tg=hook\b/.test(req.url || "")) return telegramHook(req, res);
   let body = req.body;
   if (typeof body === "string") { try { body = JSON.parse(body); } catch (e) { body = null; } }
   if (!body || typeof body !== "object") return send(res, 400, { error: "invalid" });

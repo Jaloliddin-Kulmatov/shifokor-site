@@ -35,6 +35,14 @@ Add **one** environment variable (Project → Settings → Environment Variables
 
 For Supabase, copy it from **Connect → Connection string → Method: Transaction pooler** (host `…pooler.supabase.com`, port `6543`) and replace `[YOUR-PASSWORD]` with the database password. The "Direct connection" string (`db.<project>.supabase.co`) works over IPv6 only, which Vercel functions can't reach. If the password has special characters, percent-encode them.
 
+Optional variables (add them, then redeploy):
+
+| Name | What it turns on |
+|---|---|
+| `ADMIN_EMAILS` / `ADMIN_PHONES` | Comma-separated emails or `998…` phone numbers of the people who check clinics and doctors. Signed in, they see **Menyu → Tekshiruv** (`#/admin`). |
+| `TELEGRAM_BOT_TOKEN` | Telegram notices. Create a bot with [@BotFather](https://t.me/BotFather) and paste its token. Production deploys point the bot at `/api/app?tg=hook` by themselves; an admin can also press "Telegram botni shu saytga ulash" on the Tekshiruv page. |
+| `ESKIZ_EMAIL`, `ESKIZ_PASSWORD`, `ESKIZ_FROM` | SMS through [Eskiz.uz](https://eskiz.uz) for patients without Telegram (visit confirmed or declined). Eskiz must approve the message texts first; `ESKIZ_FROM` defaults to `4546`. |
+
 Then redeploy. On the first request the server creates its tables (`app_users`, `app_sessions`, `app_consults`, `app_messages`, `app_appts`) by itself, including new ones added later. Without `DATABASE_URL` the site runs in demo mode.
 
 ## How the backend works
@@ -42,10 +50,12 @@ Then redeploy. On the first request the server creates its tables (`app_users`, 
 - The connection string lives only on the server (`api/app.js`); the browser gets nothing but a sign-in token.
 - Accounts: patients, doctors and clinics sign up with an email or a +998 phone number and a password (stored as a scrypt hash). Sign-in works with either. Sessions last 30 days.
 - Applications and messages: patients see only their own; doctors see open applications for them and the ones they accepted; only the patient and the accepted doctor can write in a consultation.
+- Checks: a clinic takes visit requests only after an admin confirms it (for the hospital it claimed; claiming another hospital or changing the name or licence needs a new check). Doctors show "Checked" once confirmed. Verify with an official source, such as the hospital's official phone number or the licence register.
+- Notices: people link Telegram from their account ("Telegramni ulash" opens the bot; pressing Start links the chat). Patients hear when a visit is confirmed or declined and when a doctor accepts or replies; clinics hear about new and cancelled requests; doctors about applications sent to them. Without Telegram, visit answers go by SMS when Eskiz is set up. The site also shows unread counts on "Qabullarim" and on a clinic's account button.
 - Visit requests: only the patient who sent one and the clinic it went to can see it. A patient can have at most 5 open requests and one per clinic per day; days must be within the next 30 days (Tashkent time).
-- Chat and requests refresh every few seconds (no live push, no SMS yet).
+- Chat and requests refresh every few seconds while the page is open.
 - Row-level security is on with no policies, so Supabase's public Data API can't read these tables even if its keys leak.
-- Not yet: rate limiting on sign-in, password reset, email or SMS verification.
+- Not yet: rate limiting on sign-in, password reset, email or phone verification of accounts.
 
 Use test data only on servers outside Uzbekistan. Real patient data must be stored on servers in Uzbekistan.
 

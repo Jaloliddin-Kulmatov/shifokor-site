@@ -652,3 +652,10 @@ html.big-text body { font-size: 18.5px; }
 .apreply { grid-column: 1 / -1; display: grid; gap: 4px; padding: 14px; border-radius: 12px; background: var(--accent-soft); }
 .apreply .btns { display: flex; gap: 10px; flex-wrap: wrap; }
 .apreply input, .apreply select { width: 100%; }
+
+/* ---------- unread counts, checks ---------- */
+a[data-n]::after { content: attr(data-n); display: inline-block; min-width: 18px; height: 18px; padding: 0 5px; margin-left: 6px; border-radius: 99px; background: var(--risk); color: #fff; font: 700 0.72rem/18px var(--font-body); text-align: center; vertical-align: 1px; }
+.admrow + .admrow { margin-top: 12px; }
+.admrow h3 { font-size: 1.1rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.note-box .ic, .badge .ic { vertical-align: -2px; }
+.menu a[hidden] { display: none !important; }

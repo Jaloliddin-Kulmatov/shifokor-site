@@ -611,3 +611,35 @@ a.visit.cs-row:hover { border-color: var(--accent); }
 .dsrow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 10px; align-items: end; }
 .dsrow .btn { height: 46px; }
 @media (max-width: 760px) { .dsrow { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- simple home: four clear actions ---------- */
+.acts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 20px; }
+.act { display: grid; gap: 6px; align-content: start; padding: 22px 20px; border-radius: var(--r-card, 18px); background: var(--surface); border: 1.5px solid var(--line); color: var(--ink); text-decoration: none; box-shadow: var(--soft-shadow, none); transition: border-color 0.15s, transform 0.15s; }
+.act:hover { border-color: var(--accent); transform: translateY(-2px); }
+.act-ic { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); margin-bottom: 8px; }
+.act-ic svg { width: 26px; height: 26px; }
+.act:nth-child(2) .act-ic, .act:nth-child(4) .act-ic { background: var(--peach, #FDEDE4); color: #C2613F; }
+.act b { font: 700 1.2rem var(--font-display); }
+.act span:last-child { color: var(--muted); font-size: 0.95rem; }
+@media (max-width: 960px) { .acts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .acts { grid-template-columns: minmax(0, 1fr); } .act { grid-template-columns: auto minmax(0, 1fr); column-gap: 14px; padding: 16px; } .act-ic { grid-row: span 2; margin: 0; } }
+.srow3 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto; gap: 10px; }
+.srow3 .btn { align-self: end; height: 48px; }
+@media (max-width: 760px) { .srow3 { grid-template-columns: minmax(0, 1fr); } .srow3 .btn { width: 100%; } }
+.nearbig { width: 100%; margin-top: 10px; height: 50px; font-size: 1.02rem; }
+.hero h1 { margin-top: 0; }
+.joinline { margin-top: 30px; color: var(--muted); }
+.joinline a { font-weight: 600; }
+
+/* ---------- settings ---------- */
+html.big-text { font-size: 112.5%; }
+html.big-text body { font-size: 18.5px; }
+.setcard { padding: 6px 22px; }
+.setrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 24px; align-items: center; padding: 18px 0; border-top: 1px solid var(--line); }
+.setrow:first-child { border-top: 0; }
+.setrow h3 { font-size: 1.05rem; }
+.setrow p { font-size: 0.9rem; margin-top: 2px; }
+.setseg { display: inline-grid; }
+.setseg button { padding: 8px 12px; }
+@media (max-width: 640px) { .setrow { grid-template-columns: minmax(0, 1fr); } .setseg { display: grid; width: 100%; } }
+.menu a.setlink { font-weight: 600; }

@@ -36,7 +36,7 @@
   /* ---------------- copy and state ---------------- */
   var T = window.SHIFOKOR_T;
   var lang = "en";
-  try { var sl = localStorage.getItem("shifokor-lang"); if (sl && T[sl]) lang = sl; else { var nl = (navigator.language || "").slice(0, 2); lang = T[nl] ? nl : "uz"; } } catch (e) {}
+  try { var sl = localStorage.getItem("shifokor-lang"); lang = sl && T[sl] ? sl : "uz"; } catch (e) {}
   var L = function () { return T[lang]; };
   var unit = function () { return lang === "ru" ? "сум" : lang === "uz" ? "so‘m" : "soums"; };
 
@@ -45,7 +45,16 @@
   var cal = {};                                             /* calendar paging per clinic */
   var modal = null;                                         /* open drawer */
   var cancelAsk = null;                                     /* visit awaiting cancel confirmation */
-  var mapOn = window.innerWidth > 760, pendingMap = null, mapInst = null, markers = {};
+  var PREF = { size: "n", theme: "auto", map: "" };
+  try { Object.assign(PREF, JSON.parse(localStorage.getItem("shifokor-prefs")) || {}); } catch (e) {}
+  function applyPrefs() {
+    var r = document.documentElement;
+    r.classList.toggle("big-text", PREF.size === "l");
+    if (PREF.theme === "auto") r.removeAttribute("data-theme"); else r.setAttribute("data-theme", PREF.theme);
+  }
+  function savePrefs() { try { localStorage.setItem("shifokor-prefs", JSON.stringify(PREF)); } catch (e) {} applyPrefs(); }
+  applyPrefs();
+  var mapOn = PREF.map ? PREF.map === "on" : window.innerWidth > 760, pendingMap = null, mapInst = null, markers = {};
   var DS = { pid: "p1", day: 0 };                           /* clinic workspace */
   var AS = { step: 1, f: { sp: "dental" }, pick: null, done: null };   /* village assist */
 
@@ -183,10 +192,10 @@
   /* ---------------- illustrations ---------------- */
   var ART = '<defs><clipPath id="cpChapan"><path d="M62 352C60 286 70 226 100 214C130 226 140 286 138 352Z"/></clipPath><clipPath id="cpDress"><path d="M296 352C296 290 304 232 332 220C360 232 368 290 368 352Z"/></clipPath></defs><path d="M58 300C18 220 62 112 170 82C280 52 402 102 410 212C420 322 322 372 220 368C132 366 88 352 58 300Z" fill="rgba(255,255,255,0.08)"/><circle cx="338" cy="104" r="44" fill="#3CC4C0" opacity=".28"/><circle cx="84" cy="120" r="10" fill="#FFFFFF" opacity=".16"/><circle cx="380" cy="250" r="6" fill="#FFFFFF" opacity=".2"/><ellipse cx="226" cy="370" rx="180" ry="11" fill="rgba(0,0,0,0.2)"/><g><rect x="82" y="338" width="12" height="26" rx="4" fill="#4A4A52"/><rect x="106" y="338" width="12" height="26" rx="4" fill="#4A4A52"/><ellipse cx="88" cy="366" rx="12" ry="5" fill="#3A2A22"/><ellipse cx="112" cy="366" rx="12" ry="5" fill="#3A2A22"/><path d="M74 238C66 262 68 282 72 300" stroke="#1F5F8B" stroke-width="14" stroke-linecap="round" fill="none"/><path d="M62 352C60 286 70 226 100 214C130 226 140 286 138 352Z" fill="#1F5F8B"/><g clip-path="url(#cpChapan)" opacity=".9"><path d="M78 220L72 352M92 214L89 352M108 214L111 352M122 220L128 352" stroke="#F2C14E" stroke-width="3"/><rect x="58" y="282" width="84" height="8" fill="#7A3B2E"/></g><path d="M96 214L100 236L104 214Z" fill="#E8E4DE"/><circle cx="72" cy="304" r="6" fill="#C98B6B"/><path d="M126 238C138 262 140 280 146 296" stroke="#1F5F8B" stroke-width="14" stroke-linecap="round" fill="none"/><path d="M150 298L158 366" stroke="#6B4A2E" stroke-width="5" stroke-linecap="round"/><path d="M141 293Q149 284 155 296" stroke="#6B4A2E" stroke-width="5" fill="none" stroke-linecap="round"/><circle cx="148" cy="300" r="6" fill="#C98B6B"/><rect x="93" y="200" width="14" height="16" fill="#C98B6B"/><circle cx="100" cy="188" r="22" fill="#C98B6B"/><path d="M79 192C81 214 92 224 100 224C108 224 119 214 121 192C112 203 88 203 79 192Z" fill="#ECE8E2"/><path d="M92 200Q100 196 108 200" stroke="#ECE8E2" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M77 181C77 162 88 153 100 153C112 153 123 162 123 181Z" fill="#161616"/><ellipse cx="88" cy="170" rx="5" ry="2.4" fill="#F4F1EA" transform="rotate(-30 88 170)"/><ellipse cx="100" cy="165" rx="5" ry="2.4" fill="#F4F1EA"/><ellipse cx="112" cy="170" rx="5" ry="2.4" fill="#F4F1EA" transform="rotate(30 112 170)"/><path d="M89 187Q92.5 184 96 187M104 187Q107.5 184 111 187" stroke="#2B2120" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M95 206Q100 209.5 105 206" stroke="#8A4B37" stroke-width="2" fill="none" stroke-linecap="round"/></g><g><rect x="200" y="298" width="16" height="66" rx="6" fill="#1F3A44"/><rect x="224" y="298" width="16" height="66" rx="6" fill="#1F3A44"/><ellipse cx="207" cy="366" rx="12" ry="5" fill="#10242A"/><ellipse cx="233" cy="366" rx="12" ry="5" fill="#10242A"/><path d="M178 302C176 240 186 196 220 186C254 196 264 240 262 302L250 312H190Z" fill="#FFFFFF"/><path d="M206 190L220 224L234 190Z" fill="#0A7F83"/><path d="M206 190L214 252M234 190L226 252" stroke="#D3E0E1" stroke-width="2"/><rect x="238" y="232" width="14" height="10" rx="2" fill="#E6F2F2"/><path d="M243 226V238" stroke="#0A7F83" stroke-width="2.4" stroke-linecap="round"/><path d="M254 212C262 240 262 262 256 284" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" fill="none"/><circle cx="256" cy="289" r="7" fill="#E0A98A"/><path d="M210 196C204 226 214 240 222 244C232 240 238 226 232 196" stroke="#2B3A40" stroke-width="3" fill="none"/><circle cx="222" cy="249" r="5" fill="#9FB3B8" stroke="#2B3A40" stroke-width="2"/><path d="M186 214C176 240 180 262 202 268" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" fill="none"/><g transform="rotate(-10 214 264)"><rect x="192" y="238" width="42" height="54" rx="7" fill="#0D4245"/><rect x="197" y="244" width="32" height="36" rx="3" fill="#3CC4C0"/><path d="M202 252H222M202 260H216M202 268H220" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"/></g><circle cx="204" cy="268" r="7" fill="#E0A98A"/><rect x="213" y="174" width="14" height="16" fill="#E0A98A"/><circle cx="226" cy="114" r="12" fill="#2B2120"/><circle cx="220" cy="156" r="26" fill="#E0A98A"/><path d="M194 158C191 128 209 118 222 118C241 118 251 133 246 154C238 140 222 136 205 146C200 150 197 154 194 158Z" fill="#2B2120"/><circle cx="211" cy="159" r="2.6" fill="#2B2120"/><circle cx="229" cy="159" r="2.6" fill="#2B2120"/><circle cx="205" cy="167" r="4" fill="#F29C8A" opacity=".45"/><circle cx="235" cy="167" r="4" fill="#F29C8A" opacity=".45"/><path d="M212 169Q220 176 228 169" stroke="#8A4B37" stroke-width="2.4" fill="none" stroke-linecap="round"/></g><g><ellipse cx="318" cy="366" rx="11" ry="5" fill="#3A2A22"/><ellipse cx="346" cy="366" rx="11" ry="5" fill="#3A2A22"/><path d="M302 240C294 262 294 282 300 298" stroke="#E07A5F" stroke-width="13" stroke-linecap="round" fill="none"/><path d="M296 352C296 290 304 232 332 220C360 232 368 290 368 352Z" fill="#E07A5F"/><g clip-path="url(#cpDress)"><path d="M292 296l9-9 9 9 9-9 9 9 9-9 9 9 9-9 9 9 9-9" stroke="#FFE0A3" stroke-width="3.2" fill="none"/><path d="M292 322l9-9 9 9 9-9 9 9 9-9 9 9 9-9 9 9 9-9" stroke="#5B3E8E" stroke-width="3.2" fill="none"/></g><circle cx="300" cy="302" r="6" fill="#F1C7A5"/><path d="M362 240C372 262 376 280 384 296" stroke="#E07A5F" stroke-width="13" stroke-linecap="round" fill="none"/><path d="M305 202C303 168 318 159 332 159C348 159 361 169 359 202C357 216 350 224 344 228H320C312 222 307 214 305 202Z" fill="#5B3E8E"/><circle cx="309" cy="208" r="2" fill="#FFFFFF" opacity=".7"/><circle cx="355" cy="208" r="2" fill="#FFFFFF" opacity=".7"/><circle cx="316" cy="221" r="2" fill="#FFFFFF" opacity=".7"/><circle cx="348" cy="221" r="2" fill="#FFFFFF" opacity=".7"/><circle cx="332" cy="196" r="21" fill="#F1C7A5"/><path d="M311 189C313 171 323 167 332 167C342 167 352 172 353 189C344 180 321 180 311 189Z" fill="#5B3E8E"/><circle cx="325" cy="198" r="2.3" fill="#2B2120"/><circle cx="339" cy="198" r="2.3" fill="#2B2120"/><circle cx="320" cy="205" r="3.4" fill="#F29C8A" opacity=".45"/><circle cx="344" cy="205" r="3.4" fill="#F29C8A" opacity=".45"/><path d="M326 206Q332 211 338 206" stroke="#8A4B37" stroke-width="2.2" fill="none" stroke-linecap="round"/></g><g><rect x="384" y="344" width="9" height="20" rx="3" fill="#2F4F6F"/><rect x="396" y="344" width="9" height="20" rx="3" fill="#2F4F6F"/><ellipse cx="388" cy="366" rx="7" ry="4" fill="#3A2A22"/><ellipse cx="401" cy="366" rx="7" ry="4" fill="#3A2A22"/><path d="M378 350C378 322 384 306 394 302C404 306 410 322 410 350Z" fill="#3CC4C0"/><path d="M383 314C381 306 383 301 386 299" stroke="#3CC4C0" stroke-width="8" stroke-linecap="round" fill="none"/><circle cx="386" cy="300" r="5.5" fill="#F1C7A5"/><circle cx="394" cy="287" r="14" fill="#E0A98A"/><path d="M380 286C380 272 388 268 394 268C402 268 409 274 408 286C402 279 388 279 380 286Z" fill="#2B2120"/><circle cx="390" cy="289" r="1.7" fill="#2B2120"/><circle cx="398" cy="289" r="1.7" fill="#2B2120"/><path d="M390 295Q394 298.5 398 295" stroke="#8A4B37" stroke-width="1.8" fill="none" stroke-linecap="round"/></g>';
   function heroArt() {
-    var t = L(), p1 = byId("p1"), nf = nextFree(p1, "in"), s1 = svcOf(p1, "dental_consult");
+    var t = L();
     return '<div class="art"><svg viewBox="0 0 440 400" role="img" aria-label="' + esc(t.art_alt) + '">' + ART + "</svg>" +
-      (nf ? '<div class="art-chip c1"><i>' + ic("cal") + "</i><span><small>" + t.next_free + "</small>" + whenTxt(nf.d, nf.t) + "</span></div>" : "") +
-      '<div class="art-chip c2"><i>' + ic("tag") + "</i><span><small>" + t.sv.dental_consult + "</small>" + priceTxt(p1, s1) + "</span></div>" +
+      '<div class="art-chip c1"><i>' + ic("hosp") + "</i><span><small>" + t.nav_hosp + "</small>" + t.reg_line(STATE_N, DIS.length) + "</span></div>" +
+      '<div class="art-chip c2"><i>' + ic("chat") + "</i><span><small>" + t.nav_consult + "</small>" + t.cs_types.text[0] + " · " + t.cs_types.video[0] + "</span></div>" +
       '<div class="art-chip c3"><i>' + ic("bell") + "</i><span>" + t.b_h[2] + "</span></div></div>";
   }
   var SKIN = ["#F1C7A5", "#E0A98A", "#C98B6B", "#A8704F"], HAIR = ["#2B2120", "#4A3428", "#1E1A1A", "#6B4A35"], AVBG = ["#D9F0EC", "#FBE3D6", "#DCEBFA", "#ECE4F7"];
@@ -210,16 +219,17 @@
 
   /* ---------------- home ---------------- */
   function viewHome() {
-    var t = L();
-    return '<div class="band deep"><div class="wrap hero"><div><div class="eyebrow">' + t.dir_eye + "</div><h1>" + t.dir_h1 + '</h1><p class="sub">' + t.dir_p + "</p>" + dirForm({}) + '</div>' + heroArt() + "</div></div>" +
-      homeDoctorSearch() + '<div class="wrap panels"><div class="panel rural"><div class="icobox">' + ic("home") + "</div><div><h3>" + t.rural_h + "</h3><p>" + t.rural_p + '</p></div><div class="stat">' + t.stats(STATE_N, REG.length, DIS.length) + "</div></div></div>" +
-      '<div class="wrap pad"><div class="benefits">' + [["cal", 0], ["tag", 1], ["bell", 2], ["free", 3]].map(function (x) { return '<div class="benefit"><div class="ico">' + ic(x[0]) + "</div><h3>" + t.b_h[x[1]] + "</h3><p>" + t.b_p[x[1]] + "</p></div>"; }).join("") + "</div></div>" +
-      '<div class="band alt"><div class="wrap pad"><div class="sechead"><div><h2>' + t.reg_h + '</h2><p class="lead">' + t.reg_p + '</p></div><a class="btn ghost" href="#/browse/areas">' + t.br_regions + ' →</a></div><div class="tiles">' + regionTiles() + "</div></div></div>" +
-      '<div class="wrap pad split how"><div><h2>' + t.how_h + "</h2>" + steps([t.st_h, t.st_p]) + "</div>" + phoneMock() + "</div>" +
-      '<div class="band alt"><div class="wrap pad split"><div><div class="eyebrow">' + t.on_eye + "</div><h2>" + t.on_h + '</h2><p class="lead">' + t.on_p + '</p><div class="outcomes">' + t.on_out.map(function (o) { return '<div class="out">' + o + "</div>"; }).join("") + '</div><p style="margin-top:22px"><a class="btn" href="#/consult">' + ic("chat") + t.nav_consult + '</a></p></div><div class="box"><h3>' + t.on_safe_h + '</h3><ul class="list">' + t.on_safe.map(function (x) { return "<li>" + x + "</li>"; }).join("") + '</ul><div class="emerg">' + t.on_emerg + "</div></div></div></div>" +
-      '<div class="wrap pad"><div class="cta-band"><div><h2>' + t.cta_h + "</h2><p>" + t.cta_p + '</p></div><div class="btns"><a class="btn light big" href="#/clinics">' + t.cta_b + '</a><a class="btn ghost big" style="color:var(--deep-ink);border-color:var(--deep-line)" href="#/dashboard">' + t.d_open + "</a></div></div></div>" +
-      '<div class="wrap" style="padding-bottom:56px"><h2>' + t.faq_h + '</h2><div class="faq">' + t.faq.map(function (q) { return "<details><summary>" + q[0] + "</summary><p>" + q[1] + "</p></details>"; }).join("") + "</div></div>" +
-      '<div class="band alt"><div class="wrap pad join" id="join">' + joinIntro() + joinForm("patient") + "</div></div>";
+    var t = L(), links = ["#/find", "#/doctors", "#/consult", "#/assist"], icons = ["hosp", "shield", "chat", "home"];
+    var acts = t.acts.map(function (x, i) { return '<a class="act" href="' + links[i] + '"><span class="act-ic">' + ic(icons[i]) + "</span><b>" + x[0] + "</b><span>" + x[1] + "</span></a>"; }).join("");
+    var regs = REG.slice().sort(function (a, b) { return nmL(a).localeCompare(nmL(b)); }).map(function (r) { return '<a class="chip" href="#/find?' + qs({ r: r.code }) + '">' + esc(nmL(r)) + "</a>"; }).join("");
+    var faq = [0, 1, 4, 5].map(function (i) { return t.faq[i]; }).filter(Boolean);
+    return '<div class="band deep"><div class="wrap hero"><div><h1>' + t.dir_h1 + '</h1><p class="sub">' + t.h_sub + "</p>" + dirForm({ simple: true }) + "</div>" + heroArt() + "</div></div>" +
+      '<div class="wrap pad" style="padding-bottom:20px"><h2>' + t.act_h + '</h2><div class="acts">' + acts + "</div></div>" +
+      '<div class="wrap"><div class="panel rural"><div class="icobox">' + ic("home") + "</div><div><h3>" + t.rural_h + "</h3><p>" + t.rural_p + '</p></div><div class="stat">' + t.stats(STATE_N, REG.length, DIS.length) + "</div></div></div>" +
+      '<div class="wrap pad">' + "<h2>" + t.how3_h + "</h2>" + steps([t.how3.map(function (x) { return x[0]; }), t.how3.map(function (x) { return x[1]; })]) + "</div>" +
+      '<div class="band alt"><div class="wrap pad"><h2>' + t.regions_h + '</h2><div class="chips" style="margin-top:18px">' + regs + "</div></div></div>" +
+      '<div class="wrap pad"><h2>' + t.faq_short_h + '</h2><div class="faq">' + faq.map(function (q) { return "<details><summary>" + q[0] + "</summary><p>" + q[1] + "</p></details>"; }).join("") + "</div>" +
+      '<p class="joinline">' + t.join_line + ' <a href="#/register">' + t.join_go + "</a></p></div>";
   }
 
   /* ---------------- results ---------------- */
@@ -420,13 +430,14 @@
     return '<option value="">' + t.all_districts + "</option>" + (r ? DIS.filter(function (d) { return d.r === r.i; }).sort(function (a, b) { return nmL(a).localeCompare(nmL(b)); }).map(function (d) { return '<option value="' + d.code + '"' + (d.code === dcode ? " selected" : "") + ">" + esc(nmL(d)) + (d.city ? "" : " · " + t.village.toLowerCase()) + "</option>"; }).join("") : "");
   }
   function dirForm(q) {
-    var t = L();
-    return '<form class="sform dform" id="dform" role="search"><div class="seg" id="downs" role="group" aria-label="' + esc(t.f_own) + '">' + ["s", "p", "all"].map(function (o) { return '<button type="button" data-ownsel="' + o + '" aria-pressed="' + ((q.o || "s") === o) + '">' + ic(o === "s" ? "shield" : o === "p" ? "tag" : "check") + t.own_f[o] + "</button>"; }).join("") + '</div><div class="srow4">' +
+    var t = L(), simple = !!q.simple;
+    return '<form class="sform dform" id="dform" role="search"><div class="seg" id="downs" role="group" aria-label="' + esc(t.f_own) + '">' + ["s", "p", "all"].map(function (o) { return '<button type="button" data-ownsel="' + o + '" aria-pressed="' + ((q.o || "s") === o) + '">' + ic(o === "s" ? "shield" : o === "p" ? "tag" : "check") + t.own_f[o] + "</button>"; }).join("") + '</div><div class="' + (simple ? "srow3" : "srow4") + '">' +
       '<div class="sf"><label for="dr">' + t.f_region + '</label><select id="dr"><option value="">' + t.all_regions + "</option>" + REG.slice().sort(function (a, b) { return nmL(a).localeCompare(nmL(b)); }).map(function (r) { return '<option value="' + r.code + '"' + (q.r === r.code ? " selected" : "") + ">" + esc(nmL(r)) + "</option>"; }).join("") + "</select></div>" +
       '<div class="sf"><label for="dd">' + t.f_district + '</label><select id="dd">' + districtOptions(q.r, q.d) + "</select></div>" +
-      '<div class="sf"><label for="dt">' + t.f_type + '</label><select id="dt"><option value="">' + t.all_types + "</option>" + CAT_ORDER.map(function (c) { return '<option value="' + c + '"' + (q.t === c ? " selected" : "") + ">" + t.cat[c] + "</option>"; }).join("") + "</select></div>" +
+      (simple ? "" : '<div class="sf"><label for="dt">' + t.f_type + '</label><select id="dt"><option value="">' + t.all_types + "</option>" + CAT_ORDER.map(function (c) { return '<option value="' + c + '"' + (q.t === c ? " selected" : "") + ">" + t.cat[c] + "</option>"; }).join("") + "</select></div>") +
       '<button class="btn big" type="submit">' + ic("search") + t.s_go + "</button></div>" +
-      '<div class="srow-b"><div class="sf grow"><label for="dq">' + t.f_name + '</label><input id="dq" autocomplete="off" placeholder="' + esc(t.f_name_ph) + '" value="' + esc(q.q || "") + '"></div><button type="button" class="btn ghost near" data-act="near">' + ic("nav") + t.near_btn + "</button></div>" +
+      (simple ? '<button type="button" class="btn ghost near nearbig" data-act="near">' + ic("nav") + t.near_btn + "</button>"
+        : '<div class="srow-b"><div class="sf grow"><label for="dq">' + t.f_name + '</label><input id="dq" autocomplete="off" placeholder="' + esc(t.f_name_ph) + '" value="' + esc(q.q || "") + '"></div><button type="button" class="btn ghost near" data-act="near">' + ic("nav") + t.near_btn + "</button></div>") +
       '<p class="near-msg" id="nearmsg" aria-live="polite"></p></form>';
   }
   function dirSearch(q) {
@@ -755,6 +766,24 @@
       (list.length ? '<div class="results" style="padding:6px 0 0;grid-column:1/-1">' + list.map(docCard).join("") + "</div>" : "") + "</div></div>";
   }
 
+
+  /* ---------------- settings ---------------- */
+  var SET_ASK = false;
+  function viewSettings() {
+    var t = L(), u = me(), hasPos = false;
+    try { hasPos = !!sessionStorage.getItem("shifokor-pos"); } catch (e) {}
+    var seg = function (key, opts, cur, labels) { return '<div class="seg setseg" role="group">' + opts.map(function (o) { return '<button type="button" data-pref="' + key + '" data-val="' + o + '" aria-pressed="' + (cur === o) + '">' + labels[o] + "</button>"; }).join("") + "</div>"; };
+    var row = function (title, body, note) { return '<div class="setrow"><div><h3>' + title + "</h3>" + (note ? '<p class="muted">' + note + "</p>" : "") + "</div><div>" + body + "</div></div>"; };
+    var langs = '<div class="seg setseg" role="group">' + [["uz", "O‘zbekcha"], ["ru", "Русский"], ["en", "English"]].map(function (l) { return '<button type="button" data-setlang="' + l[0] + '" aria-pressed="' + (lang === l[0]) + '">' + l[1] + "</button>"; }).join("") + "</div>";
+    var clear = SET_ASK ? '<div class="confirm-row"><b>' + t.set_data_q + '</b><button class="btn danger sm" type="button" data-act="cleardata-yes">' + t.set_data_yes + '</button><button class="btn ghost sm" type="button" data-act="cleardata-no">' + t.v_keep + "</button></div>" : '<button class="btn ghost sm" type="button" data-act="cleardata">' + t.set_data_btn + "</button>";
+    return '<div class="wrap pad acc"><h1>' + t.set_h + '</h1><p class="lead">' + t.set_p + '</p><div class="dcard setcard">' +
+      row(t.set_lang, langs) + row(t.set_size, seg("size", ["n", "l"], PREF.size, t.sizes)) + row(t.set_theme, seg("theme", ["auto", "light", "dark"], PREF.theme, t.themes)) +
+      row(t.set_map, seg("map", ["on", "off"], mapOn ? "on" : "off", t.maps)) +
+      row(t.set_loc, '<button class="btn ghost sm" type="button" data-act="forgetloc"' + (hasPos ? "" : " disabled") + ">" + t.set_loc_btn + "</button>", hasPos ? t.set_loc_p : t.set_loc_none) +
+      row(t.set_acc, u ? '<a class="btn ghost sm" href="#/account">' + t.nav_account + '</a> <button class="btn ghost sm" type="button" data-act="logout">' + t.logout + "</button>" : '<a class="btn sm" href="#/login">' + t.nav_login + '</a> <a class="btn ghost sm" href="#/register">' + t.go_reg + "</a>", u ? esc(u.name) : "") +
+      row(t.set_data, clear, t.set_data_p) + "</div></div>";
+  }
+
   /* ---------------- browse ---------------- */
   var BR = [["areas", "br_regions", "br_d_rg"], ["types", "br_types", "br_d_ty"]];
   function browseList(type) {
@@ -860,16 +889,17 @@
     current = h; document.documentElement.lang = lang === "uz" ? "uz-Latn" : lang;
     if (path === "/search") html = viewSearch(q);
     else if (path.indexOf("/p/") === 0) html = viewProfile(path.slice(3), q);
-    else if (path === "/find") html = viewFind(q);
+    else if (path === "/find") { html = viewFind(q); route = "find"; }
     else if (path === "/register") { html = viewRegister(); route = "account"; }
     else if (path === "/login") { html = me() ? viewAccount() : viewLogin(); route = "account"; }
     else if (path === "/account") { html = viewAccount(); route = "account"; }
+    else if (path === "/settings") { html = viewSettings(); route = "settings"; }
     else if (path === "/consult") { html = viewConsult(q); route = "consult"; }
     else if (path.indexOf("/consult/") === 0) { html = viewConsultThread(path.slice(9)); route = "consult"; }
     else if (path === "/doctors") { html = viewDoctors(q); route = "doctors"; }
     else if (path.indexOf("/doc/") === 0) { html = viewDoc(path.slice(5)); route = "doctors"; }
     else if (path.indexOf("/c/") === 0) { html = viewClinicAcc(path.slice(3)); route = "doctors"; }
-    else if (path.indexOf("/f/") === 0) html = viewFacility(path.slice(3));
+    else if (path.indexOf("/f/") === 0) { html = viewFacility(path.slice(3)); route = "find"; }
     else if (path === "/browse" || path.indexOf("/browse/") === 0) { html = viewBrowse(path.slice(8)); route = "browse"; }
     else if (path === "/visits") { html = viewVisits(); route = "visits"; }
     else if (path === "/clinics") { html = viewClinics(); route = "clinics"; }
@@ -882,7 +912,7 @@
     all("[data-r]").forEach(function (a) { if (a.dataset.r === route) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
     if (route === "browse") $("browseBtn").setAttribute("aria-current", "page"); else $("browseBtn").removeAttribute("aria-current");
     all("#lang button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.l === lang)); });
-    document.title = "Shifokor: " + (lang === "ru" ? "запись к врачу в Фергане" : lang === "uz" ? "Farg‘onada shifokorga yozilish" : "book a doctor in Fergana");
+    document.title = "Shifokor: " + (lang === "ru" ? "ближайшая больница и врач" : lang === "uz" ? "sizga yaqin shifoxona va shifokor" : "nearby hospital and doctor");
     var ab = $("acctBtn"), mu = me(); if (ab) { ab.textContent = mu ? mu.name.split(" ")[0] : t.nav_login; ab.setAttribute("href", mu ? "#/account" : "#/login"); }
     closeMenu();
     if (keepScroll) window.scrollTo(0, y); else { window.scrollTo(0, 0); $("app").focus({ preventScroll: true }); }
@@ -967,6 +997,19 @@
     if (ds.act === "accdel") { ACC_DEL = true; render(true); return; }
     if (ds.act === "accdel-no") { ACC_DEL = false; render(true); return; }
     if (ds.act === "accdel-yes") { var cu = me(); saveUsers(users().filter(function (x) { return x.id !== cu.id; })); store.set(KS, null); ACC = null; ACC_DEL = false; toast(t.acc_deleted); go("#/"); return; }
+    if (ds.pref) {
+      PREF[ds.pref] = ds.val;
+      if (ds.pref === "map") mapOn = ds.val === "on";
+      savePrefs(); render(true); toast(t.set_saved); return;
+    }
+    if (ds.setlang) { lang = ds.setlang; try { localStorage.setItem("shifokor-lang", lang); } catch (x) {} render(true); return; }
+    if (ds.act === "forgetloc") { POS = null; try { sessionStorage.removeItem("shifokor-pos"); } catch (x) {} toast(t.set_loc_done); render(true); return; }
+    if (ds.act === "cleardata") { SET_ASK = true; render(true); return; }
+    if (ds.act === "cleardata-no") { SET_ASK = false; render(true); return; }
+    if (ds.act === "cleardata-yes") {
+      ["bookings", "status", "prices", "conf", "reports", "consults"].concat(BE ? [] : ["users", "session"]).forEach(function (k) { try { localStorage.removeItem("shifokor-" + k); } catch (x) {} });
+      SET_ASK = false; cal = {}; toast(t.set_data_done); if (BE) BE.refresh().catch(function () {}); render(true); return;
+    }
     if (ds.act === "near") { e.preventDefault(); closeMenu(); askLocation(); return; }
     if (ds.act === "dirmore") { DIRN.n += 40; render(true); return; }
     if (ds.ownsel) {
@@ -1071,7 +1114,7 @@
       saveUsers(l4); ACC = null; toast(t.saved); render(true); return;
     }
     if (id === "dform") {
-      var o = { r: $("dr").value, d: $("dd").value, t: $("dt").value, q: $("dq").value.trim(), o: (function () { var b = document.querySelector('#downs [aria-pressed="true"]'), v = b ? b.dataset.ownsel : "s"; return v === "s" ? "" : v; })() };
+      var o = { r: $("dr").value, d: $("dd").value, t: $("dt") ? $("dt").value : "", q: $("dq") ? $("dq").value.trim() : "", o: (function () { var b = document.querySelector('#downs [aria-pressed="true"]'), v = b ? b.dataset.ownsel : "s"; return v === "s" ? "" : v; })() };
       if (current.path === "/find" && current.q.near && !o.r && !o.d) o.near = "1";
       go("#/find?" + qs(o)); return;
     }

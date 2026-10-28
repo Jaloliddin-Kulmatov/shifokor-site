@@ -56,6 +56,8 @@
   };
   var bookings = function () { return store.get(K.bookings, []); };
   var saveBookings = function (l) { store.set(K.bookings, l); };
+  var BE = window.SB || null;   /* Supabase connection from backend.js, or null in demo mode */
+  if (BE) ["en", "uz", "ru"].forEach(function (l) { T[l].acc_demo = T[l].be_online; T[l].cs_demo = T[l].be_online; });
 
   /* ---------------- sample directory ---------------- */
   var tm = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00"];
@@ -600,7 +602,7 @@
     var fi = function (id, label, val, type, extra) { return '<div class="fld"><label for="' + id + '">' + label + '</label><input id="' + id + '" type="' + (type || "text") + '" value="' + esc(val || "") + '"' + (extra || "") + "></div>"; };
     var ta = function (id, label, val, ph) { return '<div class="fld"><label for="' + id + '">' + label + '</label><textarea id="' + id + '" maxlength="1500" placeholder="' + esc(ph || "") + '">' + esc(val || "") + "</textarea></div>"; };
     var regionSel = '<div class="two"><div class="fld"><label for="a-region">' + t.f_region + '</label><select id="a-region"><option value="">—</option>' + REG.slice().sort(function (x, y) { return nmL(x).localeCompare(nmL(y)); }).map(function (r) { return '<option value="' + r.code + '"' + (pr.region === r.code ? " selected" : "") + ">" + esc(nmL(r)) + "</option>"; }).join("") + '</select></div><div class="fld"><label for="a-district">' + t.f_district + '</label><select id="a-district">' + districtOptions(pr.region, pr.district) + "</select></div></div>";
-    var contact = '<fieldset class="accsec"><legend>' + t.sec_contact + "</legend>" + fi("a-name", role === "clinic" ? t.f_clinicname : t.f_fullname, a.name) + '<div class="two">' + fi("a-email", t.f_email, a.email, "email") + fi("a-phone", t.f_phone2, a.phone, "tel", ' inputmode="tel" placeholder="+998"') + "</div>" + fi("a-tg", t.f_tg, a.tg, "text", ' placeholder="' + t.f_tg_ph + '"') + "</fieldset>";
+    var contact = '<fieldset class="accsec"><legend>' + t.sec_contact + "</legend>" + fi("a-name", role === "clinic" ? t.f_clinicname : t.f_fullname, a.name) + '<div class="two">' + fi("a-email", t.f_email, a.email, "email", BE ? " readonly" : "") + fi("a-phone", t.f_phone2, a.phone, "tel", ' inputmode="tel" placeholder="+998"') + "</div>" + fi("a-tg", t.f_tg, a.tg, "text", ' placeholder="' + t.f_tg_ph + '"') + "</fieldset>";
     var svcRows = function (withOnline) {
       return '<div id="svc-list">' + pr.svc.map(function (sv, i) { return '<div class="svcrow"><input class="s-n" aria-label="' + t.svc_name + '" placeholder="' + esc(t.svc_name_ph) + '" value="' + esc(sv.name) + '"><input class="s-p" type="number" min="0" step="1000" inputmode="numeric" aria-label="' + t.svc_price + '" placeholder="' + t.svc_price + '" value="' + esc(sv.price) + '">' + (withOnline ? '<label class="mini"><input class="s-o" type="checkbox"' + (sv.online ? " checked" : "") + ">" + t.svc_online + "</label>" : "") + '<button class="linkbtn" type="button" data-svcdel="' + i + '">' + t.svc_remove + "</button></div>"; }).join("") + '</div><button class="btn ghost sm" type="button" data-act="svcadd">' + ic("plus") + t.svc_add + "</button>";
     };
@@ -946,6 +948,8 @@
     if (ds.csfor) { csCollect(); CS.who = ds.csfor; render(true); return; }
     if (ds.cs) {
       var cl = consults(), cc = cl.filter(function (x) { return x.id === ds.id; })[0], du = me(); if (!cc) return;
+      if (BE && ds.cs === "accept") { if (!du || du.role !== "doctor") { toast(t.cs_only_doc); return; } BE.updateConsult(cc.id, { status: "accepted", doctor_id: du.id, doctor_name: du.name }, t.cs_accepted(du.name)).then(function () { render(true); }, function () { toast(t.be_err); }); return; }
+      if (BE && ds.cs === "call") { BE.updateConsult(cc.id, { call: true }, t.cs_call_msg(cc.type)).then(function () { render(true); }, function () { toast(t.be_err); }); openModal({ type: "call", media: cc.type, title: t.cs_no(cc.n) }); return; }
       if (ds.cs === "accept") { if (!du || du.role !== "doctor") { toast(t.cs_only_doc); return; } cc.status = "accepted"; cc.doctorId = du.id; cc.doctorName = du.name; cc.msgs.push({ from: "s", text: t.cs_accepted(du.name), at: Date.now() }); saveConsults(cl); render(true); return; }
       if (ds.cs === "call") { cc.call = true; cc.msgs.push({ from: "s", text: t.cs_call_msg(cc.type), at: Date.now() }); saveConsults(cl); render(true); openModal({ type: "call", media: cc.type, title: t.cs_no(cc.n) }); return; }
       if (ds.cs === "join") { openModal({ type: "call", media: cc.type, title: t.cs_no(cc.n) }); return; }
@@ -956,6 +960,8 @@
     if (ds.svcdel != null) { accCollect(); ACC.pr.svc.splice(+ds.svcdel, 1); render(true); return; }
     if (ds.act === "wpadd") { accCollect(); ACC.pr.work.push({ t: "x", label: "" }); render(true); var ws = all("#wp-list input"); if (ws.length) ws[ws.length - 1].focus(); return; }
     if (ds.wpdel != null) { accCollect(); ACC.pr.work.splice(+ds.wpdel, 1); render(true); return; }
+    if (ds.act === "logout" && BE) { BE.signOut().then(function () { ACC = null; toast(t.logged_out); go("#/"); }); return; }
+    if (ds.act === "accdel-yes" && BE) { BE.deleteAccount().then(function () { ACC = null; ACC_DEL = false; toast(t.acc_deleted); go("#/"); }, function () { toast(t.be_err); }); return; }
     if (ds.act === "logout") { store.set(KS, null); ACC = null; toast(t.logged_out); go("#/"); return; }
     if (ds.act === "accdel") { ACC_DEL = true; render(true); return; }
     if (ds.act === "accdel-no") { ACC_DEL = false; render(true); return; }
@@ -988,6 +994,12 @@
       if (C.safe !== "ok") { err.textContent = t.cs_err_safe; return; }
       if (!C.name || !(+C.age >= 0 && C.age !== "") || !okPhone(C.phone) || C.complaint.length < 10) { err.textContent = t.cs_err_fill; return; }
       if (!C.consent) { err.textContent = t.cs_err_consent; return; }
+      if (BE) {
+        if (!BE.userId()) { err.innerHTML = t.be_login_first + ' <a href="#/login">' + t.go_login + '</a> · <a href="#/register">' + t.go_reg + "</a>"; return; }
+        var dsel2 = C.doc ? userById(C.doc) : null, notes = [t.cs_sent].concat(dsel2 ? [t.cs_wanted + ": " + dsel2.name] : []);
+        err.textContent = ""; BE.createConsult(C, notes).then(function (cid) { CS = null; toast(t.cs_sent); go("#/consult/" + cid); }, function (x) { err.textContent = t.be_err + " (" + (x.message || "") + ")"; });
+        return;
+      }
       var cl2 = consults(), cu3 = me(), dsel = C.doc ? userById(C.doc) : null;
       var rec = { id: "c" + Date.now().toString(36), n: 1000 + cl2.length + 1, at: Date.now(), userId: cu3 && cu3.role === "patient" ? cu3.id : "", type: C.type, who: C.who, name: C.name, age: C.age, sex: C.sex, phone: C.phone, region: C.region, district: C.district, complaint: C.complaint, since: C.since, chronic: C.chronic, meds: C.meds, allergy: C.allergy, spec: C.spec, doc: C.doc, status: "new", doctorId: "", doctorName: "", msgs: [{ from: "s", text: t.cs_sent, at: Date.now() }] };
       if (dsel) rec.msgs.push({ from: "s", text: t.cs_wanted + ": " + dsel.name, at: Date.now() });
@@ -995,12 +1007,22 @@
     }
     if (id === "csmsg") {
       var inp3 = $("csmsg-in"), txt = inp3.value.trim(); if (!txt) return;
+      if (BE) {
+        var me5 = me(), asDoc5 = !!(me5 && me5.role === "doctor"), cid5 = e.target.dataset.id;
+        inp3.value = ""; BE.addMessage(cid5, asDoc5 ? "d" : "p", asDoc5 ? me5.name : (consultById(cid5) || {}).name, txt).then(function () { render(true); var l5 = $("cslog"); if (l5) l5.scrollTop = l5.scrollHeight; if ($("csmsg-in")) $("csmsg-in").focus(); }, function () { inp3.value = txt; toast(t.be_err); });
+        return;
+      }
       var cl3 = consults(), c3 = cl3.filter(function (x) { return x.id === e.target.dataset.id; })[0], du3 = me(), asDoc = du3 && du3.role === "doctor";
       c3.msgs.push({ from: asDoc ? "d" : "p", name: asDoc ? du3.name : c3.name, text: txt, at: Date.now() }); saveConsults(cl3); render(true);
       var lg2 = $("cslog"); if (lg2) lg2.scrollTop = lg2.scrollHeight; if ($("csmsg-in")) $("csmsg-in").focus(); return;
     }
     if (id === "csfinish") {
       var o3 = document.querySelector('input[name="csout"]:checked'); if (!o3) { $("csf-err").textContent = t.vs_err; return; }
+      if (BE) {
+        var cid6 = e.target.dataset.id, me6 = me(), sum6 = $("cs-sum").value.trim();
+        (sum6 ? BE.addMessage(cid6, "d", me6.name, sum6) : Promise.resolve()).then(function () { return BE.updateConsult(cid6, { status: "done", outcome: +o3.value }, t.cs_finished(t.on_out[+o3.value])); }).then(function () { render(true); }, function () { $("csf-err").textContent = t.be_err; });
+        return;
+      }
       var cl4 = consults(), c4 = cl4.filter(function (x) { return x.id === e.target.dataset.id; })[0], du4 = me(), sum = $("cs-sum").value.trim();
       if (sum) c4.msgs.push({ from: "d", name: du4.name, text: sum, at: Date.now() });
       c4.status = "done"; c4.outcome = +o3.value; c4.msgs.push({ from: "s", text: t.cs_finished(t.on_out[+o3.value]), at: Date.now() }); saveConsults(cl4); render(true); return;
@@ -1010,6 +1032,15 @@
       var rv = function (x) { return $(x).value.trim(); }, name = rv("r-name"), em = rv("r-email").toLowerCase(), ph = rv("r-phone"), tg = rv("r-tg"), pw = $("r-pw").value, pw2 = $("r-pw2").value;
       var er = checkContact(t, name, em, ph, tg) || (pw.length < 6 ? t.e_pw : pw !== pw2 ? t.e_pw2 : "") || (findByContact(em, ph) ? t.e_exists : "");
       if (er) { $("r-err").textContent = er; return; }
+      if (BE) {
+        if (!em) { $("r-err").textContent = t.be_email_req; return; }
+        $("r-err").textContent = "";
+        BE.signUp({ role: REGROLE, name: name, email: em, phone: ph ? digits(ph) : "", tg: tg ? "@" + tgName(tg) : "", password: pw }).then(function (r) {
+          if (r.needsConfirm) { $("r-err").textContent = t.be_confirm; return; }
+          ACC = null; toast(t.welcome(name)); go("#/account");
+        }, function (x) { $("r-err").textContent = /registered|exists/i.test(x.message || "") ? t.e_exists : t.be_err + " (" + (x.message || "") + ")"; });
+        return;
+      }
       var nid = "u" + Date.now().toString(36);
       hashPw(pw, nid).then(function (h) {
         var list = users(); list.push({ id: nid, role: REGROLE, name: name, email: em, phone: ph ? digits(ph) : "", tg: tg ? "@" + tgName(tg) : "", pw: h, created: iso(today0()), updated: iso(today0()), profile: REGROLE === "doctor" ? { spec: "gp", modes: ["in"], langs: ["uz"], work: [], svc: [] } : REGROLE === "clinic" ? { ctype: "clinic", own: "s", svc: [] } : {} });
@@ -1018,6 +1049,12 @@
       return;
     }
     if (id === "loginform") {
+      if (BE) {
+        var lid7 = $("l-id").value.trim().toLowerCase();
+        if (!okEmail(lid7)) { $("l-err").textContent = t.be_email_login; return; }
+        BE.signIn(lid7, $("l-pw").value).then(function () { ACC = null; var mu7 = me(); toast(t.welcome(mu7 ? mu7.name : "")); go("#/account"); }, function (x) { var m7 = x.message || ""; $("l-err").textContent = /confirm/i.test(m7) ? t.be_confirm : /invalid|credential/i.test(m7) ? t.e_login : t.be_err + " (" + m7 + ")"; });
+        return;
+      }
       var lid = $("l-id").value.trim(), lpw = $("l-pw").value, isMail = lid.indexOf("@") > 0 && lid.indexOf(".") > 0;
       var cand = users().filter(function (x) { return isMail ? x.email === lid.toLowerCase() : (x.phone && x.phone === digits(lid)); })[0];
       if (!cand) { $("l-err").textContent = t.e_login; return; }
@@ -1029,6 +1066,7 @@
       var er2 = checkContact(t, A.name, em2, A.phone, A.tg) || (findByContact(em2, A.phone, cu2.id) ? t.e_exists : "");
       if (er2) { $("a-err").textContent = er2; $("a-err").scrollIntoView({ block: "center" }); return; }
       A.pr.svc = A.pr.svc.filter(function (x) { return x.name; }); A.pr.work = A.pr.work.filter(function (w) { return w && w.label; });
+      if (BE) { BE.saveProfile({ role: cu2.role, name: A.name, phone: A.phone ? digits(A.phone) : "", tg: A.tg ? "@" + tgName(A.tg) : "", profile: A.pr }).then(function () { ACC = null; toast(t.saved); render(true); }, function (x) { $("a-err").textContent = t.be_err + " (" + (x.message || "") + ")"; }); return; }
       var l4 = users(); l4.forEach(function (x) { if (x.id === cu2.id) { x.name = A.name; x.email = em2; x.phone = A.phone ? digits(A.phone) : ""; x.tg = A.tg ? "@" + tgName(A.tg) : ""; x.profile = A.pr; x.updated = iso(today0()); } });
       saveUsers(l4); ACC = null; toast(t.saved); render(true); return;
     }
@@ -1115,4 +1153,11 @@
   window.addEventListener("hashchange", function () { cancelAsk = null; render(false); });
 
   render(false);
+  if (BE) BE.on(function () {
+    var p = current.path;
+    if (p === "/consult" || p === "/register" || p === "/login") { var ab = $("acctBtn"), mu = me(); if (ab) { ab.textContent = mu ? mu.name.split(" ")[0] : L().nav_login; ab.setAttribute("href", mu ? "#/account" : "#/login"); } return; }
+    if (p === "/account") accCollect();
+    rerender();
+    var lg = $("cslog"); if (lg) lg.scrollTop = lg.scrollHeight;
+  });
 })();

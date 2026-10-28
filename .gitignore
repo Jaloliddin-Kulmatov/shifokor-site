@@ -9,3 +9,7 @@ data-build/adm/
 data-build/*.zip
 
 .DS_Store
+
+# editor settings
+.idea/
+.vscode/

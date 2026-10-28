@@ -3,6 +3,7 @@
   var add = function (lang, o) { Object.keys(o).forEach(function (k) { T[lang][k] = o[k]; }); };
 
   add("en", {
+    be_online: "Connected: accounts and consultations are saved online. Test pilot: use test data only, not real patients.", be_email_req: "Online accounts need an email. You can add a phone number too.", be_email_login: "Sign in with the email you registered with.", be_confirm: "Check your email and click the confirmation link, then sign in.", be_login_first: "Sign in or create an account to send the application.", be_err: "Couldn’t reach the server. Check your connection and try again.",
     nav_login: "Sign in", nav_account: "My account", nav_doctors: "Doctors",
     acc_demo: "Demo accounts: saved only in this browser. Real sign-in across phones needs a server.",
     reg_h: "Create an account", reg_p: "Choose who you are. You can register with an email or a phone number.",
@@ -32,6 +33,7 @@
   });
 
   add("uz", {
+    be_online: "Ulangan: hisoblar va maslahatlar onlayn saqlanadi. Sinov bosqichi: faqat sinov ma’lumotlaridan foydalaning, haqiqiy bemorlardan emas.", be_email_req: "Onlayn hisob uchun email kerak. Telefon raqamini ham qo‘shishingiz mumkin.", be_email_login: "Ro‘yxatdan o‘tgan emailingiz bilan kiring.", be_confirm: "Emailingizni tekshiring va tasdiqlash havolasini bosing, so‘ng kiring.", be_login_first: "Arizani yuborish uchun kiring yoki hisob yarating.", be_err: "Serverga ulanib bo‘lmadi. Internetni tekshirib, qayta urinib ko‘ring.",
     nav_login: "Kirish", nav_account: "Kabinetim", nav_doctors: "Shifokorlar",
     acc_demo: "Demo hisoblar: faqat shu brauzerda saqlanadi. Telefonlararo haqiqiy kirish uchun server kerak.",
     reg_h: "Ro‘yxatdan o‘tish", reg_p: "Kim ekaningizni tanlang. Email yoki telefon raqami bilan ro‘yxatdan o‘tishingiz mumkin.",
@@ -61,6 +63,7 @@
   });
 
   add("ru", {
+    be_online: "Подключено: аккаунты и консультации сохраняются онлайн. Тестовый пилот: только тестовые данные, не реальные пациенты.", be_email_req: "Для онлайн-аккаунта нужен email. Можно также добавить телефон.", be_email_login: "Войдите с email, указанным при регистрации.", be_confirm: "Проверьте почту и перейдите по ссылке подтверждения, затем войдите.", be_login_first: "Войдите или создайте аккаунт, чтобы отправить заявку.", be_err: "Не удалось связаться с сервером. Проверьте интернет и попробуйте снова.",
     nav_login: "Войти", nav_account: "Мой кабинет", nav_doctors: "Врачи",
     acc_demo: "Демо-аккаунты: хранятся только в этом браузере. Для входа с разных телефонов нужен сервер.",
     reg_h: "Регистрация", reg_p: "Выберите, кто вы. Можно зарегистрироваться по email или номеру телефона.",

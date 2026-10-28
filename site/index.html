@@ -14,32 +14,30 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
-<link rel="stylesheet" href="styles.css?v=20261028k">
+<link rel="stylesheet" href="styles.css?v=20261029a">
 </head>
 <body>
 <header class="top">
   <div class="wrap row">
     <a class="brand" href="#/" aria-label="Shifokor"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="currentColor" opacity=".18"/><path d="M16 8v16M8 16h16" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg><span class="w">Shifokor</span></a>
     <nav class="nav" id="nav" aria-label="Main">
-      <a href="#/find" data-r="find" data-t="nav_hosp" class="desk"></a>
       <a href="#/doctors" data-r="doctors" data-t="nav_doctors" class="desk"></a>
       <a href="#/consult" data-r="consult" data-t="nav_consult" class="desk"></a>
+      <a href="#/prices" data-r="prices" data-t="nav_prices" class="desk"></a>
       <a href="#/visits" data-r="visits" data-t="nav_visits" class="desk"></a>
       <div class="dd">
         <button type="button" id="browseBtn" class="ddbtn" aria-haspopup="true" aria-expanded="false" aria-controls="menu"><span data-t="nav_menu"></span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
         <div class="menu" id="menu" hidden>
-          <a class="mobonly" href="#/find" data-t="nav_hosp"></a>
           <a class="mobonly" href="#/doctors" data-t="nav_doctors"></a>
           <a class="mobonly" href="#/consult" data-t="nav_consult"></a>
+          <a class="mobonly" href="#/prices" data-t="nav_prices"></a>
           <a class="mobonly" href="#/visits" data-t="nav_visits"></a>
           <a class="setlink" href="#/settings" data-t="nav_set"></a>
           <a href="#/admin" id="admlink" data-t="adm_nav" hidden></a>
+          <a class="sep" href="#/find" data-r="find" data-t="nav_hosp"></a>
           <a href="#/find?near=1" data-act="near" data-t="nav_near"></a>
           <a href="#/browse/areas" data-t="br_regions"></a>
-          <a href="#/assist" data-t="nav_assist"></a>
-          <a class="sep" href="#/clinics" data-t="nav_clinics"></a>
-          <a href="#/dashboard" data-t="nav_dash"></a>
-          <a href="#/search" data-t="nav_demo"></a>
+          <a class="sep" href="#/register" data-regrole-link="doctor" data-t="join_line"></a>
         </div>
       </div>
     </nav>
@@ -57,8 +55,8 @@
   <div class="wrap">
     <div class="foot-grid">
       <div><a class="brand" href="#/" style="color:inherit">Shifokor</a><p class="muted" data-t="foot_tag"></p></div>
-      <div><b data-t="foot_pat"></b><a href="#/" data-t="nav_find"></a><a href="#/consult" data-t="nav_consult"></a><a href="#/doctors" data-t="nav_doctors"></a><a href="#/visits" data-t="nav_visits"></a></div>
-      <div><b data-t="foot_cli"></b><a href="#/clinics" data-t="nav_clinics"></a><a href="#/dashboard" data-t="nav_dash"></a><a href="#/assist" data-t="nav_assist"></a></div>
+      <div><b data-t="foot_pat"></b><a href="#/doctors" data-t="nav_find"></a><a href="#/consult" data-t="nav_consult"></a><a href="#/prices" data-t="nav_prices"></a><a href="#/find" data-t="nav_hosp"></a><a href="#/visits" data-t="nav_visits"></a></div>
+      <div><b data-t="foot_cli"></b><a href="#/register" data-regrole-link="doctor" data-t="reg_doc_cta"></a><a href="#/register" data-regrole-link="clinic" data-t="reg_clinic_cta"></a><a href="#/account" data-t="nav_account"></a></div>
     </div>
     <p class="muted fine-print" data-t="foot"></p>
   </div>
@@ -67,17 +65,18 @@
 <div id="drawer" class="overlay" hidden></div>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
-<script src="i18n.js?v=20261028k"></script>
-<script src="i18n-extra.js?v=20261028k"></script>
-<script src="i18n-dir.js?v=20261028k"></script>
-<script src="i18n-acc.js?v=20261028k"></script>
-<script src="i18n-consult.js?v=20261028k"></script>
-<script src="i18n-home.js?v=20261028k"></script>
-<script src="i18n-appt.js?v=20261028k"></script>
-<script src="i18n-trust.js?v=20261028k"></script>
-<script src="clinics.js?v=20261028k"></script>
-<script src="config.js?v=20261028k"></script>
-<script src="backend.js?v=20261028k"></script>
-<script src="app.js?v=20261028k"></script>
+<script src="i18n.js?v=20261029a"></script>
+<script src="i18n-extra.js?v=20261029a"></script>
+<script src="i18n-dir.js?v=20261029a"></script>
+<script src="i18n-acc.js?v=20261029a"></script>
+<script src="i18n-consult.js?v=20261029a"></script>
+<script src="i18n-home.js?v=20261029a"></script>
+<script src="i18n-appt.js?v=20261029a"></script>
+<script src="i18n-trust.js?v=20261029a"></script>
+<script src="i18n-focus.js?v=20261029a"></script>
+<script src="clinics.js?v=20261029a"></script>
+<script src="config.js?v=20261029a"></script>
+<script src="backend.js?v=20261029a"></script>
+<script src="app.js?v=20261029a"></script>
 </body>
 </html>

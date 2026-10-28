@@ -659,3 +659,43 @@ a[data-n]::after { content: attr(data-n); display: inline-block; min-width: 18px
 .admrow h3 { font-size: 1.1rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .note-box .ic, .badge .ic { vertical-align: -2px; }
 .menu a[hidden] { display: none !important; }
+
+/* ---------- doctor-first home, doctor cards, prices ---------- */
+.hfform { margin-top: 26px; background: var(--surface); color: var(--ink); border-radius: var(--r-card, 18px); padding: 18px; box-shadow: var(--soft-shadow); }
+.hfform .srow3 { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
+.hfform .sf label { display: block; font: 600 0.85rem var(--font-body); margin-bottom: 6px; color: var(--muted); }
+.hfform select { width: 100%; }
+.hfmore { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+.hfmore .btn.light { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.hflink { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; color: var(--accent); text-decoration: none; }
+.hflink:hover { text-decoration: underline; }
+@media (max-width: 720px) { .hfform .srow3 { grid-template-columns: 1fr; } .hfform .btn.big { width: 100%; justify-content: center; } }
+.why { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
+.whyi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card, 18px); padding: 20px; }
+.whyi b { display: block; font: 600 1.1rem var(--font-display); margin: 12px 0 6px; }
+.whyi p { margin: 0; color: var(--muted); }
+@media (max-width: 760px) { .why { grid-template-columns: 1fr; } }
+.doccard .facts { align-items: flex-end; }
+.cpfrom { text-align: right; margin-bottom: 4px; }
+.cpfrom small, .cpaside small { display: block; font-size: 0.78rem; color: var(--muted); }
+.cpfrom b { font: 700 1.05rem var(--font-display); color: var(--accent); }
+.cpaside { margin: 4px 0 14px; }
+.cpaside b { display: block; font: 700 1.3rem var(--font-display); color: var(--accent); }
+.cpaside span { display: block; font-size: 0.9rem; margin-top: 2px; }
+.cpnote { margin: 4px 0 0; padding: 10px 14px; border-radius: 12px; background: var(--accent-soft); font-size: 0.95rem; }
+.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 640px) { .three { grid-template-columns: 1fr; } .doccard .facts { align-items: stretch; } .cpfrom { text-align: left; } }
+.chkf { gap: 8px; }
+.prform { padding: 18px; }
+.prgrid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 12px; }
+.prgrid .fld { margin: 0; }
+.prbar { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+@media (max-width: 760px) { .prgrid { grid-template-columns: 1fr 1fr; } .prgrid .fld:first-child { grid-column: 1 / -1; } }
+.prlist { display: grid; gap: 10px; }
+.prow { display: flex; justify-content: space-between; gap: 14px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; box-shadow: var(--soft-shadow); }
+.prow h3 { font-size: 1.05rem; margin: 0 0 4px; }
+.prow .meta { font-size: 0.92rem; color: var(--muted); }
+.prow .fine { margin-top: 4px; }
+.prside { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; text-align: right; }
+.prside b { font: 700 1.15rem var(--font-display); white-space: nowrap; }
+@media (max-width: 560px) { .prow { flex-direction: column; align-items: stretch; } .prside { flex-direction: row; justify-content: space-between; align-items: center; } }

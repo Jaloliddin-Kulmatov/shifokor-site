@@ -1,17 +1,20 @@
 # Shifokor
 
-Find the nearest state clinic in Uzbekistan, ask a doctor online or by text message, and book visits. Built first for people living in villages, in Uzbek, Russian and English.
+Find a good doctor, know the price before you go, and ask a specialist online. Built first for people living in villages, in Uzbek, Russian and English.
 
-**Status:** prototype. The clinic directory uses real open data. Accounts, consultations and visit requests use the server when a database is configured, otherwise a demo saved in the browser. The older booking demo and clinic workspace use sample clinics.
+State polyclinic queues, medical records and prescriptions belong to DMED and my.gov.uz; Shifokor points people there instead of competing with it. It focuses on what DMED doesn't do: choosing the right specialist (state or private), checked credentials, prices up front, and online consultation in Uzbek.
+
+**Status:** prototype. Accounts, consultations and visit requests use the server when a database is configured, otherwise a demo saved in the browser. The clinic directory uses real open data.
 
 ## What's inside
 
-- **State clinic directory:** 1,554 health facilities (693 state) in all 14 regions and 199 districts, with "hospitals near me", filters for state or private, type, region and district, and a map.
-- **Visit requests at state clinics:** on a hospital that has joined (a clinic account linked to it on the map), patients pick a day (next 10 days, no Sundays) and morning or afternoon. The clinic confirms the hour, may move the day, adds a note, or declines. Patients follow it in "Qabullarim". Hospitals that haven't joined say so honestly.
-- **Online consultation:** patients fill in an application first (with an emergency safety check), then a doctor replies by text or calls by audio or video.
-- **Accounts:** patients, doctors (background, workplaces, services) and clinics (services, prices, doctors).
-- **Village assist:** a nurse or volunteer books a visit for someone without a smartphone.
-- **Booking demo and clinic workspace** with sample clinics.
+- **Doctors:** profiles with specialty, experience, licence, languages, workplaces, services with prices, and online consultation prices (text, audio, video), typical reply time and online hours. Search by specialty, region, language, name or service; "online only"; sort by checked first, cheapest consultation or experience.
+- **Prices (`#/prices`):** every service and consultation price that doctors and clinics entered, searchable by service (with common synonyms, e.g. UZI / узи / ultratovush), region, maximum price and "available online", each with the date it was updated.
+- **Online consultation:** patients fill in an application first (with an emergency safety check), see the chosen doctor's price for that kind of consultation, then the doctor replies by text or calls. Audio and video calls are still a placeholder screen.
+- **Checks:** admins confirm doctors and clinics before they show "Checked" or take visit requests.
+- **Notices:** Telegram, and SMS through Eskiz.uz, plus unread counts.
+- **Hospitals (secondary):** 1,554 health facilities in all 14 regions and 199 districts with a map and "near me", for "where to go after the consultation". Hospitals that join Shifokor can take visit requests; state polyclinic queues point to DMED / my.gov.uz.
+- The older booking demo, sample clinic workspace and village helper (sample clinics with made-up prices) are no longer linked from the menu.
 
 ## Run it
 

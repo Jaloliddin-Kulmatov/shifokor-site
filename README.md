@@ -2,7 +2,7 @@
 
 Find the nearest state clinic in Uzbekistan, ask a doctor online or by text message, and book visits. Built first for people living in villages, in Uzbek, Russian and English.
 
-**Status:** prototype. The clinic directory uses real open data. Accounts and consultations use Supabase when it is configured, otherwise a demo saved in the browser. Bookings and the clinic workspace use sample clinics.
+**Status:** prototype. The clinic directory uses real open data. Accounts and consultations use the server when a database is configured, otherwise a demo saved in the browser. Bookings and the clinic workspace use sample clinics.
 
 ## What's inside
 
@@ -24,22 +24,28 @@ Then open http://127.0.0.1:8765. Without Supabase settings the site runs in demo
 
 ## Deploy on Vercel
 
-Import the repository with the **root directory left as the repository root**. `vercel.json` already sets the build command (`node scripts/write-config.mjs`) and serves the `site` folder.
+Import the repository with the **root directory left as the repository root**. `vercel.json` sets the build (`node scripts/write-config.mjs`), serves the `site` folder, and `api/app.js` runs as a server function.
 
-Environment variables (Project → Settings → Environment Variables):
+Add **one** environment variable (Project → Settings → Environment Variables):
 
 | Name | Value |
 |---|---|
-| `SUPABASE_URL` | `https://<project>.supabase.co` |
-| `SUPABASE_PUBLISHABLE_KEY` | the publishable key (`sb_publishable_...`), or use `SUPABASE_ANON_KEY` with the anon key |
+| `DATABASE_URL` | your Postgres connection string (`POSTGRES_URL` or `SUPABASE_DB_URL` also work) |
 
-The Vercel ↔ Supabase integration's variable names (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) also work. Only these public values reach the browser. **Never** add the database connection string (`postgres://…`), the `service_role` key or a `sb_secret_` key: the build stops if it sees one.
+For Supabase, copy it from **Connect → Connection string → Method: Transaction pooler** (host `…pooler.supabase.com`, port `6543`) and replace `[YOUR-PASSWORD]` with the database password. The "Direct connection" string (`db.<project>.supabase.co`) works over IPv6 only, which Vercel functions can't reach. If the password has special characters, percent-encode them.
 
-## Backend (Supabase)
+Then redeploy. On the first request the server creates its tables (`app_users`, `app_sessions`, `app_consults`, `app_messages`) by itself. Without `DATABASE_URL` the site runs in demo mode.
 
-`supabase/migrations/` holds the schema: profiles (patients, doctors, clinics), consultation applications and messages, with row-level security so patients see only their own applications and doctors see open applications for them. Live chat uses Supabase Realtime. For a quick test, turn off **Authentication → Providers → Email → Confirm email** in the Supabase dashboard, or new users must click the email link first.
+## How the backend works
 
-Supabase cloud regions are outside Uzbekistan, so use test data only. Real patient data must be stored on servers in Uzbekistan.
+- The connection string lives only on the server (`api/app.js`); the browser gets nothing but a sign-in token.
+- Accounts: patients, doctors and clinics sign up with an email or a +998 phone number and a password (stored as a scrypt hash). Sign-in works with either. Sessions last 30 days.
+- Applications and messages: patients see only their own; doctors see open applications for them and the ones they accepted; only the patient and the accepted doctor can write in a consultation.
+- Chat refreshes every few seconds (no live push).
+- Row-level security is on with no policies, so Supabase's public Data API can't read these tables even if its keys leak.
+- Not yet: rate limiting on sign-in, password reset, email or SMS verification.
+
+Use test data only on servers outside Uzbekistan. Real patient data must be stored on servers in Uzbekistan.
 
 ## Data and licences
 

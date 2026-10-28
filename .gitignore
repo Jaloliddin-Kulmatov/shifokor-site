@@ -13,3 +13,6 @@ data-build/*.zip
 # editor settings
 .idea/
 .vscode/
+
+# dependencies
+node_modules/

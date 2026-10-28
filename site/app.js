@@ -56,7 +56,8 @@
   };
   var bookings = function () { return store.get(K.bookings, []); };
   var saveBookings = function (l) { store.set(K.bookings, l); };
-  var BE = window.SB || null;   /* Supabase connection from backend.js, or null in demo mode */
+  var BE = window.SB || null;   /* server connection from backend.js, or null in demo mode */
+  function beMsg(t, x) { var c = (x && x.code) || ""; return { exists: t.e_exists, login: t.e_login, email: t.e_email, phone: t.e_phone, tg: t.e_tg, password: t.e_pw, name: t.e_name, contact: t.e_contact }[c] || t.be_err; }
   if (BE) ["en", "uz", "ru"].forEach(function (l) { T[l].acc_demo = T[l].be_online; T[l].cs_demo = T[l].be_online; });
 
   /* ---------------- sample directory ---------------- */
@@ -602,7 +603,7 @@
     var fi = function (id, label, val, type, extra) { return '<div class="fld"><label for="' + id + '">' + label + '</label><input id="' + id + '" type="' + (type || "text") + '" value="' + esc(val || "") + '"' + (extra || "") + "></div>"; };
     var ta = function (id, label, val, ph) { return '<div class="fld"><label for="' + id + '">' + label + '</label><textarea id="' + id + '" maxlength="1500" placeholder="' + esc(ph || "") + '">' + esc(val || "") + "</textarea></div>"; };
     var regionSel = '<div class="two"><div class="fld"><label for="a-region">' + t.f_region + '</label><select id="a-region"><option value="">—</option>' + REG.slice().sort(function (x, y) { return nmL(x).localeCompare(nmL(y)); }).map(function (r) { return '<option value="' + r.code + '"' + (pr.region === r.code ? " selected" : "") + ">" + esc(nmL(r)) + "</option>"; }).join("") + '</select></div><div class="fld"><label for="a-district">' + t.f_district + '</label><select id="a-district">' + districtOptions(pr.region, pr.district) + "</select></div></div>";
-    var contact = '<fieldset class="accsec"><legend>' + t.sec_contact + "</legend>" + fi("a-name", role === "clinic" ? t.f_clinicname : t.f_fullname, a.name) + '<div class="two">' + fi("a-email", t.f_email, a.email, "email", BE ? " readonly" : "") + fi("a-phone", t.f_phone2, a.phone, "tel", ' inputmode="tel" placeholder="+998"') + "</div>" + fi("a-tg", t.f_tg, a.tg, "text", ' placeholder="' + t.f_tg_ph + '"') + "</fieldset>";
+    var contact = '<fieldset class="accsec"><legend>' + t.sec_contact + "</legend>" + fi("a-name", role === "clinic" ? t.f_clinicname : t.f_fullname, a.name) + '<div class="two">' + fi("a-email", t.f_email, a.email, "email") + fi("a-phone", t.f_phone2, a.phone, "tel", ' inputmode="tel" placeholder="+998"') + "</div>" + fi("a-tg", t.f_tg, a.tg, "text", ' placeholder="' + t.f_tg_ph + '"') + "</fieldset>";
     var svcRows = function (withOnline) {
       return '<div id="svc-list">' + pr.svc.map(function (sv, i) { return '<div class="svcrow"><input class="s-n" aria-label="' + t.svc_name + '" placeholder="' + esc(t.svc_name_ph) + '" value="' + esc(sv.name) + '"><input class="s-p" type="number" min="0" step="1000" inputmode="numeric" aria-label="' + t.svc_price + '" placeholder="' + t.svc_price + '" value="' + esc(sv.price) + '">' + (withOnline ? '<label class="mini"><input class="s-o" type="checkbox"' + (sv.online ? " checked" : "") + ">" + t.svc_online + "</label>" : "") + '<button class="linkbtn" type="button" data-svcdel="' + i + '">' + t.svc_remove + "</button></div>"; }).join("") + '</div><button class="btn ghost sm" type="button" data-act="svcadd">' + ic("plus") + t.svc_add + "</button>";
     };
@@ -997,7 +998,7 @@
       if (BE) {
         if (!BE.userId()) { err.innerHTML = t.be_login_first + ' <a href="#/login">' + t.go_login + '</a> · <a href="#/register">' + t.go_reg + "</a>"; return; }
         var dsel2 = C.doc ? userById(C.doc) : null, notes = [t.cs_sent].concat(dsel2 ? [t.cs_wanted + ": " + dsel2.name] : []);
-        err.textContent = ""; BE.createConsult(C, notes).then(function (cid) { CS = null; toast(t.cs_sent); go("#/consult/" + cid); }, function (x) { err.textContent = t.be_err + " (" + (x.message || "") + ")"; });
+        err.textContent = ""; BE.createConsult(C, notes).then(function (cid) { CS = null; toast(t.cs_sent); go("#/consult/" + cid); }, function (x) { err.textContent = beMsg(t, x); });
         return;
       }
       var cl2 = consults(), cu3 = me(), dsel = C.doc ? userById(C.doc) : null;
@@ -1033,12 +1034,11 @@
       var er = checkContact(t, name, em, ph, tg) || (pw.length < 6 ? t.e_pw : pw !== pw2 ? t.e_pw2 : "") || (findByContact(em, ph) ? t.e_exists : "");
       if (er) { $("r-err").textContent = er; return; }
       if (BE) {
-        if (!em) { $("r-err").textContent = t.be_email_req; return; }
         $("r-err").textContent = "";
         BE.signUp({ role: REGROLE, name: name, email: em, phone: ph ? digits(ph) : "", tg: tg ? "@" + tgName(tg) : "", password: pw }).then(function (r) {
           if (r.needsConfirm) { $("r-err").textContent = t.be_confirm; return; }
           ACC = null; toast(t.welcome(name)); go("#/account");
-        }, function (x) { $("r-err").textContent = /registered|exists/i.test(x.message || "") ? t.e_exists : t.be_err + " (" + (x.message || "") + ")"; });
+        }, function (x) { $("r-err").textContent = beMsg(t, x); });
         return;
       }
       var nid = "u" + Date.now().toString(36);
@@ -1050,9 +1050,9 @@
     }
     if (id === "loginform") {
       if (BE) {
-        var lid7 = $("l-id").value.trim().toLowerCase();
-        if (!okEmail(lid7)) { $("l-err").textContent = t.be_email_login; return; }
-        BE.signIn(lid7, $("l-pw").value).then(function () { ACC = null; var mu7 = me(); toast(t.welcome(mu7 ? mu7.name : "")); go("#/account"); }, function (x) { var m7 = x.message || ""; $("l-err").textContent = /confirm/i.test(m7) ? t.be_confirm : /invalid|credential/i.test(m7) ? t.e_login : t.be_err + " (" + m7 + ")"; });
+        var lid7 = $("l-id").value.trim();
+        if (!lid7) { $("l-err").textContent = t.e_login; return; }
+        BE.signIn(lid7, $("l-pw").value).then(function () { ACC = null; var mu7 = me(); toast(t.welcome(mu7 ? mu7.name : "")); go("#/account"); }, function (x) { $("l-err").textContent = beMsg(t, x); });
         return;
       }
       var lid = $("l-id").value.trim(), lpw = $("l-pw").value, isMail = lid.indexOf("@") > 0 && lid.indexOf(".") > 0;
@@ -1066,7 +1066,7 @@
       var er2 = checkContact(t, A.name, em2, A.phone, A.tg) || (findByContact(em2, A.phone, cu2.id) ? t.e_exists : "");
       if (er2) { $("a-err").textContent = er2; $("a-err").scrollIntoView({ block: "center" }); return; }
       A.pr.svc = A.pr.svc.filter(function (x) { return x.name; }); A.pr.work = A.pr.work.filter(function (w) { return w && w.label; });
-      if (BE) { BE.saveProfile({ role: cu2.role, name: A.name, phone: A.phone ? digits(A.phone) : "", tg: A.tg ? "@" + tgName(A.tg) : "", profile: A.pr }).then(function () { ACC = null; toast(t.saved); render(true); }, function (x) { $("a-err").textContent = t.be_err + " (" + (x.message || "") + ")"; }); return; }
+      if (BE) { BE.saveProfile({ role: cu2.role, name: A.name, email: em2, phone: A.phone ? digits(A.phone) : "", tg: A.tg ? "@" + tgName(A.tg) : "", profile: A.pr }).then(function () { ACC = null; toast(t.saved); render(true); }, function (x) { $("a-err").textContent = beMsg(t, x); }); return; }
       var l4 = users(); l4.forEach(function (x) { if (x.id === cu2.id) { x.name = A.name; x.email = em2; x.phone = A.phone ? digits(A.phone) : ""; x.tg = A.tg ? "@" + tgName(A.tg) : ""; x.profile = A.pr; x.updated = iso(today0()); } });
       saveUsers(l4); ACC = null; toast(t.saved); render(true); return;
     }

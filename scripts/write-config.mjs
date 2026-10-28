@@ -1,42 +1,28 @@
-// Vercel build step: writes site/config.js from environment variables.
-// Only the public project URL and the public (publishable or anon) key reach the browser.
-// The database connection string, service_role key and JWT secret are never read.
+// Vercel build step: writes site/config.js.
+// If a database connection string is set (DATABASE_URL, POSTGRES_URL or SUPABASE_DB_URL), the site uses the
+// server API at /api/app. The connection string itself is never written into the site: only the server reads it.
 import { writeFileSync } from "node:fs";
 
 const env = process.env;
-const url = (env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/\/+$/, "");
-const key = (env.SUPABASE_PUBLISHABLE_KEY || env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_ANON_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").trim();
+const name = ["DATABASE_URL", "POSTGRES_URL", "SUPABASE_DB_URL"].find((k) => (env[k] || "").trim());
+const conn = name ? env[name].trim() : "";
 
-function fail(msg) {
-  console.error("write-config: " + msg);
+if (conn && !/^postgres(ql)?:\/\//i.test(conn)) {
+  console.error("write-config: " + name + " must be a postgresql:// connection string.");
   process.exit(1);
 }
-
-if (/^postgres(ql)?:\/\//i.test(url) || /^postgres(ql)?:\/\//i.test(key)) {
-  fail("that is the database connection string. Use the project URL (https://<project>.supabase.co) and the publishable or anon key instead.");
+if (conn && /\[YOUR-PASSWORD\]/i.test(conn)) {
+  console.error("write-config: " + name + " still contains [YOUR-PASSWORD]. Put your real database password in its place.");
+  process.exit(1);
 }
-if (url && !/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url)) {
-  fail("SUPABASE_URL must look like https://<project>.supabase.co");
-}
-if (key.startsWith("sb_secret_")) {
-  fail("that is a secret key. Use the publishable key (sb_publishable_...) or the anon key.");
-}
-if (key.split(".").length === 3) {
-  let role = "";
-  try {
-    role = JSON.parse(Buffer.from(key.split(".")[1], "base64url").toString("utf8")).role;
-  } catch (e) {
-    fail("the Supabase key is not a valid key.");
-  }
-  if (role !== "anon") fail("this key has the role '" + role + "'. Use the anon or publishable key, never service_role.");
-}
-if (Boolean(url) !== Boolean(key)) {
-  fail("set both SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY), or neither.");
+if (/@db\.[a-z0-9]+\.supabase\.co/i.test(conn)) {
+  console.warn("write-config: this is Supabase's direct connection, which works over IPv6 only. Vercel needs the " +
+    "'Transaction pooler' string (host ...pooler.supabase.com, port 6543) from the same Connect window.");
 }
 
 writeFileSync(
   "site/config.js",
-  "/* Written at build time by scripts/write-config.mjs. Public values only. */\n" +
-    "window.SHIFOKOR_CONFIG = " + JSON.stringify({ supabaseUrl: url, supabaseKey: key }) + ";\n"
+  "/* Written at build time by scripts/write-config.mjs. No secrets here: the server holds the connection string. */\n" +
+    "window.SHIFOKOR_CONFIG = " + JSON.stringify({ api: conn ? "/api/app" : "" }) + ";\n"
 );
-console.log(url ? "write-config: Supabase connected (" + url + ")" : "write-config: no Supabase variables, the site runs in demo mode");
+console.log(conn ? "write-config: database set (" + name + "), accounts and consultations use the server" : "write-config: no database set, the site runs in demo mode");

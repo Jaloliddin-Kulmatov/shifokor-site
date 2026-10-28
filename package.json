@@ -1,0 +1,12 @@
+{
+  "name": "shifokor-site",
+  "private": true,
+  "description": "Shifokor: state clinic directory and online consultation for Uzbekistan",
+  "engines": { "node": "20.x" },
+  "scripts": {
+    "build": "node scripts/write-config.mjs"
+  },
+  "dependencies": {
+    "pg": "8.11.3"
+  }
+}

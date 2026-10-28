@@ -269,8 +269,27 @@ function send(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
+// Turns a connection failure into a short reason without exposing the connection string or password.
+function reasonOf(e) {
+  const code = (e && e.code) || "", msg = String((e && e.message) || "");
+  if (code === "ENOTFOUND" || code === "EAI_AGAIN") return "host_not_found: check the host part of DATABASE_URL";
+  if (code === "ENETUNREACH" || code === "EHOSTUNREACH" || /ENETUNREACH|EHOSTUNREACH/.test(msg)) return "network_unreachable: this is probably Supabase's direct (IPv6) connection; use the Transaction pooler string";
+  if (code === "ECONNREFUSED") return "connection_refused: check the host and port";
+  if (code === "ETIMEDOUT" || /timeout/i.test(msg)) return "timeout: the database didn't answer; check the host and port";
+  if (code === "28P01" || /password authentication failed/i.test(msg)) return "wrong_password: check the password in DATABASE_URL (percent-encode special characters)";
+  if (/tenant or user not found/i.test(msg)) return "wrong_user: for the pooler the user must be postgres.<project-ref>, copied as-is from Supabase";
+  if (code === "3D000") return "database_not_found: the database name at the end of DATABASE_URL is wrong";
+  if (/ssl|certificate/i.test(msg)) return "ssl: secure connection failed";
+  if (/^(42|23)/.test(code)) return "schema: creating the tables failed (" + code + ")";
+  return "unknown" + (code ? " (" + code + ")" : "");
+}
+
 module.exports = async function handler(req, res) {
-  if (req.method === "GET") return send(res, 200, { ok: true, database: Boolean(CONN) });
+  if (req.method === "GET") {
+    if (!CONN) return send(res, 200, { ok: true, database: false });
+    try { await migrate(); return send(res, 200, { ok: true, database: true, connected: true }); }
+    catch (e) { console.error("db check", e && e.code, e && e.message); return send(res, 200, { ok: true, database: true, connected: false, reason: reasonOf(e) }); }
+  }
   if (req.method !== "POST") return send(res, 405, { error: "method" });
   if (!CONN) return send(res, 503, { error: "no_database" });
   let body = req.body;

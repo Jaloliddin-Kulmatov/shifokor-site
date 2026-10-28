@@ -6,7 +6,7 @@
   var C = window.SHIFOKOR_CONFIG || {};
   if (!C.api) { window.SB = null; return; }
 
-  var TK = "shifokor-token", token = null, uid = null, listeners = [], ready = false, busy = null, last = "", notify = { tg: false, sms: false };
+  var TK = "shifokor-token", photos = {}, token = null, uid = null, listeners = [], ready = false, busy = null, last = "", notify = { tg: false, sms: false };
   try { token = localStorage.getItem(TK); } catch (e) {}
   var set = function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   function setToken(t) { token = t || null; try { if (token) localStorage.setItem(TK, token); else localStorage.removeItem(TK); } catch (e) {} }
@@ -30,7 +30,7 @@
       age: c.age == null ? "" : String(c.age), sex: c.sex || "f", phone: c.phone, region: c.region || "", district: c.district || "",
       complaint: c.complaint, since: String(c.since == null ? 1 : c.since), chronic: c.chronic || "", meds: c.meds || "", allergy: c.allergy || "",
       spec: c.spec || "", doc: c.doc || "", status: c.status, doctorId: c.doctor_id || "", doctorName: c.doctor_name || "", call: !!c.call, outcome: c.outcome,
-      msgs: (c.messages || []).map(function (m) { return { from: m.kind, name: m.name || "", text: m.body, at: Date.parse(m.created_at) }; })
+      msgs: (c.messages || []).map(function (m) { return { from: m.kind, name: m.name || "", text: m.body || "", file: m.file_id || "", at: Date.parse(m.created_at) }; })
     };
   }
 
@@ -83,7 +83,13 @@
     deleteAccount: async function () { await call("delete_account"); setToken(null); await refresh(); },
     saveProfile: async function (u) { await call("save_profile", u); await refresh(); },
     createConsult: async function (r, notes) { var j = await call("create_consult", { c: r, notes: notes || [] }); await refresh(); return j.id; },
-    addMessage: async function (cid, kind, name, body) { await call("message", { id: cid, body: body }); await refresh(); },
+    /* photo: { data } from the photo shrinker, sent with or without text */
+    addMessage: async function (cid, kind, name, body, photo) { var j = await call("message", { id: cid, body: body || "", photo: photo ? { data: photo.data } : undefined }); if (j.file && photo) photos[j.file] = Promise.resolve(photo.url); await refresh(); },
+    /* a consultation photo as a data: URL; each one is fetched once per page load */
+    photo: function (id) {
+      if (!photos[id]) photos[id] = call("file", { id: id }).then(function (j) { return "data:" + j.mime + ";base64," + j.data; }, function (e) { delete photos[id]; throw e; });
+      return photos[id];
+    },
     notify: function () { return notify; },
     /* opens the bot in Telegram; pressing Start there links this account */
     tgLink: async function () { return (await call("tg_link")).url; },

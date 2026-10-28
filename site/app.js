@@ -11,6 +11,7 @@
   /* ---------------- icons ---------------- */
   var ICONS = {
     cal: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/>',
+    camera: '<path d="M4 8h3.5l2-3h5l2 3H20v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
     hosp: '<rect x="4" y="7" width="16" height="14" rx="2"/><path d="M12 10v6M9 13h6M9 7V4h6v3"/>',
     heart: '<path d="M12 20s-7-4.5-7-10a4 4 0 017-2.5A4 4 0 0119 10c0 5.5-7 10-7 10z"/>',
     siren: '<path d="M7 18v-5a5 5 0 0110 0v5M5 18h14M12 3v2M4.5 6.5l1.4 1.4M19.5 6.5l-1.4 1.4"/>',
@@ -66,7 +67,7 @@
   var bookings = function () { return store.get(K.bookings, []); };
   var saveBookings = function (l) { store.set(K.bookings, l); };
   var BE = window.SB || null;   /* server connection from backend.js, or null in demo mode */
-  function beMsg(t, x) { var c = (x && x.code) || ""; return { exists: t.e_exists, login: t.e_login, email: t.e_email, phone: t.e_phone, tg: t.e_tg, password: t.e_pw, name: t.e_name, contact: t.e_contact, date: t.e_ap_date, limit: t.e_ap_limit, dup: t.e_ap_dup, clinic: t.e_ap_clinic, time: t.e_ap_time, closed: t.e_ap_closed, unverified: t.e_ap_unv, no_tg: t.nt_off, forbidden: t.adm_forbidden, reviewed: t.e_reviewed, stars: t.e_stars }[c] || t.be_err; }
+  function beMsg(t, x) { var c = (x && x.code) || ""; return { exists: t.e_exists, login: t.e_login, email: t.e_email, phone: t.e_phone, tg: t.e_tg, password: t.e_pw, name: t.e_name, contact: t.e_contact, date: t.e_ap_date, limit: t.e_ap_limit, dup: t.e_ap_dup, clinic: t.e_ap_clinic, time: t.e_ap_time, closed: t.e_ap_closed, unverified: t.e_ap_unv, no_tg: t.nt_off, forbidden: t.adm_forbidden, reviewed: t.e_reviewed, stars: t.e_stars, photos: t.e_photos, photo: t.ph_bad }[c] || t.be_err; }
   if (BE) ["en", "uz", "ru"].forEach(function (l) { T[l].acc_demo = T[l].be_online; T[l].cs_demo = T[l].be_online; });
 
   /* ---------------- sample directory ---------------- */
@@ -804,8 +805,57 @@
   var saveConsults = function (l) { store.set(KC, l); };
   var consultById = function (id) { return consults().filter(function (c) { return c.id === id; })[0] || null; };
   var CS = null;
+
+  /* photos in a consultation (a rash, a lab result). The browser shrinks each one to JPEG, which also drops the
+     phone's location data. Server mode keeps them on the server for this consultation's patient and doctor only;
+     demo mode keeps smaller copies in this browser. */
+  var KF = "shifokor-files", PH = null, CSPH = [], phUrls = {}, PH_FORM_MAX = 3;
+  function shrinkPhoto(file) {
+    var side = BE ? 1600 : 1000, qual = BE ? 0.82 : 0.7;
+    return new Promise(function (ok, no) {
+      if (!file) { no(new Error("photo")); return; }
+      var src = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        var k = Math.min(1, side / Math.max(img.naturalWidth, img.naturalHeight)), cv = document.createElement("canvas"), cx = cv.getContext("2d");
+        cv.width = Math.max(1, Math.round(img.naturalWidth * k)); cv.height = Math.max(1, Math.round(img.naturalHeight * k));
+        cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(src);
+        var url = cv.toDataURL("image/jpeg", qual);
+        if (url.length > 2000000) url = cv.toDataURL("image/jpeg", 0.6);
+        if (url.indexOf("data:image/jpeg") !== 0 || url.length > 2100000) { no(new Error("photo")); return; }
+        ok({ url: url, data: url.slice(url.indexOf(",") + 1) });
+      };
+      img.onerror = function () { URL.revokeObjectURL(src); no(new Error("photo")); };
+      img.src = src;
+    });
+  }
+  /* demo mode: returns the new photo's id, or "" when this browser has no room left */
+  function demoPhoto(ph) {
+    var id = "f" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), m = store.get(KF, {});
+    m[id] = ph.url;
+    try { localStorage.setItem(KF, JSON.stringify(m)); } catch (e) { return ""; }
+    phUrls[id] = ph.url; return id;
+  }
+  function photoSrc(id) { if (!phUrls[id] && !BE) phUrls[id] = store.get(KF, {})[id] || ""; return phUrls[id] || ""; }
+  function phImg(id) { var t = L(); return '<button type="button" class="msgph" data-ph="' + esc(id) + '" aria-label="' + esc(t.ph_open) + '"><img data-phid="' + esc(id) + '" alt="' + esc(t.ph_alt) + '"></button>'; }
+  /* fills in photo <img>s after a render; server photos load once and then come from memory */
+  function hydratePhotos() {
+    all("img[data-phid]").forEach(function (im) {
+      var id = im.dataset.phid, u = photoSrc(id);
+      if (u) { im.src = u; return; }
+      var gone = function () { all('img[data-phid="' + id + '"]').forEach(function (x) { x.parentNode.classList.add("gone"); }); };
+      if (!BE) { gone(); return; }
+      BE.photo(id).then(function (url) { phUrls[id] = url; all('img[data-phid="' + id + '"]').forEach(function (x) { x.src = url; }); if (modal && modal.type === "photo" && modal.id === id) refreshModal(); }, gone);
+    });
+  }
+  function phPick(input, max, done) {
+    var t = L(), files = Array.prototype.slice.call(input.files || [], 0, max); input.value = "";
+    if (!files.length) return;
+    files.reduce(function (p, f) { return p.then(function (got) { return shrinkPhoto(f).then(function (ph) { return got.concat([ph]); }, function () { toast(t.ph_bad); return got; }); }); }, Promise.resolve([])).then(function (got) { if (got.length) done(got); });
+  }
+
   function csStart(q) {
     var u = me(), pr = (u && u.profile) || {};
+    CSPH = [];
     CS = { docQ: q.doc || "", type: "text", safe: "", who: "self", name: u && u.role === "patient" ? u.name : "", age: "", sex: "f", phone: u && u.phone ? fmtPhone(u.phone) : "", region: pr.region || "", district: pr.district || "", complaint: "", since: "1", chronic: "", meds: "", allergy: "", spec: "", doc: q.doc || "", consent: false };
     var d = q.doc ? userById(q.doc) : null; if (d) CS.spec = (d.profile || {}).spec || "";
   }
@@ -830,6 +880,8 @@
       '<div class="two"><div class="fld"><label for="cs-sex">' + t.cs_sex + '</label><select id="cs-sex">' + ["f", "m"].map(function (k) { return '<option value="' + k + '"' + (c.sex === k ? " selected" : "") + ">" + t.cs_sexes[k] + "</option>"; }).join("") + "</select></div>" + fi("cs-phone", t.cs_phone, c.phone, "tel", ' inputmode="tel" placeholder="+998" autocomplete="tel"') + "</div>" + dis + "</fieldset>" +
       '<fieldset class="accsec"><legend>' + t.cs_prob_h + '</legend><div class="fld"><label for="cs-complaint">' + t.cs_complaint + '</label><textarea id="cs-complaint" maxlength="1500" placeholder="' + esc(t.cs_complaint_ph) + '">' + esc(c.complaint) + "</textarea></div>" +
       '<div class="fld"><label for="cs-since">' + t.cs_since + '</label><select id="cs-since">' + t.cs_sinces.map(function (x, i) { return '<option value="' + i + '"' + (String(c.since) === String(i) ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></div>" +
+      '<div class="phfld"><b>' + t.ph_form + '</b><div class="phrow">' + CSPH.map(function (p, i) { return '<span class="phthumb"><img src="' + p.url + '" alt="' + esc(t.ph_alt) + '"><button type="button" data-phrm="' + i + '" aria-label="' + esc(t.ph_remove) + '">×</button></span>'; }).join("") +
+        (CSPH.length < PH_FORM_MAX ? '<label class="phadd"><input type="file" accept="image/*" id="cs-ph" class="vh" multiple>' + ic("camera") + "<span>" + t.ph_add + "</span></label>" : "") + '</div><p class="fine">' + t.ph_form_p(PH_FORM_MAX) + " " + t.ph_privacy + "</p></div>" +
       fi("cs-chronic", t.cs_chronic, c.chronic) + '<div class="two">' + fi("cs-meds", t.cs_meds, c.meds) + fi("cs-allergy", t.cs_allergy, c.allergy) + "</div></fieldset>" +
       '<fieldset class="accsec"><legend>' + t.cs_doc_h + '</legend><div class="two"><div class="fld"><label for="cs-spec">' + t.d_spec + '</label><select id="cs-spec"><option value="">' + t.cs_spec_any + "</option>" + DOC_SP.filter(function (k) { return k !== "other"; }).map(function (k) { return '<option value="' + k + '"' + (c.spec === k ? " selected" : "") + ">" + t.docsp[k] + "</option>"; }).join("") + '</select></div><div class="fld"><label for="cs-doc">' + t.cs_doc_pick + '</label><select id="cs-doc"><option value="">' + t.cs_doc_any + "</option>" + docs.map(function (d) { var p = cpOf(d.profile)[c.type]; return '<option value="' + d.id + '"' + (c.doc === d.id ? " selected" : "") + ">" + esc(d.name) + " · " + esc(specName(d.profile || {})) + (p != null ? " · " + esc(money(p)) : "") + "</option>"; }).join("") + "</select></div></div>" + (function () {
         var d = c.doc ? userById(c.doc) : null; if (!d) return "";
@@ -858,7 +910,7 @@
     var details = '<dl class="kv">' + row(t.cs_type_lbl, t.cs_types[c.type][0]) + row(t.cs_for_lbl, t.cs_for[c.who]) + row(t.cs_pname, esc(c.name)) + row(t.cs_age, esc(c.age)) + row(t.cs_sex, t.cs_sexes[c.sex]) + row(t.cs_phone, '<span class="nums">' + esc(isDoc || !c.userId || (u && u.id === c.userId) ? c.phone : maskPhone(c.phone)) + "</span>") + row(t.cs_area, esc(area)) + row(t.cs_since, t.cs_sinces[+c.since]) + "</dl>" +
       '<h3 style="margin:16px 0 6px">' + t.cs_complaint + '</h3><p class="pre">' + esc(c.complaint) + "</p>" +
       '<dl class="kv" style="margin-top:14px">' + row(t.cs_chronic, esc(c.chronic)) + row(t.cs_meds, esc(c.meds)) + row(t.cs_allergy, esc(c.allergy)) + row(t.cs_wanted, c.spec ? t.docsp[c.spec] : t.cs_spec_any) + row(t.cs_doctor, c.doctorId ? '<a href="#/doc/' + c.doctorId + '">' + esc(c.doctorName) + "</a>" : "") + "</dl>";
-    var msgs = c.msgs.map(function (m) { if (m.from === "s") return '<div class="sys">' + esc(m.text) + "</div>"; var mine = (isDoc && m.from === "d") || (!isDoc && m.from === "p"); return '<div class="' + (mine ? "me" : "them") + '">' + (m.from === "d" && !mine ? "<b>" + esc(m.name) + "</b>" : "") + esc(m.text) + '<small>' + fmt(new Date(m.at), { day: "numeric", month: "short" }) + " " + pad(new Date(m.at).getHours()) + ":" + pad(new Date(m.at).getMinutes()) + "</small></div>"; }).join("");
+    var msgs = c.msgs.map(function (m) { if (m.from === "s") return '<div class="sys">' + esc(m.text) + "</div>"; var mine = (isDoc && m.from === "d") || (!isDoc && m.from === "p"); return '<div class="' + (mine ? "me" : "them") + (m.file ? " hasph" : "") + '">' + (m.from === "d" && !mine ? "<b>" + esc(m.name) + "</b>" : "") + (m.file ? phImg(m.file) : "") + esc(m.text || "") + '<small>' + fmt(new Date(m.at), { day: "numeric", month: "short" }) + " " + pad(new Date(m.at).getHours()) + ":" + pad(new Date(m.at).getMinutes()) + "</small></div>"; }).join("");
     var canWrite = c.status !== "done" && (!isDoc || mineDoc);
     var actions = "";
     if (isDoc && c.status === "new") actions = '<button class="btn" type="button" data-cs="accept" data-id="' + c.id + '">' + ic("check") + t.cs_accept + "</button>";
@@ -868,7 +920,8 @@
     return '<div class="wrap"><a class="back" href="' + (isDoc ? "#/account" : "#/visits") + '">‹ ' + (isDoc ? t.nav_account : t.nav_visits) + '</a><div class="sechead" style="padding-top:12px"><div><h1 style="font-size:clamp(1.6rem,1.3rem + 1.4vw,2.3rem)">' + t.cs_no(c.n) + "</h1><div class=\"badges\">" + csBadge(c.status) + '<span class="badge plain">' + t.cs_types[c.type][0] + "</span></div></div>" + (isDoc ? '<span class="sample">' + t.cs_doc_view + "</span>" : "") + "</div>" +
       '<div class="pf" style="padding-top:18px"><div>' + (!isDoc && c.status === "done" && c.doctorId && (u ? c.userId === u.id : !c.userId) ? rvCard("c", c.id, c.doctorName, false) : "") + '<div class="dcard"><h2>' + t.cs_details + "</h2>" + details + "</div>" + (isDoc && !mineDoc && c.status !== "new" ? "" : "") + '<p class="fine" style="margin-top:14px">' + t.cs_demo + "</p></div>" +
       '<aside class="dcard chatcard"><h2>' + t.cs_thread + '</h2><div class="room-log" id="cslog">' + (msgs || '<div class="sys">' + t.cs_sent + "</div>") + "</div>" +
-      (canWrite ? '<form class="room-send" id="csmsg" data-id="' + c.id + '" style="margin-top:10px"><input id="csmsg-in" class="pinput" style="width:100%;text-align:left" placeholder="' + esc(t.cs_write) + '" aria-label="' + esc(t.cs_write) + '" autocomplete="off"><button class="btn" type="submit">' + t.cs_send_msg + "</button></form>" : "") +
+      (canWrite ? '<form class="room-send withph" id="csmsg" data-id="' + c.id + '" style="margin-top:10px">' + (PH && PH.cid === c.id ? '<div class="phpend"><img src="' + PH.url + '" alt="' + esc(t.ph_alt) + '"><span>' + t.ph_ready + '</span><button class="btn ghost sm" type="button" data-act="phdrop">' + t.ph_remove + "</button></div>" : "") +
+        '<label class="btn ghost phbtn" title="' + esc(t.ph_add) + '"><input type="file" accept="image/*" id="csmsg-ph" class="vh" aria-label="' + esc(t.ph_add) + '">' + ic("camera") + '</label><input id="csmsg-in" class="pinput" style="width:100%;text-align:left" placeholder="' + esc(t.cs_write) + '" aria-label="' + esc(t.cs_write) + '" autocomplete="off"><button class="btn" type="submit">' + t.cs_send_msg + '</button></form><p class="fine" style="margin-top:6px">' + t.ph_privacy + "</p>" : "") +
       (actions ? '<div class="stack" style="margin-top:12px">' + actions + "</div>" : "") + (!isDoc && c.status === "new" ? "" : "") + '<p class="fine" style="margin-top:10px">' + t.cs_sms_note + "</p></aside></div></div>";
   }
   function homeDoctorSearch() {
@@ -1139,6 +1192,10 @@
       var pr = byId(m.p);
       return '<form class="sheet" id="rpform" role="dialog" aria-modal="true" aria-labelledby="dh" novalidate>' + head() + '<h2 id="dh">' + t.p_report + '</h2><p class="muted" style="margin:6px 0 16px">' + esc(pname(pr)) + '</p><fieldset style="border:0;padding:0;margin:0"><legend style="font-weight:600;margin-bottom:8px">' + t.rp_what + '</legend><div class="radio">' + t.rp_opts.map(function (o, i) { return '<label><input type="radio" name="rpwhy" value="' + i + '"' + (i === 0 ? " checked" : "") + ">" + o + "</label>"; }).join("") + '</div></fieldset><div class="fld"><label for="rp-note">' + t.rp_note + '</label><textarea id="rp-note" maxlength="300"></textarea></div><button class="btn big block" type="submit">' + t.rp_send + "</button></form>";
     }
+    if (m.type === "photo") {
+      var psrc = photoSrc(m.id);
+      return '<div class="sheet phview" role="dialog" aria-modal="true" aria-labelledby="dh">' + head() + '<h2 id="dh">' + t.ph_alt + "</h2>" + (psrc ? '<img src="' + psrc + '" alt="' + esc(t.ph_alt) + '">' : '<p class="muted">' + t.ph_loading + "</p>") + '<p class="fine">' + t.ph_privacy + "</p></div>";
+    }
     if (m.type === "call") {
       var mb2 = function (k, icn, label) { return '<button class="chip" type="button" data-rmode="' + k + '" aria-pressed="' + (m.media === k) + '">' + ic(icn) + label + "</button>"; };
       return '<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="dh">' + head() + '<h2 id="dh">' + t.cs_types[m.media === "video" ? "video" : "audio"][0] + '</h2><p class="muted" style="margin-top:4px">' + esc(m.title) + '</p><div class="room-modes" style="margin:16px 0">' + mb2("audio", "mic", t.rm_audio) + mb2("video", "video", t.rm_video) + '</div><div class="callbox">' + ic(m.media === "video" ? "video" : "mic") + "<p>" + t.cs_call_demo + '</p></div><p style="margin-top:18px"><button class="btn danger" type="button" data-act="close">' + t.rm_leave + "</button></p></div>";
@@ -1186,7 +1243,7 @@
     else if (path === "/dashboard") { html = viewDashboard(); route = "dashboard"; }
     else if (path === "/assist") { html = viewAssist(); route = "assist"; }
     else html = viewHome();
-    var y = window.scrollY; destroyMap(); $("app").innerHTML = html;
+    var y = window.scrollY; destroyMap(); $("app").innerHTML = html; hydratePhotos();
     if (pendingMap) { var items = pendingMap; pendingMap = null; if (items.fac) initFacMap(items.fac, items.single); else initMap(items); }
     all("[data-t]").forEach(function (el) { var v = t[el.dataset.t]; if (typeof v === "string") el.innerHTML = v; });
     all("[data-r]").forEach(function (a) { if (a.dataset.r === route) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
@@ -1255,6 +1312,9 @@
     if (el.parentNode && el.parentNode.id === "smode" && ds.m) { S.mode = ds.m; all("#smode button").forEach(function (x) { x.setAttribute("aria-pressed", String(x.dataset.m === S.mode)); }); return; }
     if (el.parentNode && el.parentNode.id === "pmode" && ds.m) { current.q.m = ds.m; go("#/p/" + current.path.slice(3) + "?" + qs(current.q)); return; }
     if (ds.cstype) { csCollect(); CS.type = ds.cstype; render(true); return; }
+    if (ds.phrm != null) { csCollect(); CSPH.splice(+ds.phrm, 1); render(true); return; }
+    if (ds.ph) { openModal({ type: "photo", id: ds.ph }); return; }
+    if (ds.act === "phdrop") { var tx0 = $("csmsg-in") ? $("csmsg-in").value : ""; PH = null; render(true); if ($("csmsg-in")) { $("csmsg-in").value = tx0; $("csmsg-in").focus(); } return; }
     if (ds.cssafe) { csCollect(); CS.safe = ds.cssafe; render(true); return; }
     if (ds.csfor) { csCollect(); CS.who = ds.csfor; render(true); return; }
     if (ds.cs) {
@@ -1314,7 +1374,8 @@
     if (ds.act === "cleardata") { SET_ASK = true; render(true); return; }
     if (ds.act === "cleardata-no") { SET_ASK = false; render(true); return; }
     if (ds.act === "cleardata-yes") {
-      ["bookings", "status", "prices", "conf", "reports", "consults", "appts", "reviews"].concat(BE ? [] : ["users", "session"]).forEach(function (k) { try { localStorage.removeItem("shifokor-" + k); } catch (x) {} });
+      phUrls = {}; PH = null;
+      ["bookings", "status", "prices", "conf", "reports", "consults", "appts", "reviews", "files"].concat(BE ? [] : ["users", "session"]).forEach(function (k) { try { localStorage.removeItem("shifokor-" + k); } catch (x) {} });
       SET_ASK = false; cal = {}; toast(t.set_data_done); if (BE) BE.refresh().catch(function () {}); render(true); return;
     }
     if (ds.act === "near") { e.preventDefault(); closeMenu(); askLocation(); return; }
@@ -1348,23 +1409,34 @@
       if (BE) {
         if (!BE.userId()) { err.innerHTML = t.be_login_first + ' <a href="#/login">' + t.go_login + '</a> · <a href="#/register">' + t.go_reg + "</a>"; return; }
         var dsel2 = C.doc ? userById(C.doc) : null, notes = [t.cs_sent].concat(dsel2 ? [wantedNote(dsel2, C.type)] : []);
-        err.textContent = ""; BE.createConsult(C, notes).then(function (cid) { CS = null; toast(t.cs_sent); go("#/consult/" + cid); }, function (x) { err.textContent = beMsg(t, x); });
+        var phs = CSPH.slice(), csb = e.target.querySelector('button[type="submit"]');
+        err.textContent = ""; if (csb) csb.disabled = true;
+        BE.createConsult(C, notes).then(function (cid) {
+          if (phs.length) err.textContent = t.ph_sending;
+          /* photos go up one by one after the application; one that fails can be sent again in the chat */
+          return phs.reduce(function (p, ph) { return p.then(function (ok) { return BE.addMessage(cid, "p", C.name, "", ph).then(function () { return ok; }, function () { return false; }); }); }, Promise.resolve(true)).then(function (ok) {
+            CS = null; CSPH = []; toast(ok ? t.cs_sent : t.ph_some_failed); go("#/consult/" + cid);
+          });
+        }, function (x) { if (csb) csb.disabled = false; err.textContent = beMsg(t, x); });
         return;
       }
       var cl2 = consults(), cu3 = me(), dsel = C.doc ? userById(C.doc) : null;
       var rec = { id: "c" + Date.now().toString(36), n: 1000 + cl2.length + 1, at: Date.now(), userId: cu3 && cu3.role === "patient" ? cu3.id : "", type: C.type, who: C.who, name: C.name, age: C.age, sex: C.sex, phone: C.phone, region: C.region, district: C.district, complaint: C.complaint, since: C.since, chronic: C.chronic, meds: C.meds, allergy: C.allergy, spec: C.spec, doc: C.doc, status: "new", doctorId: "", doctorName: "", msgs: [{ from: "s", text: t.cs_sent, at: Date.now() }] };
       if (dsel) rec.msgs.push({ from: "s", text: wantedNote(dsel, C.type), at: Date.now() });
-      cl2.push(rec); saveConsults(cl2); CS = null; toast(t.cs_sent); go("#/consult/" + rec.id); return;
+      var full2 = false; CSPH.forEach(function (ph) { var fid = demoPhoto(ph); if (fid) rec.msgs.push({ from: "p", name: C.name, text: "", file: fid, at: Date.now() }); else full2 = true; });
+      cl2.push(rec); saveConsults(cl2); CS = null; CSPH = []; toast(full2 ? t.ph_full : t.cs_sent); go("#/consult/" + rec.id); return;
     }
     if (id === "csmsg") {
-      var inp3 = $("csmsg-in"), txt = inp3.value.trim(); if (!txt) return;
+      var inp3 = $("csmsg-in"), txt = inp3.value.trim(), ph3 = PH && PH.cid === e.target.dataset.id ? PH : null; if (!txt && !ph3) return;
       if (BE) {
-        var me5 = me(), asDoc5 = !!(me5 && me5.role === "doctor"), cid5 = e.target.dataset.id;
-        inp3.value = ""; BE.addMessage(cid5, asDoc5 ? "d" : "p", asDoc5 ? me5.name : (consultById(cid5) || {}).name, txt).then(function () { render(true); var l5 = $("cslog"); if (l5) l5.scrollTop = l5.scrollHeight; if ($("csmsg-in")) $("csmsg-in").focus(); }, function () { inp3.value = txt; toast(t.be_err); });
+        var me5 = me(), asDoc5 = !!(me5 && me5.role === "doctor"), cid5 = e.target.dataset.id, sb5 = e.target.querySelector('button[type="submit"]');
+        inp3.value = ""; PH = null; if (ph3 && sb5) { sb5.disabled = true; sb5.textContent = t.ph_sending; }
+        BE.addMessage(cid5, asDoc5 ? "d" : "p", asDoc5 ? me5.name : (consultById(cid5) || {}).name, txt, ph3).then(function () { render(true); var l5 = $("cslog"); if (l5) l5.scrollTop = l5.scrollHeight; if ($("csmsg-in")) $("csmsg-in").focus(); }, function (x) { PH = ph3; render(true); if ($("csmsg-in")) $("csmsg-in").value = txt; toast(x && x.code === "photos" ? t.e_photos : x && x.code === "photo" ? t.ph_bad : t.be_err); });
         return;
       }
       var cl3 = consults(), c3 = cl3.filter(function (x) { return x.id === e.target.dataset.id; })[0], du3 = me(), asDoc = du3 && du3.role === "doctor";
-      c3.msgs.push({ from: asDoc ? "d" : "p", name: asDoc ? du3.name : c3.name, text: txt, at: Date.now() }); saveConsults(cl3); render(true);
+      var fid3 = ph3 ? demoPhoto(ph3) : ""; if (ph3 && !fid3) { toast(t.ph_full); return; }
+      PH = null; c3.msgs.push({ from: asDoc ? "d" : "p", name: asDoc ? du3.name : c3.name, text: txt, file: fid3, at: Date.now() }); saveConsults(cl3); render(true);
       var lg2 = $("cslog"); if (lg2) lg2.scrollTop = lg2.scrollHeight; if ($("csmsg-in")) $("csmsg-in").focus(); return;
     }
     if (id === "csfinish") {
@@ -1528,6 +1600,12 @@
     if (id.indexOf("df-") === 0) { go("#/doctors?" + qs(dfQuery())); return; }
     if (id.indexOf("pr-") === 0 && id !== "pr-q") { go("#/prices?" + qs(prQuery())); return; }
     if (id === "cs-doc") { csCollect(); render(true); return; }
+    if (id === "cs-ph") { csCollect(); phPick(e.target, PH_FORM_MAX - CSPH.length, function (got) { csCollect(); CSPH = CSPH.concat(got).slice(0, PH_FORM_MAX); render(true); }); return; }
+    if (id === "csmsg-ph") {
+      var phcid = e.target.closest("form").dataset.id;
+      phPick(e.target, 1, function (got) { var inp = $("csmsg-in"), tx = inp ? inp.value : ""; PH = { cid: phcid, url: got[0].url, data: got[0].data }; render(true); if ($("csmsg-in")) { $("csmsg-in").value = tx; $("csmsg-in").focus(); } });
+      return;
+    }
     if (id === "a-region") { accCollect(); ACC.pr.district = ""; render(true); return; }
     if (id === "dr") { $("dd").innerHTML = districtOptions(e.target.value, ""); return; }
     if (id === "fprice") { F.max = +e.target.value; render(true); }
@@ -1545,7 +1623,7 @@
   });
   /* another tab booked or changed something: refresh so a taken slot disappears here too */
   window.addEventListener("storage", function (e) { if (e.key && e.key.indexOf("shifokor-") === 0) rerender(); });
-  window.addEventListener("hashchange", function () { cancelAsk = null; apAsk = null; APX = null; RR = null; render(false); });
+  window.addEventListener("hashchange", function () { PH = null; cancelAsk = null; apAsk = null; APX = null; RR = null; render(false); });
 
   render(false);
   if (BE) BE.on(function () {
@@ -1556,9 +1634,11 @@
     if ($("apreply")) apxCollect();
     if ($("rvform")) rvCollect();
     if ($("rvreply-in") && RR) RR.text = $("rvreply-in").value;
+    var draft = $("csmsg-in") ? $("csmsg-in").value : null;
     var fe = document.activeElement, fid = fe && fe.id, sel = null;
     try { sel = fid && fe.selectionStart != null ? [fe.selectionStart, fe.selectionEnd] : null; } catch (x) {}
     rerender();
+    if (draft && $("csmsg-in")) $("csmsg-in").value = draft;
     var nf = fid && $(fid); if (nf && nf !== document.activeElement) { nf.focus({ preventScroll: true }); try { if (sel) nf.setSelectionRange(sel[0], sel[1]); } catch (x) {} }
     var lg = $("cslog"); if (lg) lg.scrollTop = lg.scrollHeight;
   });

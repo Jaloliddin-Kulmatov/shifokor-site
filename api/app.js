@@ -115,6 +115,17 @@ async function consultFor(me, id) {
   if (!r.rows[0]) throw new Fail(404, "not_found");
   return r.rows[0];
 }
+// A photo arrives as { data: base64 }. The type comes from the file's first bytes, not from what the browser says.
+const MAX_PHOTOS = 20;   // per consultation
+function photoOf(p) {
+  const raw = p && typeof p.data === "string" && p.data.length <= 2200000 ? p.data.replace(/^data:[^,]*,/, "") : bad("photo");
+  const data = Buffer.from(raw, "base64");
+  if (data.length < 100 || data.length > 1600000) bad("photo");
+  const mime = data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff ? "image/jpeg"
+    : data.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) ? "image/png"
+    : data.slice(0, 4).toString("latin1") === "RIFF" && data.slice(8, 12).toString("latin1") === "WEBP" ? "image/webp" : bad("photo");
+  return { mime, data };
+}
 async function sysNote(consultId, note) {
   const body = str(note, 300);
   if (body) await q("insert into app_messages (consult_id, kind, body) values ($1, 's', $2)", [consultId, body]);
@@ -138,7 +149,7 @@ const ACTIONS = {
       );
       consults = cs.rows;
       if (consults.length) {
-        const ms = await q("select consult_id, kind, name, body, created_at from app_messages where consult_id = any($1::uuid[]) order by id", [consults.map((c) => c.id)]);
+        const ms = await q("select consult_id, kind, name, body, file_id, created_at from app_messages where consult_id = any($1::uuid[]) order by id", [consults.map((c) => c.id)]);
         const by = {};
         ms.rows.forEach((m) => { (by[m.consult_id] = by[m.consult_id] || []).push(m); });
         consults.forEach((c) => { c.messages = by[c.id] || []; });
@@ -246,11 +257,31 @@ const ACTIONS = {
     if (c.patient_id === me.id) { kind = "p"; name = c.name; }
     else if (c.doctor_id === me.id) { kind = "d"; name = me.name; }
     else throw new Fail(403, "forbidden");
-    const body = str(b.body, 2000) || bad("body");
-    await q("insert into app_messages (consult_id, sender, kind, name, body) values ($1, $2, $3, $4, $5)", [c.id, me.id, kind, name, body]);
-    if (kind === "d") await notifyUser(c.patient_id, "Shifokor: shifokor " + me.name + " javob yozdi (ariza №" + c.n + "). " + SITE + "/#/consult/" + c.id);
-    else if (c.doctor_id) await notifyUser(c.doctor_id, "Shifokor: bemor yangi xabar yozdi (ariza №" + c.n + "). " + SITE + "/#/consult/" + c.id);
-    return { ok: true };
+    const body = str(b.body, 2000);
+    const photo = b.photo ? photoOf(b.photo) : null;
+    if (!body && !photo) bad("body");
+    let fileId = null;
+    if (photo) {
+      if (Number((await q("select count(*) from app_files where consult_id = $1", [c.id])).rows[0].count) >= MAX_PHOTOS) throw new Fail(429, "photos");
+      fileId = (await q("insert into app_files (consult_id, sender, mime, data) values ($1, $2, $3, $4) returning id", [c.id, me.id, photo.mime, photo.data])).rows[0].id;
+    }
+    await q("insert into app_messages (consult_id, sender, kind, name, body, file_id) values ($1, $2, $3, $4, $5, $6)", [c.id, me.id, kind, name, body, fileId]);
+    const what = photo ? "rasm yubordi" : kind === "d" ? "javob yozdi" : "yangi xabar yozdi";
+    if (kind === "d") await notifyUser(c.patient_id, "Shifokor: shifokor " + me.name + " " + what + " (ariza №" + c.n + "). " + SITE + "/#/consult/" + c.id);
+    else if (c.doctor_id) await notifyUser(c.doctor_id, "Shifokor: bemor " + what + " (ariza №" + c.n + "). " + SITE + "/#/consult/" + c.id);
+    return { ok: true, file: fileId };
+  },
+
+  // one photo from a consultation, for its patient, its doctor, or a doctor who may still accept it
+  async file(b, me) {
+    need(me);
+    if (!UUID.test(String(b.id || ""))) bad("id");
+    const r = await q("select f.mime, f.data, c.patient_id, c.doctor_id, c.status, c.doc from app_files f join app_consults c on c.id = f.consult_id where f.id = $1", [b.id]);
+    const f = r.rows[0];
+    if (!f) throw new Fail(404, "not_found");
+    const open = me.role === "doctor" && f.status === "new" && (!f.doc || f.doc === me.id);
+    if (f.patient_id !== me.id && f.doctor_id !== me.id && !open) throw new Fail(403, "forbidden");
+    return { mime: f.mime, data: f.data.toString("base64") };
   },
 
   async accept(b, me) {

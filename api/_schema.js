@@ -116,10 +116,31 @@ alter table app_users add column if not exists tg_code text;
 alter table app_users add column if not exists tg_code_at timestamptz;
 create unique index if not exists app_users_tg_code_idx on app_users (tg_code);
 
+-- Photos in a consultation (a rash, a lab result). Only that consultation's patient and doctor can open them.
+-- The browser shrinks each photo and strips its location data before upload, so one is at most 1.5 MB.
+create table if not exists app_files (
+  id uuid primary key default gen_random_uuid(),
+  consult_id uuid not null references app_consults (id) on delete cascade,
+  sender uuid references app_users (id) on delete set null,
+  mime text not null check (mime in ('image/jpeg', 'image/png', 'image/webp')),
+  data bytea not null check (octet_length(data) <= 1600000),
+  created_at timestamptz not null default now()
+);
+create index if not exists app_files_consult_idx on app_files (consult_id);
+alter table app_messages add column if not exists file_id uuid references app_files (id) on delete set null;
+-- a photo message may have no text
+do $$ begin
+  if exists (select 1 from pg_constraint where conname = 'app_messages_body_check' and pg_get_constraintdef(oid) like '%>= 1%') then
+    alter table app_messages drop constraint app_messages_body_check;
+    alter table app_messages add constraint app_messages_body_check check (char_length(body) <= 2000);
+  end if;
+end $$;
+
 alter table app_users enable row level security;
 alter table app_sessions enable row level security;
 alter table app_consults enable row level security;
 alter table app_messages enable row level security;
 alter table app_appts enable row level security;
 alter table app_reviews enable row level security;
+alter table app_files enable row level security;
 `;

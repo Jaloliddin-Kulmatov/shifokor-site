@@ -720,3 +720,29 @@ h2 .rating { font-family: var(--font-body); margin-left: 8px; vertical-align: 3p
 .rvreply { margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: var(--accent-soft); font-size: 0.94rem; }
 .rvreplyform { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 .rvreplyform input { flex: 1 1 220px; }
+
+/* photos in consultations */
+.vh { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.room-send.withph { grid-template-columns: auto minmax(0, 1fr) auto; }
+.phbtn { padding-left: 12px; padding-right: 12px; cursor: pointer; }
+.phbtn:focus-within, .phadd:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.phpend { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); font-size: 0.9rem; }
+.phpend img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; flex: none; }
+.phpend span { flex: 1; min-width: 0; }
+.msgph { display: block; padding: 0; margin: 2px 0 4px; border: 0; background: var(--line); border-radius: 10px; overflow: hidden; cursor: zoom-in; min-width: 120px; min-height: 90px; }
+.msgph img { display: block; width: 100%; max-width: 240px; max-height: 240px; object-fit: cover; }
+.msgph img:not([src]) { width: 160px; height: 120px; }
+.msgph.gone { display: none; }
+.room-log .hasph { padding: 6px; }
+.room-log .hasph small, .room-log .hasph b { padding: 0 6px; }
+.phfld { margin-bottom: 14px; }
+.phfld > b { display: block; font-size: 0.86rem; margin-bottom: 6px; }
+.phrow { display: flex; flex-wrap: wrap; gap: 10px; }
+.phthumb { position: relative; width: 84px; height: 84px; }
+.phthumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
+.phthumb button { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 1.1rem; line-height: 1; cursor: pointer; }
+.phadd { width: 84px; height: 84px; display: grid; place-content: center; justify-items: center; gap: 4px; border: 1.5px dashed var(--line); border-radius: 10px; font-size: 0.78rem; text-align: center; color: var(--muted); cursor: pointer; padding: 4px; }
+.phadd .ic { width: 22px; height: 22px; }
+.phview img { display: block; width: 100%; height: auto; border-radius: 12px; margin: 12px 0; background: var(--line); }
+/* long Uzbek labels in form toggles wrap on phones instead of running off the screen */
+@media (max-width: 520px) { .form .seg button { white-space: normal; text-align: center; padding: 8px 8px; line-height: 1.25; } }

@@ -10,6 +10,7 @@ State polyclinic queues, medical records and prescriptions belong to DMED and my
 
 - **Doctors:** profiles with specialty, experience, licence, languages, workplaces, services with prices, and online consultation prices (text, audio, video), typical reply time and online hours. Search by specialty, region, language, name or service; "online only"; sort by checked first, cheapest consultation or experience.
 - **Reviews:** only a patient whose consultation with the doctor is finished, or whose confirmed visit day at the clinic has come, can rate them (1–5 stars, optional comment, name shown as "Ali V." or hidden), once per consultation or visit. Ratings show on profiles and cards and count in "checked first" and "highest rated" sorting (a few reviews are pulled towards 4 stars, so one 5-star review doesn't beat many 4.8s). Doctors and clinics can reply; admins can hide reviews.
+- **Photos in consultations:** the patient can add up to 3 photos to the application (a rash, a wound, a lab result) and either side can send photos in the chat, up to 20 per consultation. The browser shrinks each photo to a JPEG of at most 1600 px, which also removes the phone's location data. Photos are stored in the database (`app_files`), and only that consultation's patient and doctor can open them. While an application is still open, a doctor who could accept it can open them too. The server checks each file's first bytes and accepts only JPEG, PNG or WebP up to 1.5 MB. In demo mode, smaller copies stay in the browser.
 - **Prices (`#/prices`):** every service and consultation price that doctors and clinics entered, searchable by service (with common synonyms, e.g. UZI / узи / ultratovush), region, maximum price and "available online", each with the date it was updated.
 - **Online consultation:** patients fill in an application first (with an emergency safety check), see the chosen doctor's price for that kind of consultation, then the doctor replies by text or calls. Audio and video calls are still a placeholder screen.
 - **Checks:** admins confirm doctors and clinics before they show "Checked" or take visit requests.
@@ -47,7 +48,7 @@ Optional variables (add them, then redeploy):
 | `TELEGRAM_BOT_TOKEN` | Telegram notices. Create a bot with [@BotFather](https://t.me/BotFather) and paste its token. Production deploys point the bot at `/api/app?tg=hook` by themselves; an admin can also press "Telegram botni shu saytga ulash" on the Tekshiruv page. |
 | `ESKIZ_EMAIL`, `ESKIZ_PASSWORD`, `ESKIZ_FROM` | SMS through [Eskiz.uz](https://eskiz.uz) for patients without Telegram (visit confirmed or declined). Eskiz must approve the message texts first; `ESKIZ_FROM` defaults to `4546`. |
 
-Then redeploy. On the first request the server creates its tables (`app_users`, `app_sessions`, `app_consults`, `app_messages`, `app_appts`, `app_reviews`) by itself, including new ones added later. Without `DATABASE_URL` the site runs in demo mode.
+Then redeploy. On the first request the server creates its tables (`app_users`, `app_sessions`, `app_consults`, `app_messages`, `app_appts`, `app_reviews`, `app_files`) by itself, including new ones added later. Without `DATABASE_URL` the site runs in demo mode.
 
 ## How the backend works
 

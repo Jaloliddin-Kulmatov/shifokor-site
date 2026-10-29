@@ -812,3 +812,21 @@ body:has(.call.mini) { padding-bottom: 190px; }
 .paybtns { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 10px; }
 .paybtns .btn { flex: 1 1 180px; }
 .paycard .note-box { margin-top: 12px; }
+
+/* paying doctors: admin payouts tab and the doctor's earnings card */
+.admtabs { margin-bottom: 18px; }
+.postats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin: 18px 0 20px; }
+.postat { display: grid; gap: 4px; padding: 14px 16px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); }
+.postat span { color: var(--muted); font-size: 0.88rem; }
+.postat b { font-size: 1.15rem; }
+.pobal { display: grid; justify-items: end; text-align: right; }
+.pobal span { color: var(--muted); font-size: 0.86rem; }
+.pobal b { font-size: 1.25rem; }
+.pobal.big { justify-items: start; text-align: left; margin-top: 6px; }
+.pobal.big b { font: 700 clamp(1.6rem, 1.3rem + 1.2vw, 2.1rem) var(--font-display); }
+.neg { color: var(--risk); }
+.porow { display: grid; grid-template-columns: 8.5em minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.porow:last-child { border-bottom: 0; }
+.porow.wide { grid-template-columns: 8.5em minmax(0, 1.2fr) auto minmax(0, 1fr) auto; }
+.poform { margin-top: 12px; }
+@media (max-width: 640px) { .porow, .porow.wide { grid-template-columns: minmax(0, 1fr) auto; } .porow .muted { grid-column: 1 / -1; } }

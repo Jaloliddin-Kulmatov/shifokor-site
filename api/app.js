@@ -153,6 +153,22 @@ function iceServers(userId) {
   }
   return list;
 }
+// What doctors earned from paid consultations and what they were paid. A doctor is owed their share (the price
+// minus the platform's fee) for each paid consultation once it's finished; a refunded one doesn't count.
+async function earnings(doctorId) {
+  const only = doctorId ? " and doctor_id = $1" : "", args = doctorId ? [doctorId] : [];
+  const e = await q(
+    "select doctor_id, count(*) filter (where status = 'done')::int as done_n, coalesce(sum(price) filter (where status = 'done'), 0)::bigint as gross, " +
+    "coalesce(sum(coalesce(fee, 0)) filter (where status = 'done'), 0)::bigint as fee, count(*) filter (where status <> 'done')::int as open_n, " +
+    "coalesce(sum(price - coalesce(fee, 0)) filter (where status <> 'done'), 0)::bigint as open_net from app_consults where pay_status = 'paid' and doctor_id is not null" + only + " group by doctor_id", args);
+  const p = await q("select doctor_id, coalesce(sum(amount), 0)::bigint as paid_out, max(paid_on) as last_paid from app_payouts where doctor_id is not null" + only + " group by doctor_id", args);
+  const by = {};
+  const row = (id) => by[id] || (by[id] = { id, done_n: 0, gross: 0, fee: 0, net: 0, open_n: 0, open_net: 0, paid_out: 0, balance: 0, last_paid: null });
+  e.rows.forEach((r) => Object.assign(row(r.doctor_id), { done_n: r.done_n, gross: Number(r.gross), fee: Number(r.fee), open_n: r.open_n, open_net: Number(r.open_net) }));
+  p.rows.forEach((r) => Object.assign(row(r.doctor_id), { paid_out: Number(r.paid_out), last_paid: r.last_paid }));
+  Object.values(by).forEach((r) => { r.net = r.gross - r.fee; r.balance = r.net - r.paid_out; });
+  return by;
+}
 async function sysNote(consultId, note) {
   const body = str(note, 300);
   if (body) await q("insert into app_messages (consult_id, kind, body) values ($1, 's', $2)", [consultId, body]);
@@ -166,6 +182,7 @@ const ACTIONS = {
     let consults = [];
     let appts = [];
     let mine = null;
+    let earned = null;
     if (me) {
       mine = Object.assign(userOut(me), { email: me.email || "", phone: me.phone || "", tg_linked: !!me.tg_chat, admin: isAdmin(me) });
       const i = users.findIndex((u) => u.id === me.id);
@@ -182,13 +199,17 @@ const ACTIONS = {
         consults.forEach((c) => { c.messages = by[c.id] || []; });
       }
       appts = (await q("select * from app_appts where patient_id = $1 or clinic_id = $1 order by created_at desc limit 300", [me.id])).rows;
+      if (me.role === "doctor") {
+        const e = (await earnings(me.id))[me.id];
+        if (e) earned = Object.assign(e, { fee_pct: P.FEE, payouts: (await q("select amount, paid_on, ref from app_payouts where doctor_id = $1 order by paid_on desc, created_at desc limit 20", [me.id])).rows.map((r) => ({ amount: Number(r.amount), paid_on: r.paid_on, ref: r.ref || "" })) });
+      }
     }
     // shown reviews for everyone; the author also sees their own (and which consultation or visit it was for)
     const reviews = (await q(
       "select id, target_id, stars, body, author, hidden, reply, replied_at, created_at, consult_id is not null as by_consult, patient_id = $1::uuid as mine, case when patient_id = $1::uuid then consult_id end as consult_id, case when patient_id = $1::uuid then appt_id end as appt_id from app_reviews where not hidden or patient_id = $1::uuid order by created_at desc limit 1000",
       [me ? me.id : null]
     )).rows;
-    return { me: mine, users, consults, appts, reviews, notify: { tg: N.TG, sms: N.SMS }, pay: { payme: P.PAYME, click: P.CLICK } };
+    return { me: mine, users, consults, appts, reviews, notify: { tg: N.TG, sms: N.SMS }, pay: { payme: P.PAYME, click: P.CLICK }, earnings: earned };
   },
 
   async signup(b) {
@@ -514,6 +535,38 @@ const ACTIONS = {
     const r = await q("update app_users set verified_at = case when $2::boolean then now() end, verified_fac = case when $2::boolean then profile->>'fac' end where id = $1 and role in ('clinic', 'doctor') returning id", [b.id, ok]);
     if (!r.rows[0]) throw new Fail(404, "not_found");
     await notifyUser(b.id, ok ? "Shifokor: hisobingiz tekshirildi va tasdiqlandi." + " " + SITE + "/#/account" : "Shifokor: hisobingiz tasdiqlanmadi. Ma’lumotlarni tekshirib, qayta saqlang. " + SITE + "/#/account");
+    return { ok: true };
+  },
+  // ---------- paying doctors (admins) ----------
+  async admin_payouts(b, me) {
+    if (!isAdmin(need(me))) throw new Fail(403, "forbidden");
+    const by = await earnings(null), ids = Object.keys(by);
+    const us = ids.length ? (await q("select id, name, phone, email from app_users where id = any($1::uuid[])", [ids])).rows : [];
+    const doctors = us.map((u) => Object.assign(by[u.id], { name: u.name, phone: u.phone || "", email: u.email || "" })).sort((x, y) => y.balance - x.balance);
+    const payouts = (await q("select id, doctor_id, doctor_name, amount, paid_on, ref, note, created_at from app_payouts order by paid_on desc, created_at desc limit 300")).rows.map((r) => Object.assign(r, { amount: Number(r.amount) }));
+    const paid = (await q("select n, paid_at, status, price, coalesce(fee, 0) as fee, pay_provider, pay_status, doctor_id, doctor_name from app_consults where pay_status in ('paid', 'refunded') order by paid_at desc limit 2000")).rows;
+    return { fee_pct: P.FEE, doctors, payouts, paid };
+  },
+  // a transfer the admin already made to a doctor: { doctor, amount (so‘m), paid_on, ref, note }
+  async admin_payout(b, me) {
+    if (!isAdmin(need(me))) throw new Fail(403, "forbidden");
+    if (!UUID.test(String(b.doctor || ""))) bad("id");
+    const d = (await q("select id, name from app_users where id = $1 and role = 'doctor'", [b.doctor])).rows[0];
+    if (!d) throw new Fail(404, "not_found");
+    const amount = Math.round(Number(b.amount));
+    if (!(amount > 0 && amount <= 1e10)) bad("amount");
+    const day = String(b.paid_on || ""), ms = /^\d{4}-\d{2}-\d{2}$/.test(day) ? Date.parse(day + "T00:00:00Z") : NaN;
+    if (isNaN(ms) || new Date(ms).toISOString().slice(0, 10) !== day || day > today() || ms < Date.now() - 400 * 864e5) bad("date");
+    if (amount > ((await earnings(d.id))[d.id] || { balance: 0 }).balance) throw new Fail(409, "over");   // more than the doctor is owed: probably a typo
+    await q("insert into app_payouts (doctor_id, doctor_name, amount, paid_on, ref, note, created_by) values ($1, $2, $3, $4, $5, $6, $7)", [d.id, d.name, amount, day, opt(b.ref, 100), opt(b.note, 300), me.id]);
+    await notifyUser(d.id, "Shifokor: sizga " + P.sum(amount) + " so‘m o‘tkazildi (" + N.dayUz(day) + "). " + SITE + "/#/account");
+    return { ok: true };
+  },
+  // removes a payout recorded by mistake
+  async admin_payout_delete(b, me) {
+    if (!isAdmin(need(me))) throw new Fail(403, "forbidden");
+    if (!UUID.test(String(b.id || ""))) bad("id");
+    if (!(await q("delete from app_payouts where id = $1 returning id", [b.id])).rows[0]) throw new Fail(404, "not_found");
     return { ok: true };
   },
   // points the bot at this deployment (the build does this too, when it can)

@@ -108,6 +108,7 @@
       var parts = [];
       if (o.weekday) parts.push(UZ_WD[d.getDay()]);
       if (o.day && o.month) parts.push(d.getDate() + "-" + UZ_MO[d.getMonth()]); else if (o.month) parts.push(UZ_MO[d.getMonth()]); else if (o.day) parts.push(String(d.getDate()));
+      if (o.year) parts.push(String(d.getFullYear()));
       return parts.join(", ");
     }
     try { return new Intl.DateTimeFormat(L().loc, o).format(d); } catch (e) { return new Intl.DateTimeFormat("en-GB", o).format(d); } }
@@ -656,7 +657,7 @@
     var del = ACC_DEL ? '<div class="confirm-row"><b>' + t.acc_del_q + '</b><button class="btn danger sm" type="button" data-act="accdel-yes">' + t.acc_del_yes + '</button><button class="btn ghost sm" type="button" data-act="accdel-no">' + t.v_keep + "</button></div>" : "";
     var pub = role === "doctor" ? "#/doc/" + u.id : role === "clinic" ? "#/c/" + u.id : "";
     return '<div class="wrap pad acc"><div class="sechead"><div><div class="eyebrow">' + t.role[role] + "</div><h1>" + esc(u.name) + '</h1></div><div class="btns">' + (pub ? '<a class="btn ghost sm" href="' + pub + '">' + t.acc_view + "</a>" : "") + '<button class="btn ghost sm" type="button" data-act="logout">' + t.logout + '</button></div></div><div class="demo" style="margin:14px 0 20px">' + t.acc_demo + "</div>" +
-      trustCard(u) + notifyCard(u) + (role === "doctor" ? docInbox(u) : role === "clinic" ? clinicInbox(u) : "") + (role !== "patient" ? rvMine(u) : "") + '<form class="form accform" id="accform" novalidate>' + contact + body + '<div class="err" id="a-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.acc_save + "</button></form>" +
+      trustCard(u) + notifyCard(u) + (role === "doctor" ? earnCard() + docInbox(u) : role === "clinic" ? clinicInbox(u) : "") + (role !== "patient" ? rvMine(u) : "") + '<form class="form accform" id="accform" novalidate>' + contact + body + '<div class="err" id="a-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.acc_save + "</button></form>" +
       '<p style="margin-top:20px"><button class="linkbtn" type="button" data-act="accdel">' + t.acc_del + "</button></p>" + del + "</div>";
   }
 
@@ -1055,6 +1056,16 @@
     var item = function (r) { return '<div class="rvitem"><div class="rvtop">' + starsTxt(r.stars) + " <b>" + esc(r.author || t.rv_anon_name) + '</b><span class="muted"> · ' + t.rv_kind[r.kind] + " · " + fmt(new Date(r.at), { day: "numeric", month: "short" }) + "</span></div>" + (r.body ? '<p class="pre">' + esc(r.body) + "</p>" : "") + (r.reply ? '<div class="rvreply"><b>' + t.rv_reply_h + ":</b> " + esc(r.reply) + "</div>" : "") + "</div>"; };
     return '<div class="sect" id="reviews"><h2>' + t.rv_h + " " + ratingLine(u.id) + "</h2>" + (l.length ? l.map(item).join("") : '<p class="muted">' + t.rv_none + "</p>") + '<p class="fine" style="margin-top:10px">' + t.rv_only + "</p></div>";
   }
+  /* account page: what this doctor earned from paid consultations and what was transferred */
+  function earnCard() {
+    var t = L(), e = BE && BE.earnings(); if (!e) return "";
+    var rows = [[t.po_done(e.done_n), som(e.gross)]].concat(e.fee_pct ? [[t.po_fee(e.fee_pct), som(e.fee)]] : []).concat([[t.er_net, som(e.net)], [t.er_out, som(e.paid_out)]]);
+    return '<div class="dcard" style="margin-bottom:22px"><h2>' + t.er_h + '</h2><div class="pobal big"><span>' + t.er_owed + '</span><b class="nums' + (e.balance < 0 ? " neg" : "") + '">' + esc(som(e.balance)) + "</b></div>" +
+      '<dl class="kv" style="margin-top:12px">' + rows.map(function (r) { return "<dt>" + r[0] + '</dt><dd class="nums">' + esc(r[1]) + "</dd>"; }).join("") + "</dl>" +
+      (e.open_n ? '<p class="fine">' + t.er_open(e.open_n, som(e.open_net)) + "</p>" : "") +
+      (e.payouts.length ? '<h3 style="margin:16px 0 6px">' + t.er_hist + "</h3>" + e.payouts.map(function (p) { return '<div class="porow"><span class="nums">' + esc(poDay(p.paid_on)) + '</span><b class="nums">' + esc(som(p.amount)) + '</b><span class="muted">' + esc(p.ref) + "</span></div>"; }).join("") : "") +
+      '<p class="fine" style="margin-top:10px">' + t.er_note + "</p></div>";
+  }
   /* account page: reviews about this doctor or clinic, each with a reply box */
   function rvMine(u) {
     var t = L(), l = reviews().filter(function (r) { return r.target === u.id; }).sort(function (a, b) { return b.at - a.at; });
@@ -1102,9 +1113,56 @@
     if (!BE || ADM.busy) return; ADM.busy = true;
     BE.adminList().then(function (j) { ADM.list = j.users || []; ADM.reviews = j.reviews || []; ADM.tg = j.webhook; ADM.err = ""; }, function (x) { ADM.err = beMsg(L(), x); ADM.list = ADM.list || []; }).then(function () { ADM.busy = false; if (current.path === "/admin") render(true); });
   }
-  function viewAdmin() {
+  /* ---------------- paying doctors: what each is owed from paid, finished consultations, and the transfers made ---------------- */
+  var PO = { data: null, busy: false, err: "", form: null, del: "" };
+  var som = function (v) { return num(v) + " " + unit(); };   /* sums, where 0 means 0 rather than "free" */
+  var poDay = function (s) { return fmt(fromIso(String(s).slice(0, 10)), { day: "numeric", month: "short", year: "numeric" }); };
+  function poLoad() {
+    if (!BE || PO.busy) return; PO.busy = true;
+    BE.adminPayouts().then(function (j) { PO.data = j; PO.err = ""; }, function (x) { PO.err = beMsg(L(), x); PO.data = PO.data || { doctors: [], payouts: [], paid: [], fee_pct: 0 }; }).then(function () { PO.busy = false; if (current.path === "/admin") render(true); });
+  }
+  function poCollect() { if (!PO.form) return; [["po-amount", "amount"], ["po-day", "day"], ["po-ref", "ref"], ["po-note", "note"]].forEach(function (m) { var el = $(m[0]); if (el) PO.form[m[1]] = el.value.trim(); }); }
+  function viewPayouts() {
+    var t = L(), d = PO.data;
+    if (!d) { poLoad(); return '<p class="muted">…</p>'; }
+    var total = function (k) { return d.doctors.reduce(function (a, x) { return a + (x[k] || 0); }, 0); };
+    var paidOnly = d.paid.filter(function (c) { return c.pay_status === "paid"; });
+    var stat = function (label, v) { return '<div class="postat"><span>' + label + '</span><b class="nums">' + esc(som(v)) + "</b></div>"; };
+    var fi = function (id, label, val, type, extra) { return '<div class="fld"><label for="' + id + '">' + label + '</label><input id="' + id + '" type="' + (type || "text") + '" value="' + esc(val || "") + '"' + (extra || "") + "></div>"; };
+    var card = function (x) {
+      var f = PO.form && PO.form.doctor === x.id ? PO.form : null;
+      var facts = [[t.po_done(x.done_n), som(x.gross)], [t.po_fee(d.fee_pct), som(x.fee)], [t.po_net, som(x.net)], [t.po_out, som(x.paid_out)]];
+      var form = f ? '<form class="form poform" id="poform" data-id="' + x.id + '" novalidate><div class="three">' + fi("po-amount", t.po_amount, f.amount, "number", ' min="1" step="1" inputmode="numeric"') + fi("po-day", t.po_day, f.day, "date", ' max="' + iso(today0()) + '"') + fi("po-ref", t.po_ref, f.ref, "text", ' maxlength="100" placeholder="' + esc(t.po_ref_ph) + '"') + "</div>" +
+        fi("po-note", t.po_note, f.note, "text", ' maxlength="300"') + '<div class="err" id="po-err" aria-live="polite">' + esc(f.err || "") + '</div><div class="btns"><button class="btn" type="submit">' + t.po_save + '</button><button class="btn ghost" type="button" data-po="cancel">' + t.po_cancel + '</button></div><p class="fine">' + t.po_hint + "</p></form>" : "";
+      return '<div class="dcard admrow"><div class="sechead" style="margin:0"><div><h3><a href="#/doc/' + x.id + '">' + esc(x.name) + '</a></h3><div class="muted">' + [x.phone ? fmtPhone(x.phone) : "", x.email].filter(Boolean).map(esc).join(" · ") + "</div></div>" +
+        '<div class="pobal"><span>' + t.po_owed + '</span><b class="nums' + (x.balance < 0 ? " neg" : "") + '">' + esc(som(x.balance)) + "</b></div></div>" +
+        '<dl class="kv" style="margin-top:10px">' + facts.map(function (r) { return "<dt>" + r[0] + '</dt><dd class="nums">' + esc(r[1]) + "</dd>"; }).join("") + "</dl>" +
+        (x.open_n ? '<p class="fine">' + t.po_open(x.open_n, som(x.open_net)) + "</p>" : "") + (x.last_paid ? '<p class="fine">' + t.po_last(poDay(x.last_paid)) + "</p>" : "") +
+        (form || (x.balance > 0 ? '<button class="btn sm" type="button" data-po="open" data-id="' + x.id + '" data-amount="' + x.balance + '">' + t.po_record + "</button>" : "")) + "</div>";
+    };
+    var hist = d.payouts.map(function (p) {
+      return '<div class="porow wide"><span class="nums">' + esc(poDay(p.paid_on)) + "</span><b>" + esc(p.doctor_name) + '</b><b class="nums">' + esc(som(p.amount)) + '</b><span class="muted">' + esc([p.ref, p.note].filter(Boolean).join(" · ")) + "</span>" +
+        (PO.del === p.id ? '<span class="btns"><button class="btn danger sm" type="button" data-po="delok" data-id="' + p.id + '">' + t.po_del_yes + '</button><button class="btn ghost sm" type="button" data-po="delno">' + t.po_cancel + "</button></span>" : '<button class="linkbtn" type="button" data-po="del" data-id="' + p.id + '">' + t.po_del + "</button>") + "</div>";
+    }).join("");
+    return '<p class="lead">' + t.po_p(d.fee_pct) + "</p>" + (PO.err ? '<p class="err">' + esc(PO.err) + "</p>" : "") +
+      '<div class="postats">' + stat(t.po_collected, paidOnly.reduce(function (a, c) { return a + (c.price || 0); }, 0)) + stat(t.po_platform, paidOnly.reduce(function (a, c) { return a + Number(c.fee || 0); }, 0)) + stat(t.po_owed_all, d.doctors.reduce(function (a, x) { return a + Math.max(0, x.balance); }, 0)) + stat(t.po_paid_all, total("paid_out")) + "</div>" +
+      (d.doctors.length ? d.doctors.map(card).join("") : '<p class="muted">' + t.po_none + "</p>") +
+      '<div class="sechead" style="margin-top:28px"><h2 class="subh" style="margin:0">' + t.po_hist + '</h2><div class="btns"><button class="btn ghost sm" type="button" data-po="csv-paid">' + ic("copy") + t.po_csv_paid + '</button><button class="btn ghost sm" type="button" data-po="csv-out">' + ic("copy") + t.po_csv_out + "</button></div></div>" +
+      (hist ? '<div class="dcard">' + hist + "</div>" : '<p class="muted">' + t.po_hist_none + "</p>");
+  }
+  /* a spreadsheet for the accountant: semicolons and a BOM so Excel opens it with Uzbek and Russian letters intact */
+  function csvDownload(name, rows) {
+    var cell = function (v) { v = v == null ? "" : String(v); if (/^[=+\-@]/.test(v) && isNaN(+v)) v = "'" + v; return /[";\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["\uFEFF" + rows.map(function (r) { return r.map(cell).join(";"); }).join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+  var admTabs = function (cur) { var t = L(); return '<div class="chips admtabs">' + [["chk", t.adm_tab_chk], ["pay", t.adm_tab_pay]].map(function (x) { return '<button class="chip" type="button" data-admtab="' + x[0] + '" aria-pressed="' + (cur === x[0]) + '">' + x[1] + "</button>"; }).join("") + "</div>"; };
+  function viewAdmin(q) {
     var t = L(), u = me();
     if (!BE || !u || !u.admin) return '<div class="wrap pad"><div class="empty">' + t.adm_forbidden + "</div></div>";
+    if (q && q.tab === "pay") return '<div class="wrap pad" style="max-width:900px">' + admTabs("pay") + '<h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.po_h + "</h1>" + viewPayouts() + "</div>";
     if (!ADM.list) { admLoad(); return '<div class="wrap pad"><p class="muted">…</p></div>'; }
     var row = function (x) {
       var pr = x.profile || {}, f = pr.fac && facByKey[pr.fac];
@@ -1117,7 +1175,7 @@
         '<dl class="kv" style="margin-top:10px">' + facts.map(function (r) { return "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>"; }).join("") + "</dl></div>";
     };
     var pend = ADM.list.filter(function (x) { return !x.verified; }), done = ADM.list.filter(function (x) { return x.verified; });
-    return '<div class="wrap pad" style="max-width:900px"><h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.adm_h + '</h1><p class="lead">' + t.adm_p + "</p>" + (ADM.err ? '<p class="err">' + esc(ADM.err) + "</p>" : "") +
+    return '<div class="wrap pad" style="max-width:900px">' + admTabs("chk") + '<h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.adm_h + '</h1><p class="lead">' + t.adm_p + "</p>" + (ADM.err ? '<p class="err">' + esc(ADM.err) + "</p>" : "") +
       '<h2 class="subh" style="margin-top:24px">' + t.adm_pending + " (" + pend.length + ")</h2>" + (pend.length ? pend.map(row).join("") : '<p class="muted">' + t.adm_none + "</p>") +
       '<h2 class="subh" style="margin-top:28px">' + t.adm_done + " (" + done.length + ")</h2>" + (done.length ? done.map(row).join("") : '<p class="muted">' + t.adm_none + "</p>") +
       '<h2 class="subh" style="margin-top:28px">' + t.adm_rv_h + " (" + (ADM.reviews || []).length + ')</h2><p class="muted">' + t.adm_rv_p + "</p>" + ((ADM.reviews || []).length ? (ADM.reviews || []).map(function (r) { return '<div class="dcard admrow' + (r.hidden ? " past" : "") + '"><div class="rvtop">' + starsTxt(r.stars) + " <b>" + esc(r.author || t.rv_anon_name) + '</b><span class="muted"> · ' + t.adm_rv_about + ": " + esc(r.target_name) + " · " + fmt(new Date(r.created_at), { day: "numeric", month: "short" }) + (r.hidden ? " · " + t.rv_hidden : "") + "</span></div>" + (r.body ? '<p class="pre">' + esc(r.body) + "</p>" : "") + '<button class="btn ghost sm" type="button" data-admrv="' + (r.hidden ? "show" : "hide") + '" data-id="' + r.id + '">' + (r.hidden ? t.adm_rv_show : t.adm_rv_hide) + "</button></div>"; }).join("") : '<p class="muted">' + t.adm_none + "</p>") +
@@ -1255,7 +1313,7 @@
     else if (path === "/login") { html = me() ? viewAccount() : viewLogin(); route = "account"; }
     else if (path === "/account") { html = viewAccount(); route = "account"; }
     else if (path === "/settings") { html = viewSettings(); route = "settings"; }
-    else if (path === "/admin") { html = viewAdmin(); route = "admin"; }
+    else if (path === "/admin") { html = viewAdmin(q); route = "admin"; }
     else if (path === "/consult") { html = viewConsult(q); route = "consult"; }
     else if (path.indexOf("/consult/") === 0) { html = viewConsultThread(path.slice(9)); route = "consult"; }
     else if (path === "/doctors") { html = viewDoctors(q); route = "doctors"; }
@@ -1369,6 +1427,22 @@
     if (ds.rvstar) { rvCollect(); RV.stars = +ds.rvstar; render(true); return; }
     if (ds.act === "rvopen") { RV = { key: "v" + ds.id, stars: 0, body: "", anon: false }; render(true); return; }
     if (ds.rr) { if (current.path === "/account") accCollect(); var rr0 = reviews().filter(function (x) { return x.id === ds.rr; })[0]; RR = ds.rr === "close" || !rr0 ? null : { id: rr0.id, text: rr0.reply || "" }; render(true); if ($("rvreply-in")) $("rvreply-in").focus(); return; }
+    if (ds.admtab) { go("#/admin" + (ds.admtab === "pay" ? "?tab=pay" : "")); return; }
+    if (ds.po && BE) {
+      var pd = PO.data || { doctors: [], payouts: [], paid: [] };
+      if (ds.po === "open") { PO.form = { doctor: ds.id, amount: ds.amount, day: iso(today0()), ref: "", note: "", err: "" }; PO.del = ""; render(true); if ($("po-ref")) $("po-ref").focus(); return; }
+      if (ds.po === "cancel") { PO.form = null; render(true); return; }
+      if (ds.po === "del" || ds.po === "delno") { PO.del = ds.po === "del" ? ds.id : ""; render(true); return; }
+      if (ds.po === "delok") { el.disabled = true; BE.adminPayoutDelete(ds.id).then(function () { PO.del = ""; PO.data = null; toast(t.po_deleted); render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
+      if (ds.po === "csv-paid") {
+        csvDownload("shifokor-maslahatlar-" + iso(today0()) + ".csv", [t.po_cols_paid].concat(pd.paid.map(function (c) {
+          var fee = Number(c.fee || 0);
+          return [c.n, c.paid_at ? String(c.paid_at).slice(0, 16).replace("T", " ") : "", c.doctor_name, c.price, fee, c.price - fee, c.pay_provider, c.pay_status === "refunded" ? t.pay_refunded : t.cs_st[c.status]];
+        })));
+        return;
+      }
+      if (ds.po === "csv-out") { csvDownload("shifokor-otkazmalar-" + iso(today0()) + ".csv", [t.po_cols_out].concat(pd.payouts.map(function (p) { return [String(p.paid_on).slice(0, 10), p.doctor_name, p.amount, p.ref, p.note]; }))); return; }
+    }
     if (ds.admrv && BE) { el.disabled = true; BE.adminReview(ds.id, ds.admrv === "hide").then(function () { ADM.list = null; BE.refresh().catch(function () {}); render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
     if (ds.act === "apcancel") { apAsk = ds.id; render(true); return; }
     if (ds.act === "tglink" && BE) {
@@ -1458,6 +1532,15 @@
       if (dsel) rec.msgs.push({ from: "s", text: wantedNote(dsel, C.type), at: Date.now() });
       var full2 = false; CSPH.forEach(function (ph) { var fid = demoPhoto(ph); if (fid) rec.msgs.push({ from: "p", name: C.name, text: "", file: fid, at: Date.now() }); else full2 = true; });
       cl2.push(rec); saveConsults(cl2); CS = null; CSPH = []; toast(full2 ? t.ph_full : t.cs_sent); go("#/consult/" + rec.id); return;
+    }
+    if (id === "poform" && BE && PO.form) {
+      poCollect();
+      var pf = PO.form, amt = Math.round(+pf.amount);
+      if (!(amt > 0)) { pf.err = t.po_e_amount; render(true); return; }
+      var pbtn = e.target.querySelector('button[type="submit"]'); if (pbtn) pbtn.disabled = true;
+      BE.adminPayout({ doctor: pf.doctor, amount: amt, paid_on: pf.day, ref: pf.ref, note: pf.note }).then(function () { PO.form = null; PO.data = null; toast(t.po_saved); render(true); },
+        function (x) { pf.err = { over: t.po_e_over, amount: t.po_e_amount, date: t.po_e_date }[x.code] || beMsg(t, x); render(true); });
+      return;
     }
     if (id === "csmsg") {
       var inp3 = $("csmsg-in"), txt = inp3.value.trim(), ph3 = PH && PH.cid === e.target.dataset.id ? PH : null; if (!txt && !ph3) return;
@@ -1656,7 +1739,7 @@
   });
   /* another tab booked or changed something: refresh so a taken slot disappears here too */
   window.addEventListener("storage", function (e) { if (e.key && e.key.indexOf("shifokor-") === 0) rerender(); });
-  window.addEventListener("hashchange", function () { PH = null; cancelAsk = null; apAsk = null; APX = null; RR = null; render(false); });
+  window.addEventListener("hashchange", function () { PH = null; cancelAsk = null; apAsk = null; APX = null; RR = null; PO.form = null; PO.del = ""; render(false); });
 
   render(false);
   /* a patient anywhere on the site hears about a doctor's call once per ring */
@@ -1683,6 +1766,7 @@
     if ($("apform")) apCollect();
     if ($("apreply")) apxCollect();
     if ($("rvform")) rvCollect();
+    if ($("poform")) poCollect();
     if ($("rvreply-in") && RR) RR.text = $("rvreply-in").value;
     var draft = $("csmsg-in") ? $("csmsg-in").value : null;
     var fe = document.activeElement, fid = fe && fe.id, sel = null;

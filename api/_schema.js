@@ -182,6 +182,22 @@ create index if not exists app_payments_time_idx on app_payments (provider, crea
 -- Payme allows one unpaid transaction per consultation at a time
 create unique index if not exists app_payments_open_payme_idx on app_payments (consult_id) where state = 1 and provider = 'payme';
 
+-- Paying doctors. fee: the platform's share of a paid consultation (PLATFORM_FEE_PERCENT at the moment it was paid).
+-- app_payouts: each transfer an admin made to a doctor; kept if the doctor's account is deleted.
+alter table app_consults add column if not exists fee int check (fee is null or fee >= 0);
+create table if not exists app_payouts (
+  id uuid primary key default gen_random_uuid(),
+  doctor_id uuid references app_users (id) on delete set null,
+  doctor_name text not null check (char_length(doctor_name) between 1 and 200),
+  amount bigint not null check (amount > 0),
+  paid_on date not null,
+  ref text check (ref is null or char_length(ref) <= 100),
+  note text check (note is null or char_length(note) <= 300),
+  created_by uuid references app_users (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+create index if not exists app_payouts_doctor_idx on app_payouts (doctor_id);
+
 alter table app_users enable row level security;
 alter table app_sessions enable row level security;
 alter table app_consults enable row level security;
@@ -191,4 +207,5 @@ alter table app_reviews enable row level security;
 alter table app_files enable row level security;
 alter table app_signals enable row level security;
 alter table app_payments enable row level security;
+alter table app_payouts enable row level security;
 `;

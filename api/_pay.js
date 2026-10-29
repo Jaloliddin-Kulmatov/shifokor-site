@@ -11,6 +11,8 @@ const crypto = require("crypto");
 const env = (k) => (process.env[k] || "").trim();
 const PAYME = !!(env("PAYME_MERCHANT_ID") && env("PAYME_KEY"));
 const CLICK = !!(env("CLICK_SERVICE_ID") && env("CLICK_MERCHANT_ID") && env("CLICK_SECRET_KEY"));
+// the platform's share of each paid consultation, in percent (0 to 50); what's left is the doctor's
+const FEE = Math.min(50, Math.max(0, Number(env("PLATFORM_FEE_PERCENT")) || 0));
 const EXPIRE = 12 * 3600e3;   // Payme: a transaction not paid within 12 hours is cancelled
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const sum = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
@@ -45,8 +47,8 @@ module.exports = function ({ q, notifyUser, site }) {
   async function perform(tx, provider, now) {
     const r = await q(
       "with p as (update app_payments set state = 2, perform_time = $2 where id = $1 and state = 1 returning consult_id) " +
-      "update app_consults c set pay_status = 'paid', paid_at = now(), pay_provider = $3 from p where c.id = p.consult_id and c.pay_status = 'due' returning c.id, c.n, c.doctor_id",
-      [tx.id, now, provider]
+      "update app_consults c set pay_status = 'paid', paid_at = now(), pay_provider = $3, fee = round(c.price * $4::numeric / 100) from p where c.id = p.consult_id and c.pay_status = 'due' returning c.id, c.n, c.doctor_id",
+      [tx.id, now, provider, FEE]
     );
     const c = r.rows[0];
     if (c && c.doctor_id) await notifyUser(c.doctor_id, "Shifokor: bemor to‘lov qildi (ariza №" + c.n + "). Endi javob yozishingiz yoki qo‘ng‘iroq qilishingiz mumkin. " + site() + "/#/consult/" + c.id);
@@ -198,5 +200,5 @@ module.exports = function ({ q, notifyUser, site }) {
     return null;
   }
 
-  return { PAYME, CLICK, ON: PAYME || CLICK, payable, payme, click, link, sum };
+  return { PAYME, CLICK, ON: PAYME || CLICK, FEE, payable, payme, click, link, sum };
 };

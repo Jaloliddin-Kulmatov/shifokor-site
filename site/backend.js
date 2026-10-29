@@ -6,7 +6,7 @@
   var C = window.SHIFOKOR_CONFIG || {};
   if (!C.api) { window.SB = null; return; }
 
-  var TK = "shifokor-token", photos = {}, token = null, uid = null, listeners = [], ready = false, busy = null, last = "", notify = { tg: false, sms: false }, pay = { payme: false, click: false };
+  var TK = "shifokor-token", photos = {}, token = null, uid = null, listeners = [], ready = false, busy = null, last = "", notify = { tg: false, sms: false }, pay = { payme: false, click: false }, earn = null;
   try { token = localStorage.getItem(TK); } catch (e) {}
   var set = function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   function setToken(t) { token = t || null; try { if (token) localStorage.setItem(TK, token); else localStorage.removeItem(TK); } catch (e) {} }
@@ -56,6 +56,7 @@
       uid = j.me ? j.me.id : null;
       notify = j.notify || notify;
       pay = j.pay || pay;
+      earn = j.earnings || null;
       if (!uid && token) setToken(null);
       set("shifokor-users", (j.users || []).map(toUser));
       set("shifokor-session", uid);
@@ -107,6 +108,12 @@
     /* o: { consult | appt, stars, body, anon } */
     reviewCreate: async function (o) { await call("review_create", o); await refresh(); },
     reviewReply: async function (id, reply) { await call("review_reply", { id: id, reply: reply }); await refresh(); },
+    /* a doctor's own earnings and payouts, or null when there are none yet */
+    earnings: function () { return earn; },
+    adminPayouts: function () { return call("admin_payouts"); },
+    /* o: { doctor, amount, paid_on, ref, note } */
+    adminPayout: function (o) { return call("admin_payout", o); },
+    adminPayoutDelete: function (id) { return call("admin_payout_delete", { id: id }); },
     adminVerify: function (id, ok) { return call("admin_verify", { id: id, ok: ok }); },
     adminTgSetup: function () { return call("admin_tg_setup"); },
     createAppt: async function (a) { var j = await call("create_appt", { a: a }); await refresh(); return j.id; },

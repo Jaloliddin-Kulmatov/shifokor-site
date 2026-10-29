@@ -109,6 +109,7 @@ const listEnv = (k) => (process.env[k] || "").split(",").map((x) => x.trim().toL
 const isAdmin = (me) => !!me && ((me.email && listEnv("ADMIN_EMAILS").includes(me.email)) || (me.phone && listEnv("ADMIN_PHONES").map((x) => x.replace(/\D/g, "")).includes(me.phone)));
 let SITE = "";   // this deployment's address, for links in notices
 const notifyUser = async (id, text) => { const r = (await q("select tg_chat from app_users where id = $1", [id])).rows[0]; return !!(r && r.tg_chat) && N.tgSend(r.tg_chat, text); };
+const P = require("./_pay")({ q, notifyUser, site: () => SITE });
 async function consultFor(me, id) {
   if (!UUID.test(String(id || ""))) bad("id");
   const r = await q("select * from app_consults where id = $1", [id]);
@@ -132,6 +133,7 @@ async function callPeer(b, me) {
   const c = await consultFor(me, b.id);
   if (c.patient_id !== me.id && c.doctor_id !== me.id) throw new Fail(403, "forbidden");
   if (c.status !== "accepted") throw new Fail(409, "closed");
+  if (c.pay_status === "due") throw new Fail(409, "unpaid");
   return c;
 }
 // Where the browsers find each other. STUN is enough on most networks; behind strict mobile or office networks
@@ -186,7 +188,7 @@ const ACTIONS = {
       "select id, target_id, stars, body, author, hidden, reply, replied_at, created_at, consult_id is not null as by_consult, patient_id = $1::uuid as mine, case when patient_id = $1::uuid then consult_id end as consult_id, case when patient_id = $1::uuid then appt_id end as appt_id from app_reviews where not hidden or patient_id = $1::uuid order by created_at desc limit 1000",
       [me ? me.id : null]
     )).rows;
-    return { me: mine, users, consults, appts, reviews, notify: { tg: N.TG, sms: N.SMS } };
+    return { me: mine, users, consults, appts, reviews, notify: { tg: N.TG, sms: N.SMS }, pay: { payme: P.PAYME, click: P.CLICK } };
   },
 
   async signup(b) {
@@ -282,6 +284,7 @@ const ACTIONS = {
     if (c.patient_id === me.id) { kind = "p"; name = c.name; }
     else if (c.doctor_id === me.id) { kind = "d"; name = me.name; }
     else throw new Fail(403, "forbidden");
+    if (kind === "d" && c.pay_status === "due") throw new Fail(409, "unpaid");   // the doctor replies once the patient has paid
     const body = str(b.body, 2000);
     const photo = b.photo ? photoOf(b.photo) : null;
     if (!body && !photo) bad("body");
@@ -313,10 +316,15 @@ const ACTIONS = {
     need(me);
     if (me.role !== "doctor") throw new Fail(403, "forbidden");
     if (!UUID.test(String(b.id || ""))) bad("id");
-    const r = await q("update app_consults set status = 'accepted', doctor_id = $1, doctor_name = $2 where id = $3 and status = 'new' and (doc is null or doc = $1) returning id, n, patient_id", [me.id, me.name, b.id]);
+    // the price is the doctor's price for this kind of consultation at the moment they accept it
+    const c0 = (await q("select type from app_consults where id = $1", [b.id])).rows[0];
+    const cp = c0 && ((me.profile || {}).cp || {})[c0.type];
+    const price = cp === "" || cp == null || !isFinite(Number(cp)) ? null : Math.max(0, Math.round(Number(cp)));
+    const due = P.ON && price > 0;
+    const r = await q("update app_consults set status = 'accepted', doctor_id = $1, doctor_name = $2, price = $4, pay_status = $5 where id = $3 and status = 'new' and (doc is null or doc = $1) returning id, n, patient_id", [me.id, me.name, b.id, price, due ? "due" : "none"]);
     if (!r.rows[0]) throw new Fail(409, "taken");
     await sysNote(b.id, b.note);
-    await notifyUser(r.rows[0].patient_id, "Shifokor: shifokor " + me.name + " arizangizni qabul qildi (№" + r.rows[0].n + "). " + SITE + "/#/consult/" + b.id);
+    await notifyUser(r.rows[0].patient_id, "Shifokor: shifokor " + me.name + " arizangizni qabul qildi (№" + r.rows[0].n + ")." + (due ? " Maslahat narxi " + P.sum(price) + " so‘m: to‘lovdan keyin shifokor javob beradi." : "") + " " + SITE + "/#/consult/" + b.id);
     return { ok: true };
   },
 
@@ -324,6 +332,7 @@ const ACTIONS = {
     need(me);
     const c = await consultFor(me, b.id);
     if (c.doctor_id !== me.id || c.status !== "accepted") throw new Fail(403, "forbidden");
+    if (c.pay_status === "due") throw new Fail(409, "unpaid");
     // pressing "call" again within two minutes rings the same call, so Telegram gets one notice
     const fresh = !c.call_at || Date.now() - new Date(c.call_at).getTime() > 120e3;
     await q("update app_consults set call = true, call_at = now() where id = $1", [c.id]);
@@ -366,6 +375,17 @@ const ACTIONS = {
     await q("update app_consults set status = 'done', outcome = $2 where id = $1", [c.id, outcome]);
     await sysNote(c.id, b.note);
     return { ok: true };
+  },
+
+  // where the patient goes to pay for an accepted consultation: { id, provider: "payme" | "click", lang }
+  async pay_link(b, me) {
+    need(me);
+    const c = await consultFor(me, b.id);
+    if (c.patient_id !== me.id) throw new Fail(403, "forbidden");
+    if (!P.payable(c)) throw new Fail(409, c.pay_status === "paid" ? "paid" : "closed");
+    const url = P.link(c, b.provider, b.lang);
+    if (!url) bad("provider");
+    return { url };
   },
 
   // ---------- visit requests ----------
@@ -577,6 +597,15 @@ module.exports = async function handler(req, res) {
   if (!CONN) return send(res, 503, { error: "no_database" });
   SITE = "https://" + String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim();
   if (/[?&]tg=hook\b/.test(req.url || "")) return telegramHook(req, res);
+  // calls from Payme's and Click's servers; both expect HTTP 200 with their own error format
+  const pay = /[?&]pay=(payme|click)\b/.exec(req.url || "");
+  if (pay) {
+    let pb = req.body;
+    if (typeof pb === "string") { try { pb = pay[1] === "payme" ? JSON.parse(pb) : Object.fromEntries(new URLSearchParams(pb)); } catch (e) { pb = null; } }
+    try { await migrate(); }
+    catch (e) { return send(res, 200, pay[1] === "payme" ? { error: { code: -32400, message: { uz: "Tizim xatosi", ru: "Системная ошибка", en: "System error" } }, id: pb && pb.id != null ? pb.id : null } : { error: -7, error_note: "Failed to update user" }); }
+    return send(res, 200, pay[1] === "payme" ? await P.payme(req, pb) : await P.click(pb));
+  }
   let body = req.body;
   if (typeof body === "string") { try { body = JSON.parse(body); } catch (e) { body = null; } }
   if (!body || typeof body !== "object") return send(res, 400, { error: "invalid" });

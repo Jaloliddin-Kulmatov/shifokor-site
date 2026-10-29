@@ -805,3 +805,10 @@ body:has(.call.mini) { padding-bottom: 190px; }
 .ring span { color: var(--muted); font-size: 0.92rem; }
 .ring-ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink) !important; animation: callpulse 1.8s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .ring-ic { animation: none; } }
+
+/* paying for a consultation */
+.paycard { margin-bottom: 18px; border: 1.5px solid var(--accent); }
+.payamt { font: 700 clamp(1.6rem, 1.3rem + 1.2vw, 2.1rem) var(--font-display); margin: 6px 0 4px; }
+.paybtns { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 10px; }
+.paybtns .btn { flex: 1 1 180px; }
+.paycard .note-box { margin-top: 12px; }

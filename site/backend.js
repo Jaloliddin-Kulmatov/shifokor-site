@@ -6,7 +6,7 @@
   var C = window.SHIFOKOR_CONFIG || {};
   if (!C.api) { window.SB = null; return; }
 
-  var TK = "shifokor-token", photos = {}, token = null, uid = null, listeners = [], ready = false, busy = null, last = "", notify = { tg: false, sms: false };
+  var TK = "shifokor-token", photos = {}, token = null, uid = null, listeners = [], ready = false, busy = null, last = "", notify = { tg: false, sms: false }, pay = { payme: false, click: false };
   try { token = localStorage.getItem(TK); } catch (e) {}
   var set = function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   function setToken(t) { token = t || null; try { if (token) localStorage.setItem(TK, token); else localStorage.removeItem(TK); } catch (e) {} }
@@ -30,6 +30,7 @@
       age: c.age == null ? "" : String(c.age), sex: c.sex || "f", phone: c.phone, region: c.region || "", district: c.district || "",
       complaint: c.complaint, since: String(c.since == null ? 1 : c.since), chronic: c.chronic || "", meds: c.meds || "", allergy: c.allergy || "",
       spec: c.spec || "", doc: c.doc || "", status: c.status, doctorId: c.doctor_id || "", doctorName: c.doctor_name || "", call: !!c.call, callAt: c.call_at ? Date.parse(c.call_at) : 0, outcome: c.outcome,
+      price: c.price == null ? null : Number(c.price), payStatus: c.pay_status || "none", paidAt: c.paid_at ? Date.parse(c.paid_at) : 0, payProvider: c.pay_provider || "",
       msgs: (c.messages || []).map(function (m) { return { from: m.kind, name: m.name || "", text: m.body || "", file: m.file_id || "", at: Date.parse(m.created_at) }; })
     };
   }
@@ -54,6 +55,7 @@
       catch (e) { if (e.status === 401 && token) { setToken(null); j = await call("sync"); } else throw e; }
       uid = j.me ? j.me.id : null;
       notify = j.notify || notify;
+      pay = j.pay || pay;
       if (!uid && token) setToken(null);
       set("shifokor-users", (j.users || []).map(toUser));
       set("shifokor-session", uid);
@@ -91,6 +93,9 @@
       return photos[id];
     },
     notify: function () { return notify; },
+    /* which of Payme and Click this site takes, and where to send the patient to pay */
+    pay: function () { return pay; },
+    payLink: async function (cid, provider, lang) { return (await call("pay_link", { id: cid, provider: provider, lang: lang })).url; },
     /* call set-up messages; keep lets a "bye" still go out while the page closes */
     signal: function (cid, kind, body, keep) { return call("signal", { id: cid, kind: kind, body: body || "" }, keep); },
     signals: function (cid, after) { return call("signals", { id: cid, after: after }); },

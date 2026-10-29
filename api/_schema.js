@@ -150,6 +150,38 @@ create table if not exists app_signals (
 create index if not exists app_signals_consult_idx on app_signals (consult_id, id);
 alter table app_consults add column if not exists call_at timestamptz;
 
+-- Online payment for a consultation, through Payme or Click. The price is the doctor's price for that kind of
+-- consultation when they accept it; the patient pays before the doctor replies or calls.
+-- pay_status: none (free, or online payment not set up), due, paid, refunded.
+alter table app_consults add column if not exists price int check (price is null or price >= 0);
+alter table app_consults add column if not exists pay_status text not null default 'none' check (pay_status in ('none', 'due', 'paid', 'refunded'));
+alter table app_consults add column if not exists paid_at timestamptz;
+alter table app_consults add column if not exists pay_provider text;
+-- One row per Payme or Click transaction, kept even if the consultation is deleted (payment records).
+-- amount is in tiyin (1 so‘m = 100 tiyin). state follows Payme: 1 created, 2 paid, -1 cancelled, -2 refunded.
+-- Times are milliseconds since 1970, as Payme expects them back.
+create table if not exists app_payments (
+  id uuid primary key default gen_random_uuid(),
+  n bigint generated always as identity,
+  consult_id uuid references app_consults (id) on delete set null,
+  account text not null,
+  provider text not null check (provider in ('payme', 'click')),
+  ext_id text not null check (char_length(ext_id) <= 64),
+  ext_time bigint,
+  amount bigint not null check (amount > 0),
+  state int not null default 1 check (state in (1, 2, -1, -2)),
+  create_time bigint not null,
+  perform_time bigint not null default 0,
+  cancel_time bigint not null default 0,
+  reason int,
+  created_at timestamptz not null default now(),
+  unique (provider, ext_id)
+);
+create index if not exists app_payments_consult_idx on app_payments (consult_id);
+create index if not exists app_payments_time_idx on app_payments (provider, create_time);
+-- Payme allows one unpaid transaction per consultation at a time
+create unique index if not exists app_payments_open_payme_idx on app_payments (consult_id) where state = 1 and provider = 'payme';
+
 alter table app_users enable row level security;
 alter table app_sessions enable row level security;
 alter table app_consults enable row level security;
@@ -158,4 +190,5 @@ alter table app_appts enable row level security;
 alter table app_reviews enable row level security;
 alter table app_files enable row level security;
 alter table app_signals enable row level security;
+alter table app_payments enable row level security;
 `;

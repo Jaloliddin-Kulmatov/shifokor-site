@@ -830,3 +830,20 @@ body:has(.call.mini) { padding-bottom: 190px; }
 .porow.wide { grid-template-columns: 8.5em minmax(0, 1.2fr) auto minmax(0, 1fr) auto; }
 .poform { margin-top: 12px; }
 @media (max-width: 640px) { .porow, .porow.wide { grid-template-columns: minmax(0, 1fr) auto; } .porow .muted { grid-column: 1 / -1; } }
+
+/* importing doctors from a list, and invite links */
+.imsteps { margin: 10px 0 14px; padding-left: 1.3em; }
+.imsteps li { margin: 4px 0; }
+.imcols { margin: 0 0 14px; }
+.imcols summary { cursor: pointer; font-weight: 600; }
+.imcols code { font-family: var(--font-mono); font-size: 0.88rem; }
+.imtable-wrap { overflow-x: auto; margin-top: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.imtable { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.imtable th, .imtable td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.imtable th { color: var(--muted); font-weight: 600; }
+.imtable tr.bad td:last-child { color: var(--risk); white-space: normal; min-width: 180px; }
+.imtable td .ic { width: 16px; height: 16px; vertical-align: -3px; }
+.imres { display: grid; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.imres:last-child { border-bottom: 0; }
+.imlink { display: flex; gap: 8px; align-items: center; }
+.imlink input { flex: 1 1 auto; min-width: 0; font: 0.88rem var(--font-mono); padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); }

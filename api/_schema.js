@@ -115,6 +115,13 @@ alter table app_users add column if not exists tg_chat bigint;
 alter table app_users add column if not exists tg_code text;
 alter table app_users add column if not exists tg_code_at timestamptz;
 create unique index if not exists app_users_tg_code_idx on app_users (tg_code);
+-- Doctors an admin imported, with their consent, from a list. They can't sign in until they open their invite link
+-- (invite_hash: the link's code, stored hashed, valid 30 days from invite_at) and set a password (claimed_at).
+alter table app_users add column if not exists imported_at timestamptz;
+alter table app_users add column if not exists claimed_at timestamptz;
+alter table app_users add column if not exists invite_hash text;
+alter table app_users add column if not exists invite_at timestamptz;
+create unique index if not exists app_users_invite_idx on app_users (invite_hash);
 
 -- Photos in a consultation (a rash, a lab result). Only that consultation's patient and doctor can open them.
 -- The browser shrinks each photo and strips its location data before upload, so one is at most 1.5 MB.

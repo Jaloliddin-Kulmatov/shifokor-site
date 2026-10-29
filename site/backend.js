@@ -22,7 +22,7 @@
   }
 
   function toUser(u) {
-    return { id: u.id, role: u.role, name: u.name, email: u.email || "", phone: u.phone || "", tg: u.tg || "", profile: u.profile || {}, updated: String(u.updated_at || "").slice(0, 10), verified: !!u.verified, tgLinked: !!u.tg_linked, admin: !!u.admin, remote: true };
+    return { id: u.id, role: u.role, name: u.name, email: u.email || "", phone: u.phone || "", tg: u.tg || "", profile: u.profile || {}, updated: String(u.updated_at || "").slice(0, 10), verified: !!u.verified, pending: !!u.pending, inviteAt: u.invite_at ? Date.parse(u.invite_at) : 0, tgLinked: !!u.tg_linked, admin: !!u.admin, remote: true };
   }
   function toConsult(c) {
     return {
@@ -114,6 +114,13 @@
     /* o: { doctor, amount, paid_on, ref, note } */
     adminPayout: function (o) { return call("admin_payout", o); },
     adminPayoutDelete: function (id) { return call("admin_payout_delete", { id: id }); },
+    /* doctors imported by an admin: rows [{ name, phone, email, profile }] → { results: [{ i, id, url } | { i, error }] } */
+    adminImport: function (rows) { return call("admin_import", { rows: rows }); },
+    adminInvite: function (id) { return call("admin_invite", { id: id }); },
+    adminRemovePending: function (id) { return call("admin_remove_pending", { id: id }); },
+    /* an invited doctor opens their link, then sets a password and is signed in */
+    claimInfo: function (token) { return call("claim_info", { token: token }); },
+    claim: async function (token, password) { var j = await call("claim", { token: token, password: password }); setToken(j.token); await refresh(); },
     adminVerify: function (id, ok) { return call("admin_verify", { id: id, ok: ok }); },
     adminTgSetup: function () { return call("admin_tg_setup"); },
     createAppt: async function (a) { var j = await call("create_appt", { a: a }); await refresh(); return j.id; },

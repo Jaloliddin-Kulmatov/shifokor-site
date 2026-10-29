@@ -67,7 +67,7 @@
   var bookings = function () { return store.get(K.bookings, []); };
   var saveBookings = function (l) { store.set(K.bookings, l); };
   var BE = window.SB || null;   /* server connection from backend.js, or null in demo mode */
-  function beMsg(t, x) { var c = (x && x.code) || ""; return { exists: t.e_exists, login: t.e_login, email: t.e_email, phone: t.e_phone, tg: t.e_tg, password: t.e_pw, name: t.e_name, contact: t.e_contact, date: t.e_ap_date, limit: t.e_ap_limit, dup: t.e_ap_dup, clinic: t.e_ap_clinic, time: t.e_ap_time, closed: t.e_ap_closed, unverified: t.e_ap_unv, no_tg: t.nt_off, forbidden: t.adm_forbidden, reviewed: t.e_reviewed, stars: t.e_stars, photos: t.e_photos, photo: t.ph_bad, slow: t.e_slow, unpaid: t.e_unpaid, paid: t.e_paid }[c] || t.be_err; }
+  function beMsg(t, x) { var c = (x && x.code) || ""; return { exists: t.e_exists, login: t.e_login, email: t.e_email, phone: t.e_phone, tg: t.e_tg, password: t.e_pw, name: t.e_name, contact: t.e_contact, date: t.e_ap_date, limit: t.e_ap_limit, dup: t.e_ap_dup, clinic: t.e_ap_clinic, time: t.e_ap_time, closed: t.e_ap_closed, unverified: t.e_ap_unv, no_tg: t.nt_off, forbidden: t.adm_forbidden, reviewed: t.e_reviewed, stars: t.e_stars, photos: t.e_photos, photo: t.ph_bad, slow: t.e_slow, unpaid: t.e_unpaid, paid: t.e_paid, invited: t.e_invited, invite: t.im_bad_link }[c] || t.be_err; }
   if (BE) ["en", "uz", "ru"].forEach(function (l) { T[l].acc_demo = T[l].be_online; T[l].cs_demo = T[l].be_online; });
 
   /* ---------------- sample directory ---------------- */
@@ -673,7 +673,8 @@
     var t = L(), u = userById(id); if (!u || u.role !== "doctor") return '<div class="wrap pad"><div class="empty">' + t.not_found + "</div></div>";
     var pr = u.profile || {}, langs = (pr.langs || []).map(function (l) { return { kaa: "Qaraqalpaq", tg: "Tojik" }[l] || t.lg[l]; }).join(", ");
     var region = pr.district && disByCode[pr.district] ? nmL(disByCode[pr.district]) + ", " + nmL(REG[disByCode[pr.district].r]) : pr.region && regByCode[pr.region] ? nmL(regByCode[pr.region]) : "";
-    return '<div class="wrap"><a class="back" href="#/doctors">‹ ' + t.nav_doctors + '</a><div class="pf"><div><div class="who">' + personAv(u) + "<div><h1>" + esc(u.name) + '</h1><div class="spec">' + esc(specName(pr)) + (pr.years ? " · " + t.exp(pr.years) : "") + '</div><div class="badges"><span class="badge">' + t.on_sh + "</span>" + vBadge(u) + (ratingOf(u.id).n ? '<a href="#reviews" data-scroll="reviews" class="badge plain rbadge">' + ratingLine(u.id) + "</a>" : "") + ((pr.modes || []).indexOf("on") > -1 ? '<span class="badge plain">' + ic("video") + t.online_b + "</span>" : "") + "</div></div></div>" +
+    return '<div class="wrap"><a class="back" href="#/doctors">‹ ' + t.nav_doctors + '</a><div class="pf"><div><div class="who">' + personAv(u) + "<div><h1>" + esc(u.name) + '</h1><div class="spec">' + esc(specName(pr)) + (pr.years ? " · " + t.exp(pr.years) : "") + '</div><div class="badges"><span class="badge">' + t.on_sh + "</span>" + vBadge(u) + (ratingOf(u.id).n ? '<a href="#reviews" data-scroll="reviews" class="badge plain rbadge">' + ratingLine(u.id) + "</a>" : "") + (isOnline(u) ? '<span class="badge plain">' + ic("video") + t.online_b + "</span>" : "") + "</div></div></div>" +
+      (u.pending ? '<p class="note-box">' + t.im_pending_note + "</p>" : "") +
       (pr.bio ? '<div class="sect"><p class="lead" style="margin:0">' + esc(pr.bio) + "</p></div>" : "") +
       ((pr.work || []).length ? '<div class="sect"><h2>' + t.works_at + '</h2><ul class="list">' + pr.work.map(function (w) { return "<li>" + wpLink(w) + "</li>"; }).join("") + "</ul></div>" : "") +
       cpBlock(u) +
@@ -681,7 +682,7 @@
       (pr.edu ? '<div class="sect"><h2>' + t.sec_bg + '</h2><p class="pre">' + esc(pr.edu) + "</p></div>" : "") +
       '<div class="sect"><dl class="kv">' + (langs ? "<dt>" + t.p_langs + "</dt><dd>" + esc(langs) + "</dd>" : "") + (region ? "<dt>" + t.p_area + "</dt><dd>" + esc(region) + "</dd>" : "") + (pr.lic ? "<dt>" + t.d_lic + "</dt><dd>" + esc(pr.lic) + (u.verified ? "" : ' <span class="muted">· ' + t.verified_no + "</span>") + "</dd>" : "") + "</dl></div>" +
       '<p class="fine" style="margin-top:20px">' + t.acc_demo + (u.updated ? " · " + t.updated(fmt(fromIso(u.updated), { day: "numeric", month: "short" })) : "") + "</p></div>" +
-      '<aside class="stick"><h2>' + esc(u.name) + "</h2>" + (cpMin(u) != null ? '<p class="cpaside"><small>' + t.cp_h + "</small><b>" + (cpMin(u) === 0 ? t.free_c : esc(t.cp_from(num(cpMin(u)) + " " + unit()))) + "</b>" + (pr.reply ? '<span class="muted">' + t.reply_txt(pr.reply) + "</span>" : "") + "</p>" : "") + '<div class="stack">' + ((pr.modes || []).indexOf("on") > -1 ? '<a class="btn" href="#/consult?' + qs({ doc: u.id }) + '">' + ic("chat") + t.cs_req_doc + "</a>" : "") + tgBtn(u) + "</div></aside></div></div>";
+      '<aside class="stick"><h2>' + esc(u.name) + "</h2>" + (cpMin(u) != null ? '<p class="cpaside"><small>' + t.cp_h + "</small><b>" + (cpMin(u) === 0 ? t.free_c : esc(t.cp_from(num(cpMin(u)) + " " + unit()))) + "</b>" + (pr.reply ? '<span class="muted">' + t.reply_txt(pr.reply) + "</span>" : "") + "</p>" : "") + '<div class="stack">' + (isOnline(u) ? '<a class="btn" href="#/consult?' + qs({ doc: u.id }) + '">' + ic("chat") + t.cs_req_doc + "</a>" : "") + tgBtn(u) + "</div></aside></div></div>";
   }
   function cpBlock(u) {
     var t = L(), pr = u.profile || {}, c = cpOf(pr); if (!isOnline(u)) return "";
@@ -707,7 +708,8 @@
   }
   /* consultation prices on a doctor's profile: { text, audio, video }, null when not offered, 0 when free */
   function cpOf(pr) { var c = (pr && pr.cp) || {}, o = {}; ["text", "audio", "video"].forEach(function (k) { o[k] = c[k] === "" || c[k] == null ? null : Math.max(0, +c[k] || 0); }); return o; }
-  var isOnline = function (u) { return ((u.profile || {}).modes || []).indexOf("on") > -1; };
+  /* an imported doctor who hasn't claimed their profile can't answer, so they take no online consultations yet */
+  var isOnline = function (u) { return !u.pending && ((u.profile || {}).modes || []).indexOf("on") > -1; };
   function cpMin(u) { if (!isOnline(u)) return null; var c = cpOf(u.profile), v = ["text", "audio", "video"].map(function (k) { return c[k]; }).filter(function (x) { return x != null; }); return v.length ? Math.min.apply(null, v) : null; }
   var money = function (v) { return v === 0 ? L().free_c : num(v) + " " + unit(); };
   var langName = function (l) { return { kaa: "Qaraqalpaq", tg: "Tojik" }[l] || L().lg[l] || l; };
@@ -866,7 +868,7 @@
     Object.keys(map).forEach(function (id) { var el = $(id); if (el) CS[map[id]] = el.value.trim(); });
     var c = $("cs-consent"); if (c) CS.consent = c.checked;
   }
-  var onlineDoctors = function (spec) { return users().filter(function (u) { var pr = u.profile || {}; return u.role === "doctor" && (pr.modes || []).indexOf("on") > -1 && (!spec || pr.spec === spec); }); };
+  var onlineDoctors = function (spec) { return users().filter(function (u) { var pr = u.profile || {}; return u.role === "doctor" && isOnline(u) && (!spec || pr.spec === spec); }); };
   function viewConsult(q) {
     var t = L(); if (!CS || CS.docQ !== (q.doc || "")) csStart(q);
     var c = CS, fi = function (id, label, val, type, extra) { return '<div class="fld"><label for="' + id + '">' + label + '</label><input id="' + id + '" type="' + (type || "text") + '" value="' + esc(val || "") + '"' + (extra || "") + "></div>"; };
@@ -1158,10 +1160,126 @@
     a.download = name; document.body.appendChild(a); a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   }
-  var admTabs = function (cur) { var t = L(); return '<div class="chips admtabs">' + [["chk", t.adm_tab_chk], ["pay", t.adm_tab_pay]].map(function (x) { return '<button class="chip" type="button" data-admtab="' + x[0] + '" aria-pressed="' + (cur === x[0]) + '">' + x[1] + "</button>"; }).join("") + "</div>"; };
+  /* ---------------- importing doctors who agreed to be listed, from a spreadsheet ---------------- */
+  var IM = { text: "", rows: null, agree: false, busy: false, err: "", results: null, sent: [], links: {}, del: "" };
+  var IM_HEAD = ["ism", "telefon", "email", "mutaxassislik", "viloyat", "litsenziya", "tajriba", "tillar", "ish_joyi", "matn_narx", "audio_narx", "video_narx", "onlayn", "haqida"];
+  var IM_COLS = { name: ["ism", "name", "fio", "ism_familiya", "full_name"], phone: ["telefon", "phone", "tel"], email: ["email", "e_mail", "pochta"], spec: ["mutaxassislik", "specialty", "speciality", "spec"],
+    region: ["viloyat", "region"], lic: ["litsenziya", "licence", "license"], years: ["tajriba", "years", "experience"], langs: ["tillar", "languages", "langs"], work: ["ish_joyi", "workplace", "work"],
+    text: ["matn_narx", "price_text"], audio: ["audio_narx", "price_audio"], video: ["video_narx", "price_video"], online: ["onlayn", "online"], bio: ["haqida", "bio", "about"] };
+  var imNorm = function (s) { return String(s || "").toLowerCase().replace(/[‘’ʻʼ'`"]/g, "").trim().replace(/[\s-]+/g, "_"); };
+  /* CSV with ; , or tab between cells (whichever the header row uses most) and "quoted" cells */
+  function csvParse(text) {
+    text = String(text || "").replace(/^\uFEFF/, "");
+    var first = text.split(/\r?\n/)[0] || "", d = [";", "\t", ","].map(function (c) { return [c, first.split(c).length]; }).sort(function (a, b) { return b[1] - a[1]; })[0][0];
+    var rows = [], row = [], cell = "", quoted = false;
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i];
+      if (quoted) { if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else quoted = false; } else cell += ch; }
+      else if (ch === '"' && cell === "") quoted = true;
+      else if (ch === d) { row.push(cell); cell = ""; }
+      else if (ch === "\n" || ch === "\r") { if (ch === "\r" && text[i + 1] === "\n") i++; row.push(cell); rows.push(row); row = []; cell = ""; }
+      else cell += ch;
+    }
+    if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+    return rows.filter(function (r) { return r.some(function (c) { return c.trim(); }); });
+  }
+  /* a specialty written as its code or its name in any of the three languages; anything else is "other" with the text kept */
+  function imSpec(v) {
+    var x = imNorm(v); if (!x) return null;
+    if (DOC_SP.indexOf(x) > -1) return { spec: x };
+    var hit = x.length < 3 ? null : DOC_SP.filter(function (k) { return k !== "other" && ["uz", "ru", "en"].some(function (l) { var n = imNorm(T[l].docsp[k]); return !!n && (n === x || n.indexOf(x) === 0 || x.indexOf(n) === 0); }); })[0];
+    return hit ? { spec: hit } : { spec: "other", spec_other: String(v).trim().slice(0, 80) };
+  }
+  /* a region as its code or name, the way people write it: "Qashqadaryo viloyati", "Кашкадарья", "Toshkent shahri" */
+  function imRegion(v) {
+    var x = imNorm(v).replace(/\./g, ""); if (!x) return null;
+    var names = function (r) { return [r.code, r.uz, r.ru, r.en].map(function (n) { return imNorm(n).replace(/\./g, ""); }); };
+    var exact = REG.filter(function (r) { return names(r).indexOf(x) > -1; })[0]; if (exact) return exact;
+    if (/(toshkent|tashkent|ташкент)/.test(x) && /(shahri|shahar|_sh$|city|^г_|город|_ш$)/.test(x)) return regByCode.UZ26 || null;
+    x = x.replace(/_(viloyati|viloyat|vil|region|oblast|область|обл|respublikasi|республика)$/, "");
+    if (x.length < 4) return null;
+    var hits = REG.filter(function (r) { return r.code !== "UZ26" && names(r).some(function (n) { return n === x || n.indexOf(x) === 0 || x.indexOf(n) === 0 || n.slice(0, 6) === x.slice(0, 6); }); });
+    return hits.length === 1 ? hits[0] : null;   /* two possible regions: better to ask than to guess */
+  }
+  function imLangs(v) {
+    var map = { uz: "uz", ozbek: "uz", ozbekcha: "uz", узбекский: "uz", ru: "ru", rus: "ru", ruscha: "ru", русский: "ru", en: "en", ingliz: "en", inglizcha: "en", english: "en", английский: "en", kaa: "kaa", qoraqalpoq: "kaa", tg: "tg", tojik: "tg", tojikcha: "tg" };
+    var out = []; String(v || "").split(/[,;\/\s]+/).forEach(function (w) { var c = map[imNorm(w)]; if (c && out.indexOf(c) < 0) out.push(c); });
+    return out.length ? out : ["uz"];
+  }
+  function imRows(text) {
+    var grid = csvParse(text); if (grid.length < 2) return [];
+    var head = grid[0].map(imNorm), idx = {}, seen = {};
+    Object.keys(IM_COLS).forEach(function (k) { for (var j = 0; j < head.length; j++) if (IM_COLS[k].indexOf(head[j]) > -1) { idx[k] = j; break; } });
+    return grid.slice(1).map(function (r, n) {
+      var g = function (k) { return idx[k] == null ? "" : String(r[idx[k]] || "").trim(); };
+      var price = function (k) { var d = g(k).replace(/[^\d]/g, ""); return d === "" ? "" : Math.min(100000000, +d); };
+      var sp = imSpec(g("spec")), rg = imRegion(g("region")), yrs = parseInt(g("years"), 10);
+      var o = { line: n + 2, name: g("name").slice(0, 200), phone: digits(g("phone")), email: g("email").toLowerCase(), errs: [] };
+      o.profile = { spec: sp ? sp.spec : "", spec_other: sp && sp.spec_other || "", region: rg ? rg.code : "", lic: g("lic").slice(0, 60), years: yrs >= 0 && yrs <= 70 ? String(yrs) : "",
+        langs: imLangs(g("langs")), modes: /^(ha|yes|да|1|true|bor|\+)$/i.test(g("online")) ? ["in", "on"] : ["in"], work: g("work") ? [matchPlace(g("work").slice(0, 200))] : [], svc: [],
+        cp: { text: price("text"), audio: price("audio"), video: price("video") }, bio: g("bio").slice(0, 1500) };
+      if (!o.name) o.errs.push("name");
+      if (!/^998\d{9}$/.test(o.phone)) o.errs.push("phone");
+      else if (seen[o.phone]) o.errs.push("dup");
+      seen[o.phone] = 1;
+      if (o.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(o.email)) o.errs.push("email");
+      if (!sp) o.errs.push("spec");
+      if (g("region") && !rg) o.errs.push("region");
+      return o;
+    });
+  }
+  function imRead(file) {
+    /* Excel saves Russian CSVs in Windows-1251 more often than UTF-8: try UTF-8 first, then that */
+    var read = function (enc) { return new Promise(function (res, rej) { var fr = new FileReader(); fr.onload = function () { res(String(fr.result || "")); }; fr.onerror = rej; fr.readAsText(file, enc); }); };
+    return read("utf-8").then(function (s) { return s.indexOf("\uFFFD") > -1 ? read("windows-1251") : s; });
+  }
+  function viewImport() {
+    var t = L(); if (!ADM.list) admLoad();
+    var rows = IM.rows, ok = rows ? rows.filter(function (r) { return !r.errs.length; }) : [];
+    var link = function (url) { return '<span class="imlink"><input readonly value="' + esc(url) + '" aria-label="' + esc(t.im_link) + '"><button class="btn ghost sm" type="button" data-imcopy="' + esc(url) + '">' + ic("copy") + t.im_copy + "</button></span>"; };
+    var regName = function (code) { var r = code && regByCode[code]; return r ? nmL(r) : "—"; };
+    var preview = rows ? (rows.length ? '<h2 class="subh" style="margin-top:24px">' + t.im_preview + '</h2><p class="muted">' + t.im_summary(ok.length, rows.length) + '</p><div class="imtable-wrap"><table class="imtable"><thead><tr>' + t.im_th.map(function (h) { return "<th>" + h + "</th>"; }).join("") + "</tr></thead><tbody>" +
+        rows.map(function (r) { return "<tr" + (r.errs.length ? ' class="bad"' : "") + '><td class="nums">' + r.line + "</td><td>" + esc(r.name || "—") + '</td><td class="nums">' + esc(r.phone ? fmtPhone(r.phone) : "—") + "</td><td>" + esc(r.profile.spec ? specName(r.profile) : "—") + "</td><td>" + esc(regName(r.profile.region)) + "</td><td>" + (r.profile.modes.indexOf("on") > -1 ? t.im_yes : "—") + "</td><td>" + (r.errs.length ? r.errs.map(function (e) { return esc(t.im_err[e] || e); }).join("; ") : ic("check") + " " + t.im_ok) + "</td></tr>"; }).join("") + "</tbody></table></div>" +
+        (ok.length ? '<label class="chk" style="margin-top:14px"><input type="checkbox" id="im-agree"' + (IM.agree ? " checked" : "") + "><span>" + t.im_agree + '</span></label><div class="err" aria-live="polite">' + esc(IM.err) + '</div><button class="btn big" type="button" data-im="go"' + (IM.busy ? " disabled" : "") + ">" + (IM.busy ? t.im_busy : t.im_go(ok.length)) + "</button>" : "")
+      : '<p class="err" style="margin-top:14px">' + t.im_empty + "</p>") : "";
+    var results = IM.results ? '<h2 class="subh" style="margin-top:24px">' + t.im_results + '</h2><p class="muted">' + t.im_results_p + '</p><div class="dcard">' + IM.results.map(function (r) { var o = IM.sent[r.i] || {}; return '<div class="imres"><div><b>' + esc(o.name) + '</b><span class="muted nums"> · ' + esc(o.phone ? fmtPhone(o.phone) : "") + "</span></div>" + (r.url ? link(r.url) : '<span class="err">' + esc(t.im_err[r.error] || r.error) + "</span>") + "</div>"; }).join("") + "</div>" +
+      (IM.results.some(function (r) { return r.url; }) ? '<p><button class="btn ghost sm" type="button" data-im="links">' + ic("copy") + t.im_links_csv + "</button></p>" : "") : "";
+    var pend = (ADM.list || []).filter(function (x) { return x.pending; });
+    var pending = '<h2 class="subh" style="margin-top:28px">' + t.im_pending + " (" + pend.length + ')</h2><p class="muted">' + t.im_pending_p + "</p>" + (pend.length ? '<div class="dcard">' + pend.map(function (x) {
+      return '<div class="imres"><div><a href="#/doc/' + x.id + '"><b>' + esc(x.name) + '</b></a><span class="muted nums"> · ' + esc(x.phone ? fmtPhone(x.phone) : "") + (x.invite_at ? " · " + t.im_sent(poDay(x.invite_at)) : "") + "</span></div>" +
+        (IM.links[x.id] ? link(IM.links[x.id]) : "") +
+        '<div class="btns">' + (IM.links[x.id] ? "" : '<button class="btn ghost sm" type="button" data-im="invite" data-id="' + x.id + '">' + t.im_new_link + "</button>") +
+        (IM.del === x.id ? '<button class="btn danger sm" type="button" data-im="rmok" data-id="' + x.id + '">' + t.im_rm_yes + '</button><button class="btn ghost sm" type="button" data-im="rmno">' + t.po_cancel + "</button>" : '<button class="linkbtn" type="button" data-im="rm" data-id="' + x.id + '">' + t.im_rm + "</button>") + "</div></div>";
+    }).join("") + "</div>" : '<p class="muted">' + t.adm_none + "</p>");
+    return '<p class="lead">' + t.im_p + '</p><ol class="imsteps">' + t.im_steps.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ol>" +
+      '<details class="imcols"><summary>' + t.im_cols_h + '</summary><dl class="kv">' + t.im_cols.map(function (c) { return "<dt><code>" + c[0] + "</code></dt><dd>" + c[1] + "</dd>"; }).join("") + "</dl></details>" +
+      '<p><button class="btn ghost sm" type="button" data-im="template">' + ic("copy") + t.im_template + "</button></p>" +
+      '<form class="form" id="imform" novalidate><div class="fld"><label for="im-file">' + t.im_file + '</label><input type="file" id="im-file" accept=".csv,.txt,text/csv,text/plain"></div><div class="fld"><label for="im-text">' + t.im_paste + '</label><textarea id="im-text" rows="6" spellcheck="false" placeholder="' + esc(IM_HEAD.join(";")) + '">' + esc(IM.text) + '</textarea></div><button class="btn" type="submit">' + t.im_check + "</button></form>" +
+      preview + results + pending;
+  }
+
+  /* ---------------- an invited doctor claims their profile ---------------- */
+  var CL = { token: "", info: null, err: "", loading: false };
+  function viewClaim(token) {
+    var t = L();
+    if (!BE) return '<div class="wrap pad" style="max-width:560px"><div class="empty">' + t.im_claim_demo + "</div></div>";
+    if (CL.token !== token) {
+      CL = { token: token, info: null, err: "", loading: true };
+      BE.claimInfo(token).then(function (j) { CL.info = j; }, function (x) { CL.err = x.code === "invite" ? t.im_bad_link : beMsg(t, x); }).then(function () { CL.loading = false; if (current.path === "/claim/" + token) render(true); });
+    }
+    if (CL.loading) return '<div class="wrap pad"><p class="muted">…</p></div>';
+    if (!CL.info) return '<div class="wrap pad" style="max-width:560px"><div class="empty">' + esc(CL.err) + "</div></div>";
+    var i = CL.info, row = function (k, v) { return v ? "<dt>" + k + "</dt><dd>" + v + "</dd>" : ""; };
+    return '<div class="wrap pad acc" style="max-width:560px"><h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.im_claim_h + '</h1><p class="lead">' + t.im_claim_p(esc(i.name)) + "</p>" +
+      '<dl class="kv">' + row(t.d_spec, esc(i.spec ? specName({ spec: i.spec }) : "")) + row(t.f_phone2, '<span class="nums">' + esc(i.phone) + "</span>") + row(t.f_email, esc(i.email)) + "</dl>" +
+      '<form class="form" id="claimform" novalidate style="margin-top:18px"><div class="fld"><label for="cl-pw">' + t.im_pw + '</label><input id="cl-pw" type="password" autocomplete="new-password" minlength="6"></div><div class="fld"><label for="cl-pw2">' + t.im_pw2 + '</label><input id="cl-pw2" type="password" autocomplete="new-password" minlength="6"></div>' +
+      '<label class="chk"><input type="checkbox" id="cl-ok"><span>' + t.im_claim_agree + '</span></label><div class="err" id="cl-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.im_claim_go + '</button></form><p class="fine" style="margin-top:12px">' + t.im_claim_fine + "</p></div>";
+  }
+  var admTabs = function (cur) { var t = L(); return '<div class="chips admtabs">' + [["chk", t.adm_tab_chk], ["pay", t.adm_tab_pay], ["import", t.adm_tab_import]].map(function (x) { return '<button class="chip" type="button" data-admtab="' + x[0] + '" aria-pressed="' + (cur === x[0]) + '">' + x[1] + "</button>"; }).join("") + "</div>"; };
   function viewAdmin(q) {
     var t = L(), u = me();
     if (!BE || !u || !u.admin) return '<div class="wrap pad"><div class="empty">' + t.adm_forbidden + "</div></div>";
+    if (q && q.tab === "import") return '<div class="wrap pad" style="max-width:980px">' + admTabs("import") + '<h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.im_h + "</h1>" + viewImport() + "</div>";
     if (q && q.tab === "pay") return '<div class="wrap pad" style="max-width:900px">' + admTabs("pay") + '<h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.po_h + "</h1>" + viewPayouts() + "</div>";
     if (!ADM.list) { admLoad(); return '<div class="wrap pad"><p class="muted">…</p></div>'; }
     var row = function (x) {
@@ -1319,6 +1437,7 @@
     else if (path === "/doctors") { html = viewDoctors(q); route = "doctors"; }
     else if (path === "/prices") { html = viewPrices(q); route = "prices"; }
     else if (path.indexOf("/doc/") === 0) { html = viewDoc(path.slice(5)); route = "doctors"; }
+    else if (path.indexOf("/claim/") === 0) { html = viewClaim(path.slice(7)); route = "account"; }
     else if (path.indexOf("/c/") === 0) { html = viewClinicAcc(path.slice(3)); route = "doctors"; }
     else if (path.indexOf("/f/") === 0) { html = viewFacility(path.slice(3)); route = "find"; }
     else if (path === "/browse" || path.indexOf("/browse/") === 0) { html = viewBrowse(path.slice(8)); route = "browse"; }
@@ -1427,7 +1546,28 @@
     if (ds.rvstar) { rvCollect(); RV.stars = +ds.rvstar; render(true); return; }
     if (ds.act === "rvopen") { RV = { key: "v" + ds.id, stars: 0, body: "", anon: false }; render(true); return; }
     if (ds.rr) { if (current.path === "/account") accCollect(); var rr0 = reviews().filter(function (x) { return x.id === ds.rr; })[0]; RR = ds.rr === "close" || !rr0 ? null : { id: rr0.id, text: rr0.reply || "" }; render(true); if ($("rvreply-in")) $("rvreply-in").focus(); return; }
-    if (ds.admtab) { go("#/admin" + (ds.admtab === "pay" ? "?tab=pay" : "")); return; }
+    if (ds.admtab) { go("#/admin" + (ds.admtab !== "chk" ? "?tab=" + ds.admtab : "")); return; }
+    if (ds.imcopy) { var inp = el.parentNode.querySelector("input"); try { navigator.clipboard.writeText(ds.imcopy).then(function () { toast(t.im_copied); }, function () { if (inp) inp.select(); }); } catch (x) { if (inp) inp.select(); } return; }
+    if (ds.im && BE) {
+      if (ds.im === "template") { csvDownload("shifokor-shifokorlar-shablon.csv", [IM_HEAD]); return; }
+      if (ds.im === "links") { csvDownload("shifokor-takliflar-" + iso(today0()) + ".csv", [t.im_cols_links].concat((IM.results || []).filter(function (r) { return r.url; }).map(function (r) { var o = IM.sent[r.i]; return [o.name, "+" + o.phone, r.url]; }))); return; }
+      if (ds.im === "go") {
+        var okRows = (IM.rows || []).filter(function (r) { return !r.errs.length; });
+        if (!okRows.length) return;
+        if (!IM.agree) { IM.err = t.im_err_agree; render(true); return; }
+        IM.err = ""; IM.busy = true; render(true);
+        /* at most 200 per request; results keep their place in the full list */
+        var chunks = []; for (var ci = 0; ci < okRows.length; ci += 200) chunks.push(ci);
+        chunks.reduce(function (pr, start) {
+          return pr.then(function (acc) { return BE.adminImport(okRows.slice(start, start + 200).map(function (r) { return { name: r.name, phone: r.phone, email: r.email, profile: r.profile }; })).then(function (j) { return acc.concat(j.results.map(function (x) { return Object.assign({}, x, { i: x.i + start }); })); }); });
+        }, Promise.resolve([])).then(function (res) { IM.results = res; IM.sent = okRows; IM.rows = null; IM.text = ""; IM.agree = false; ADM.list = null; BE.refresh().catch(function () {}); toast(t.im_done(res.filter(function (x) { return x.url; }).length)); },
+          function (x) { IM.err = beMsg(t, x); }).then(function () { IM.busy = false; render(true); });
+        return;
+      }
+      if (ds.im === "invite") { el.disabled = true; BE.adminInvite(ds.id).then(function (j) { IM.links[ds.id] = j.url; render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
+      if (ds.im === "rm" || ds.im === "rmno") { IM.del = ds.im === "rm" ? ds.id : ""; render(true); return; }
+      if (ds.im === "rmok") { el.disabled = true; BE.adminRemovePending(ds.id).then(function () { IM.del = ""; ADM.list = null; BE.refresh().catch(function () {}); toast(t.im_removed); render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
+    }
     if (ds.po && BE) {
       var pd = PO.data || { doctors: [], payouts: [], paid: [] };
       if (ds.po === "open") { PO.form = { doctor: ds.id, amount: ds.amount, day: iso(today0()), ref: "", note: "", err: "" }; PO.del = ""; render(true); if ($("po-ref")) $("po-ref").focus(); return; }
@@ -1532,6 +1672,17 @@
       if (dsel) rec.msgs.push({ from: "s", text: wantedNote(dsel, C.type), at: Date.now() });
       var full2 = false; CSPH.forEach(function (ph) { var fid = demoPhoto(ph); if (fid) rec.msgs.push({ from: "p", name: C.name, text: "", file: fid, at: Date.now() }); else full2 = true; });
       cl2.push(rec); saveConsults(cl2); CS = null; CSPH = []; toast(full2 ? t.ph_full : t.cs_sent); go("#/consult/" + rec.id); return;
+    }
+    if (id === "imform") { IM.text = $("im-text").value; IM.rows = imRows(IM.text); IM.results = null; IM.err = ""; render(true); return; }
+    if (id === "claimform" && BE) {
+      var cerr = $("cl-err"), pw1 = $("cl-pw").value, ctok = CL.token;
+      if (pw1.length < 6) { cerr.textContent = t.e_pw; return; }
+      if (pw1 !== $("cl-pw2").value) { cerr.textContent = t.im_pw_mismatch; return; }
+      if (!$("cl-ok").checked) { cerr.textContent = t.im_claim_need_ok; return; }
+      var cb = e.target.querySelector('button[type="submit"]'); cb.disabled = true; cerr.textContent = "";
+      BE.claim(ctok, pw1).then(function () { CL = { token: "", info: null, err: "", loading: false }; toast(t.im_claimed); go("#/account"); },
+        function (x) { cb.disabled = false; cerr.textContent = x.code === "invite" ? t.im_bad_link : beMsg(t, x); });
+      return;
     }
     if (id === "poform" && BE && PO.form) {
       poCollect();
@@ -1711,6 +1862,8 @@
 
   document.addEventListener("change", function (e) {
     var id = e.target.id;
+    if (id === "im-agree") { IM.agree = e.target.checked; return; }
+    if (id === "im-file" && e.target.files && e.target.files[0]) { imRead(e.target.files[0]).then(function (txt) { IM.text = txt; IM.rows = imRows(txt); IM.results = null; IM.err = ""; render(true); }, function () { toast(L().be_err); }); return; }
     if (id === "cs-region") { csCollect(); CS.district = ""; render(true); return; }
     if (id === "cs-spec") { csCollect(); CS.doc = ""; render(true); return; }
     if (id.indexOf("df-") === 0) { go("#/doctors?" + qs(dfQuery())); return; }
@@ -1739,7 +1892,7 @@
   });
   /* another tab booked or changed something: refresh so a taken slot disappears here too */
   window.addEventListener("storage", function (e) { if (e.key && e.key.indexOf("shifokor-") === 0) rerender(); });
-  window.addEventListener("hashchange", function () { PH = null; cancelAsk = null; apAsk = null; APX = null; RR = null; PO.form = null; PO.del = ""; render(false); });
+  window.addEventListener("hashchange", function () { PH = null; cancelAsk = null; apAsk = null; APX = null; RR = null; PO.form = null; PO.del = ""; IM.del = ""; render(false); });
 
   render(false);
   /* a patient anywhere on the site hears about a doctor's call once per ring */
@@ -1767,6 +1920,7 @@
     if ($("apreply")) apxCollect();
     if ($("rvform")) rvCollect();
     if ($("poform")) poCollect();
+    if ($("im-text")) IM.text = $("im-text").value;
     if ($("rvreply-in") && RR) RR.text = $("rvreply-in").value;
     var draft = $("csmsg-in") ? $("csmsg-in").value : null;
     var fe = document.activeElement, fid = fe && fe.id, sel = null;

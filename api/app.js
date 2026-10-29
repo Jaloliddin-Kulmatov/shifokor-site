@@ -92,7 +92,7 @@ async function newSession(userId) {
 async function whoAmI(req) {
   const m = /^Bearer\s+([A-Za-z0-9_-]{20,100})$/.exec(req.headers.authorization || "");
   if (!m) return null;
-  const r = await q("select u.id, u.role, u.name, u.email, u.phone, u.tg, u.profile, u.updated_at, u.verified_at, u.verified_fac, u.tg_chat from app_sessions s join app_users u on u.id = s.user_id where s.token_hash = $1 and s.expires_at > now()", [sha(m[1])]);
+  const r = await q("select u.id, u.role, u.name, u.email, u.phone, u.tg, u.profile, u.updated_at, u.verified_at, u.verified_fac, u.tg_chat, u.imported_at, u.claimed_at from app_sessions s join app_users u on u.id = s.user_id where s.token_hash = $1 and s.expires_at > now()", [sha(m[1])]);
   return r.rows[0] ? Object.assign(r.rows[0], { tokenHash: sha(m[1]) }) : null;
 }
 const need = (me) => { if (!me) throw new Fail(401, "auth"); return me; };
@@ -103,7 +103,8 @@ const DEFAULT_PROFILE = {
 };
 // A clinic's check covers the hospital it claimed at the time; claiming another one needs a new check.
 const isVerified = (u) => !!u.verified_at && (u.role !== "clinic" || (u.verified_fac || "") === String((u.profile || {}).fac || ""));
-const userOut = (u) => ({ id: u.id, role: u.role, name: u.name, phone: u.phone || "", tg: u.tg || "", profile: u.profile || {}, updated_at: u.updated_at, verified: isVerified(u) });
+// pending: imported by an admin and the doctor hasn't opened their invite yet
+const userOut = (u) => ({ id: u.id, role: u.role, name: u.name, phone: u.phone || "", tg: u.tg || "", profile: u.profile || {}, updated_at: u.updated_at, verified: isVerified(u), pending: !!u.imported_at && !u.claimed_at });
 // Admins are named only in the server's environment: ADMIN_EMAILS and/or ADMIN_PHONES, comma-separated.
 const listEnv = (k) => (process.env[k] || "").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
 const isAdmin = (me) => !!me && ((me.email && listEnv("ADMIN_EMAILS").includes(me.email)) || (me.phone && listEnv("ADMIN_PHONES").map((x) => x.replace(/\D/g, "")).includes(me.phone)));
@@ -153,6 +154,17 @@ function iceServers(userId) {
   }
   return list;
 }
+// An invite link's doctor: imported, not yet claimed, and the link is under 30 days old.
+const INVITE_DAYS = 30;
+const newInvite = () => crypto.randomBytes(24).toString("base64url");
+async function invited(token) {
+  const t = String(token || "");
+  if (!/^[A-Za-z0-9_-]{30,40}$/.test(t)) throw new Fail(404, "invite");
+  const u = (await q("select id, name, email, phone, profile from app_users where invite_hash = $1 and claimed_at is null and invite_at > now() - interval '" + INVITE_DAYS + " days'", [sha(t)])).rows[0];
+  if (!u) throw new Fail(404, "invite");
+  return u;
+}
+
 // What doctors earned from paid consultations and what they were paid. A doctor is owed their share (the price
 // minus the platform's fee) for each paid consultation once it's finished; a refunded one doesn't count.
 async function earnings(doctorId) {
@@ -177,7 +189,7 @@ async function sysNote(consultId, note) {
 // ---------- actions ----------
 const ACTIONS = {
   async sync(b, me) {
-    const pub = await q("select id, role, name, case when role = 'clinic' then phone end as phone, tg, profile, updated_at, verified_at, verified_fac from app_users where role in ('doctor', 'clinic') order by created_at");
+    const pub = await q("select id, role, name, case when role = 'clinic' then phone end as phone, tg, profile, updated_at, verified_at, verified_fac, imported_at, claimed_at from app_users where role in ('doctor', 'clinic') order by created_at");
     const users = pub.rows.map(userOut);
     let consults = [];
     let appts = [];
@@ -225,9 +237,26 @@ const ACTIONS = {
       const r = await q("insert into app_users (role, name, email, phone, tg, pw_hash, profile) values ($1, $2, $3, $4, $5, $6, $7) returning id", [role, name, email, phone, tg, hashPw(pw), DEFAULT_PROFILE[role]]);
       return { token: await newSession(r.rows[0].id) };
     } catch (e) {
-      if (e.code === "23505") throw new Fail(409, "exists");
-      throw e;
+      if (e.code !== "23505") throw e;
+      // a doctor the team already imported signs up by themselves: point them to their invite link instead
+      const inv = (await q("select 1 from app_users where (phone = $1 or email = $2) and imported_at is not null and claimed_at is null", [phone, email])).rows[0];
+      throw new Fail(409, inv ? "invited" : "exists");
     }
+  },
+
+  // ---------- invited doctors: the link an admin sent, then a password ----------
+  async claim_info(b) {
+    const u = await invited(b.token);
+    const d = String(u.phone || "");
+    return { name: u.name, phone: d ? "+" + d.slice(0, 5) + " ••• •• " + d.slice(-2) : "", email: u.email ? u.email.replace(/^(.).*(@.*)$/, "$1•••$2") : "", spec: (u.profile || {}).spec || "" };
+  },
+  async claim(b) {
+    const u = await invited(b.token);
+    const pw = typeof b.password === "string" ? b.password : "";
+    if (pw.length < 6 || pw.length > 200) bad("password");
+    const r = await q("update app_users set pw_hash = $2, claimed_at = now(), invite_hash = null, invite_at = null, updated_at = now() where id = $1 and claimed_at is null returning id", [u.id, hashPw(pw)]);
+    if (!r.rows[0]) throw new Fail(404, "invite");
+    return { token: await newSession(u.id) };
   },
 
   async login(b) {
@@ -286,7 +315,8 @@ const ACTIONS = {
     if (complaint.length < 10) bad("complaint");
     const since = Math.min(4, Math.max(0, Math.round(Number(c.since) || 0)));
     let doc = UUID.test(String(c.doc || "")) ? c.doc : null;
-    if (doc && !(await q("select 1 from app_users where id = $1 and role = 'doctor'", [doc])).rows[0]) doc = null;
+    // an imported doctor who hasn't claimed their profile yet can't answer, so the application goes to any doctor
+    if (doc && !(await q("select 1 from app_users where id = $1 and role = 'doctor' and (imported_at is null or claimed_at is not null)", [doc])).rows[0]) doc = null;
     const r = await q(
       "insert into app_consults (patient_id, type, who, name, age, sex, phone, region, district, complaint, since, chronic, meds, allergy, spec, doc) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) returning id",
       [me.id, type, who, name, age, sex, phone, opt(c.region, 20), opt(c.district, 20), complaint, since, opt(c.chronic, 500), opt(c.meds, 500), opt(c.allergy, 500), opt(c.spec, 20), doc]
@@ -524,9 +554,9 @@ const ACTIONS = {
   // ---------- checking clinics and doctors (admins only) ----------
   async admin_list(b, me) {
     if (!isAdmin(need(me))) throw new Fail(403, "forbidden");
-    const r = await q("select id, role, name, email, phone, tg, profile, created_at, updated_at, verified_at, verified_fac from app_users where role in ('clinic', 'doctor') order by verified_at nulls first, created_at desc limit 500");
+    const r = await q("select id, role, name, email, phone, tg, profile, created_at, updated_at, verified_at, verified_fac, imported_at, claimed_at, invite_at from app_users where role in ('clinic', 'doctor') order by verified_at nulls first, created_at desc limit 500");
     const rv = await q("select r.id, r.target_id, t.name as target_name, r.stars, r.body, r.author, r.hidden, r.created_at from app_reviews r join app_users t on t.id = r.target_id order by r.created_at desc limit 300");
-    return { users: r.rows.map((u) => Object.assign(userOut(u), { email: u.email || "", phone: u.phone || "", created_at: u.created_at, verified_at: u.verified_at })), reviews: rv.rows, webhook: N.TG };
+    return { users: r.rows.map((u) => Object.assign(userOut(u), { email: u.email || "", phone: u.phone || "", created_at: u.created_at, verified_at: u.verified_at, invite_at: u.invite_at })), reviews: rv.rows, webhook: N.TG };
   },
   async admin_verify(b, me) {
     if (!isAdmin(need(me))) throw new Fail(403, "forbidden");
@@ -537,6 +567,48 @@ const ACTIONS = {
     await notifyUser(b.id, ok ? "Shifokor: hisobingiz tekshirildi va tasdiqlandi." + " " + SITE + "/#/account" : "Shifokor: hisobingiz tasdiqlanmadi. Ma’lumotlarni tekshirib, qayta saqlang. " + SITE + "/#/account");
     return { ok: true };
   },
+  // ---------- importing doctors who agreed to be listed (admins) ----------
+  // rows: [{ name, phone, email, profile }], at most 200. Each new doctor gets an invite link to claim the profile.
+  async admin_import(b, me) {
+    if (!isAdmin(need(me))) throw new Fail(403, "forbidden");
+    const rows = Array.isArray(b.rows) ? b.rows : bad("rows");
+    if (!rows.length || rows.length > 200) bad("rows");
+    const out = [];
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i] && typeof rows[i] === "object" ? rows[i] : {};
+      try {
+        const name = str(row.name, 200) || bad("name");
+        const phone = phoneOf(row.phone) || bad("phone");
+        const email = emailOf(row.email);
+        const profile = Object.assign({}, DEFAULT_PROFILE.doctor, profileOf(row.profile));
+        const token = newInvite();
+        const r = await q("insert into app_users (role, name, email, phone, pw_hash, profile, imported_at, invite_hash, invite_at) values ('doctor', $1, $2, $3, 'invite', $4, now(), $5, now()) returning id", [name, email, phone, profile, sha(token)]);
+        out.push({ i, id: r.rows[0].id, url: SITE + "/#/claim/" + token });
+      } catch (e) {
+        if (e instanceof Fail) out.push({ i, error: e.code });
+        else if (e && e.code === "23505") out.push({ i, error: "exists" });   // that phone or email already has an account
+        else throw e;
+      }
+    }
+    return { results: out };
+  },
+  // a fresh link for an imported doctor who hasn't claimed yet (links are shown once and last 30 days)
+  async admin_invite(b, me) {
+    if (!isAdmin(need(me))) throw new Fail(403, "forbidden");
+    if (!UUID.test(String(b.id || ""))) bad("id");
+    const token = newInvite();
+    const r = await q("update app_users set invite_hash = $2, invite_at = now() where id = $1 and imported_at is not null and claimed_at is null returning id", [b.id, sha(token)]);
+    if (!r.rows[0]) throw new Fail(404, "not_found");
+    return { url: SITE + "/#/claim/" + token };
+  },
+  // for a doctor who withdrew consent before claiming the profile
+  async admin_remove_pending(b, me) {
+    if (!isAdmin(need(me))) throw new Fail(403, "forbidden");
+    if (!UUID.test(String(b.id || ""))) bad("id");
+    if (!(await q("delete from app_users where id = $1 and imported_at is not null and claimed_at is null returning id", [b.id])).rows[0]) throw new Fail(404, "not_found");
+    return { ok: true };
+  },
+
   // ---------- paying doctors (admins) ----------
   async admin_payouts(b, me) {
     if (!isAdmin(need(me))) throw new Fail(403, "forbidden");

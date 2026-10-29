@@ -92,7 +92,7 @@ async function newSession(userId) {
 async function whoAmI(req) {
   const m = /^Bearer\s+([A-Za-z0-9_-]{20,100})$/.exec(req.headers.authorization || "");
   if (!m) return null;
-  const r = await q("select u.id, u.role, u.name, u.email, u.phone, u.tg, u.profile, u.updated_at, u.verified_at, u.verified_fac, u.tg_chat, u.imported_at, u.claimed_at from app_sessions s join app_users u on u.id = s.user_id where s.token_hash = $1 and s.expires_at > now()", [sha(m[1])]);
+  const r = await q("select u.id, u.role, u.name, u.email, u.phone, u.tg, u.profile, u.updated_at, u.verified_at, u.verified_fac, u.tg_chat, u.imported_at, u.claimed_at, u.online_until, u.photo_at from app_sessions s join app_users u on u.id = s.user_id where s.token_hash = $1 and s.expires_at > now()", [sha(m[1])]);
   return r.rows[0] ? Object.assign(r.rows[0], { tokenHash: sha(m[1]) }) : null;
 }
 const need = (me) => { if (!me) throw new Fail(401, "auth"); return me; };
@@ -104,7 +104,8 @@ const DEFAULT_PROFILE = {
 // A clinic's check covers the hospital it claimed at the time; claiming another one needs a new check.
 const isVerified = (u) => !!u.verified_at && (u.role !== "clinic" || (u.verified_fac || "") === String((u.profile || {}).fac || ""));
 // pending: imported by an admin and the doctor hasn't opened their invite yet
-const userOut = (u) => ({ id: u.id, role: u.role, name: u.name, phone: u.phone || "", tg: u.tg || "", profile: u.profile || {}, updated_at: u.updated_at, verified: isVerified(u), pending: !!u.imported_at && !u.claimed_at });
+const userOut = (u) => ({ id: u.id, role: u.role, name: u.name, phone: u.phone || "", tg: u.tg || "", profile: u.profile || {}, updated_at: u.updated_at, verified: isVerified(u), pending: !!u.imported_at && !u.claimed_at,
+  online: u.online_until && new Date(u.online_until).getTime() > Date.now() ? u.online_until : null, photo: u.photo_at ? new Date(u.photo_at).getTime() : 0 });
 // Admins are named only in the server's environment: ADMIN_EMAILS and/or ADMIN_PHONES, comma-separated.
 const listEnv = (k) => (process.env[k] || "").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
 const isAdmin = (me) => !!me && ((me.email && listEnv("ADMIN_EMAILS").includes(me.email)) || (me.phone && listEnv("ADMIN_PHONES").map((x) => x.replace(/\D/g, "")).includes(me.phone)));
@@ -181,6 +182,30 @@ async function earnings(doctorId) {
   Object.values(by).forEach((r) => { r.net = r.gross - r.fee; r.balance = r.net - r.paid_out; });
   return by;
 }
+// "How are you feeling?" two days after a consultation ends. Telegram asks with buttons; the consultation page asks too.
+const FOLLOW = { better: "yaxshilandi", same: "o‘zgarmadi", worse: "yomonlashdi" };
+async function followupAnswer(c, answer, note) {
+  if (!FOLLOW[answer]) bad("answer");
+  const r = await q("update app_consults set followup = $2, followup_answered_at = now(), followup_at = coalesce(followup_at, now()) where id = $1 and followup is null returning id, n, doctor_id", [c.id, answer]);
+  if (!r.rows[0]) return false;
+  await sysNote(c.id, str(note, 300) || "Bemor: ahvolim " + FOLLOW[answer] + ".");
+  if (answer === "worse" && c.doctor_id) await notifyUser(c.doctor_id, "Shifokor: bemor maslahatdan keyin ahvoli yomonlashganini aytdi (ariza №" + c.n + "). " + SITE + "/#/consult/" + c.id);
+  return true;
+}
+async function sendFollowups() {
+  const r = await q("update app_consults set followup_at = now() where id in (select id from app_consults where status = 'done' and followup_at is null and closed_at < now() - interval '2 days' and closed_at > now() - interval '9 days' order by closed_at limit 100) returning id, n, patient_id, doctor_name");
+  if (!N.TG || !r.rows.length) return r.rows.length;
+  const chats = (await q("select id, tg_chat from app_users where id = any($1::uuid[]) and tg_chat is not null", [r.rows.map((c) => c.patient_id)])).rows;
+  const chatOf = Object.fromEntries(chats.map((u) => [u.id, u.tg_chat]));
+  for (let i = 0; i < r.rows.length; i += 20) {
+    await Promise.all(r.rows.slice(i, i + 20).filter((c) => chatOf[c.patient_id]).map((c) => N.tgApi("sendMessage", {
+      chat_id: chatOf[c.patient_id],
+      text: "Shifokor: " + (c.doctor_name || "shifokor") + " bilan maslahatdan keyin qalaysiz? (ariza №" + c.n + ")",
+      reply_markup: { inline_keyboard: [[{ text: "Yaxshilandi", callback_data: "fu:" + c.id + ":better" }], [{ text: "O‘zgarmadi", callback_data: "fu:" + c.id + ":same" }], [{ text: "Yomonlashdi", callback_data: "fu:" + c.id + ":worse" }]] }
+    }).catch((e) => console.error("followup", e.message))));
+  }
+  return r.rows.length;
+}
 async function sysNote(consultId, note) {
   const body = str(note, 300);
   if (body) await q("insert into app_messages (consult_id, kind, body) values ($1, 's', $2)", [consultId, body]);
@@ -189,7 +214,7 @@ async function sysNote(consultId, note) {
 // ---------- actions ----------
 const ACTIONS = {
   async sync(b, me) {
-    const pub = await q("select id, role, name, case when role = 'clinic' then phone end as phone, tg, profile, updated_at, verified_at, verified_fac, imported_at, claimed_at from app_users where role in ('doctor', 'clinic') order by created_at");
+    const pub = await q("select id, role, name, case when role = 'clinic' then phone end as phone, tg, profile, updated_at, verified_at, verified_fac, imported_at, claimed_at, online_until, photo_at from app_users where role in ('doctor', 'clinic') order by created_at");
     const users = pub.rows.map(userOut);
     let consults = [];
     let appts = [];
@@ -317,20 +342,26 @@ const ACTIONS = {
     let doc = UUID.test(String(c.doc || "")) ? c.doc : null;
     // an imported doctor who hasn't claimed their profile yet can't answer, so the application goes to any doctor
     if (doc && !(await q("select 1 from app_users where id = $1 and role = 'doctor' and (imported_at is null or claimed_at is not null)", [doc])).rows[0]) doc = null;
+    const asap = !doc && c.asap === true;   // "first available doctor": doctors online now are alerted, the first to accept takes it
     const r = await q(
-      "insert into app_consults (patient_id, type, who, name, age, sex, phone, region, district, complaint, since, chronic, meds, allergy, spec, doc) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) returning id",
-      [me.id, type, who, name, age, sex, phone, opt(c.region, 20), opt(c.district, 20), complaint, since, opt(c.chronic, 500), opt(c.meds, 500), opt(c.allergy, 500), opt(c.spec, 20), doc]
+      "insert into app_consults (patient_id, type, who, name, age, sex, phone, region, district, complaint, since, chronic, meds, allergy, spec, doc, asap) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) returning id, n",
+      [me.id, type, who, name, age, sex, phone, opt(c.region, 20), opt(c.district, 20), complaint, since, opt(c.chronic, 500), opt(c.meds, 500), opt(c.allergy, 500), opt(c.spec, 20), doc, asap]
     );
     const id = r.rows[0].id;
     for (const note of (Array.isArray(b.notes) ? b.notes : []).slice(0, 3)) await sysNote(id, note);
     if (doc) await notifyUser(doc, "Shifokor: sizga yangi onlayn maslahat arizasi. " + SITE + "/#/consult/" + id);
+    if (asap) {
+      const on = await q("select tg_chat from app_users where role = 'doctor' and online_until > now() and tg_chat is not null and (imported_at is null or claimed_at is not null) and ($1::text is null or profile->>'spec' = $1 or profile->>'spec' = 'gp') limit 50", [opt(c.spec, 20)]);
+      const text = "Shifokor: hozir maslahat kerak (ariza №" + r.rows[0].n + "). Birinchi qabul qilgan shifokor oladi. " + SITE + "/#/consult/" + id;
+      await Promise.all(on.rows.map((d) => N.tgSend(d.tg_chat, text)));
+    }
     return { id };
   },
 
   async message(b, me) {
     need(me);
     const c = await consultFor(me, b.id);
-    if (c.status === "done") throw new Fail(409, "closed");
+    if (c.status === "done" || c.status === "referred") throw new Fail(409, "closed");
     let kind, name;
     if (c.patient_id === me.id) { kind = "p"; name = c.name; }
     else if (c.doctor_id === me.id) { kind = "d"; name = me.name; }
@@ -423,8 +454,56 @@ const ACTIONS = {
     if (c.doctor_id !== me.id || c.status !== "accepted") throw new Fail(403, "forbidden");
     const outcome = Math.round(Number(b.outcome));
     if (!(outcome >= 0 && outcome <= 2)) bad("outcome");
-    await q("update app_consults set status = 'done', outcome = $2 where id = $1", [c.id, outcome]);
+    await q("update app_consults set status = 'done', outcome = $2, closed_at = now() where id = $1", [c.id, outcome]);
     await sysNote(c.id, b.note);
+    return { ok: true };
+  },
+
+  // The doctor read a new application and says an in-person visit is needed instead of an online one.
+  // The application closes, nothing is charged, and the patient gets the doctor's advice. { id, advice, note }
+  async refer(b, me) {
+    need(me);
+    if (me.role !== "doctor") throw new Fail(403, "forbidden");
+    if (!UUID.test(String(b.id || ""))) bad("id");
+    const advice = str(b.advice, 1000);
+    if (advice.length < 10) bad("advice");
+    const r = await q("update app_consults set status = 'referred', doctor_id = $1, doctor_name = $2, closed_at = now() where id = $3 and status = 'new' and (doc is null or doc = $1) returning id, n, patient_id", [me.id, me.name, b.id]);
+    if (!r.rows[0]) throw new Fail(409, "taken");
+    await q("insert into app_messages (consult_id, sender, kind, name, body) values ($1, $2, 'd', $3, $4)", [b.id, me.id, me.name, advice]);
+    await sysNote(b.id, b.note);
+    await notifyUser(r.rows[0].patient_id, "Shifokor: shifokor " + me.name + " arizangizni o‘qib, yuzma-yuz ko‘rik kerakligini aytdi (№" + r.rows[0].n + "). To‘lov olinmaydi. Maslahatini o‘qing: " + SITE + "/#/consult/" + b.id);
+    return { ok: true };
+  },
+
+  // the patient's answer to "how are you feeling?" on the site: { id, answer: better | same | worse, note }
+  async followup(b, me) {
+    need(me);
+    const c = await consultFor(me, b.id);
+    if (c.patient_id !== me.id) throw new Fail(403, "forbidden");
+    if (c.status !== "done") throw new Fail(409, "closed");
+    if (!(await followupAnswer(c, b.answer, b.note))) throw new Fail(409, "answered");
+    return { ok: true };
+  },
+
+  // a doctor says they're online now, for 1, 2 or 4 hours; 0 turns it off. Patients asking for the
+  // first available doctor reach doctors who are online.
+  async set_online(b, me) {
+    need(me);
+    if (me.role !== "doctor") throw new Fail(403, "forbidden");
+    const min = Math.round(Number(b.minutes));
+    if (![0, 60, 120, 240].includes(min)) bad("minutes");
+    const r = await q("update app_users set online_until = case when $2::int > 0 then now() + make_interval(mins => $2::int) end where id = $1 returning online_until", [me.id, min]);
+    return { online: r.rows[0].online_until };
+  },
+
+  // a doctor's profile photo: { data } from the photo shrinker, or null to remove it
+  async set_photo(b, me) {
+    need(me);
+    if (me.role !== "doctor") throw new Fail(403, "forbidden");
+    if (b.photo == null) { await q("update app_users set photo = null, photo_at = null where id = $1", [me.id]); return { ok: true }; }
+    const ph = photoOf(b.photo);
+    if (ph.data.length > 200000) bad("photo");
+    await q("update app_users set photo = $2, photo_at = now() where id = $1", [me.id, ph.data]);
     return { ok: true };
   },
 
@@ -645,7 +724,7 @@ const ACTIONS = {
   async admin_tg_setup(b, me) {
     if (!isAdmin(need(me))) throw new Fail(403, "forbidden");
     if (!N.TG) throw new Fail(503, "no_tg");
-    await N.tgApi("setWebhook", { url: SITE + "/api/app?tg=hook", secret_token: N.TG_SECRET, allowed_updates: ["message"] });
+    await N.tgApi("setWebhook", { url: SITE + "/api/app?tg=hook", secret_token: N.TG_SECRET, allowed_updates: ["message", "callback_query"] });
     return { ok: true, bot: await N.tgBotName() };
   }
 };
@@ -661,6 +740,11 @@ async function telegramHook(req, res) {
   if (!N.TG || req.headers["x-telegram-bot-api-secret-token"] !== N.TG_SECRET) return send(res, 403, { error: "forbidden" });
   let u = req.body;
   if (typeof u === "string") { try { u = JSON.parse(u); } catch (e) { u = null; } }
+  const cb = u && u.callback_query;
+  if (cb) {
+    try { await migrate(); await followupButton(cb); } catch (e) { console.error("tg button", e && e.message); }
+    return send(res, 200, { ok: true });
+  }
   const m = u && u.message, chat = m && m.chat && m.chat.id, text = String((m && m.text) || "").trim();
   if (!chat || !m.chat || m.chat.type !== "private") return send(res, 200, { ok: true });
   try {
@@ -679,6 +763,21 @@ async function telegramHook(req, res) {
   return send(res, 200, { ok: true });
 }
 
+// A follow-up button pressed in Telegram: only the patient's own linked chat can answer.
+async function followupButton(cb) {
+  const k = /^fu:([0-9a-f-]{36}):(better|same|worse)$/.exec(String(cb.data || "")), chat = cb.message && cb.message.chat && cb.message.chat.id;
+  let reply = "";
+  if (k && chat) {
+    const c = (await q("select c.id, c.n, c.status, c.doctor_id, c.patient_id from app_consults c join app_users p on p.id = c.patient_id where c.id = $1 and p.tg_chat = $2", [k[1], chat])).rows[0];
+    if (c && c.status === "done" && (await followupAnswer(c, k[2], ""))) {
+      reply = "Rahmat!";
+      await N.tgApi("editMessageText", { chat_id: chat, message_id: cb.message.message_id, text: cb.message.text + "\nJavobingiz: " + FOLLOW[k[2]] + "." }).catch(() => {});
+      if (k[2] === "worse") await N.tgSend(chat, "Shifokoringizga qayta yozing yoki yaqin shifoxonaga boring: " + SITE + "/#/consult/" + c.id + "\nKo‘krak og‘rig‘i, nafas qisishi, hushdan ketish yoki kuchli qon ketish bo‘lsa, darhol 103 ga qo‘ng‘iroq qiling.");
+    } else reply = "Javob allaqachon yuborilgan.";
+  }
+  await N.tgApi("answerCallbackQuery", { callback_query_id: cb.id, text: reply }).catch(() => {});
+}
+
 // Uzbekistan is UTC+5 all year. Requests may be made for today and the next 30 days.
 const today = () => new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);
 function dayOf(v) {
@@ -688,6 +787,20 @@ function dayOf(v) {
   const max = new Date(Date.parse(today() + "T00:00:00Z") + 30 * 864e5).toISOString().slice(0, 10);
   if (s < today() || s > max) bad("date");
   return s;
+}
+
+// a doctor's public profile photo, cached by browsers; the page asks with ?v=<time it changed>
+async function doctorPhoto(res, id) {
+  try {
+    await migrate();
+    const r = (await q("select photo from app_users where id = $1 and role = 'doctor' and photo is not null", [id])).rows[0];
+    if (!r) return send(res, 404, { error: "not_found" });
+    res.statusCode = 200;
+    res.setHeader("Content-Type", r.photo[0] === 0x89 ? "image/png" : r.photo[0] === 0x52 ? "image/webp" : "image/jpeg");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    return res.end(r.photo);
+  } catch (e) { console.error("photo", e && e.message); return send(res, 500, { error: "server" }); }
 }
 
 function send(res, status, data) {
@@ -714,6 +827,16 @@ function reasonOf(e) {
 
 module.exports = async function handler(req, res) {
   if (req.method === "GET") {
+    const photo = /[?&]photo=([0-9a-f-]{36})\b/i.exec(req.url || "");
+    if (photo && CONN) return doctorPhoto(res, photo[1]);
+    // Vercel runs this once a day (vercel.json). It only sends what's due, so an extra call does no harm;
+    // with CRON_SECRET set, only Vercel's own call is accepted.
+    if (/[?&]cron=daily\b/.test(req.url || "") && CONN) {
+      const secret = (process.env.CRON_SECRET || "").trim();
+      if (secret && req.headers.authorization !== "Bearer " + secret) return send(res, 401, { error: "auth" });
+      try { await migrate(); return send(res, 200, { ok: true, followups: await sendFollowups() }); }
+      catch (e) { console.error("cron", e && e.message); return send(res, 500, { error: "server" }); }
+    }
     if (!CONN) return send(res, 200, { ok: true, database: false });
     try { await migrate(); return send(res, 200, { ok: true, database: true, connected: true }); }
     catch (e) { console.error("db check", e && e.code, e && e.message); return send(res, 200, { ok: true, database: true, connected: false, reason: reasonOf(e) }); }

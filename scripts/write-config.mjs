@@ -31,7 +31,7 @@ const tg = (env.TELEGRAM_BOT_TOKEN || "").trim(), host = (env.VERCEL_PROJECT_PRO
 if (tg && conn && host && env.VERCEL_ENV === "production") {
   const secret = createHash("sha256").update("shifokor-webhook:" + tg).digest("hex").slice(0, 48);   // same as api/_notify.js
   try {
-    const r = await fetch("https://api.telegram.org/bot" + tg + "/setWebhook", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: "https://" + host + "/api/app?tg=hook", secret_token: secret, allowed_updates: ["message"] }) });
+    const r = await fetch("https://api.telegram.org/bot" + tg + "/setWebhook", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: "https://" + host + "/api/app?tg=hook", secret_token: secret, allowed_updates: ["message", "callback_query"] }) });
     const j = await r.json().catch(() => ({}));
     console.log(j.ok ? "write-config: Telegram bot webhook set to https://" + host + "/api/app?tg=hook" : "write-config: Telegram setWebhook failed: " + (j.description || r.status));
   } catch (e) { console.warn("write-config: couldn't reach Telegram: " + e.message); }

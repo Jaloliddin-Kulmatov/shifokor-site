@@ -205,6 +205,26 @@ create table if not exists app_payouts (
 );
 create index if not exists app_payouts_doctor_idx on app_payouts (doctor_id);
 
+-- Added for care around a consultation:
+-- referred: the doctor read the application and said an in-person visit is needed instead; nothing is charged.
+-- closed_at: when it was finished or referred. followup_*: the "how are you feeling?" check two days later.
+-- asap: the patient asked for the first available doctor.
+do $$ begin
+  if exists (select 1 from pg_constraint where conname = 'app_consults_status_check' and pg_get_constraintdef(oid) not like '%referred%') then
+    alter table app_consults drop constraint app_consults_status_check;
+    alter table app_consults add constraint app_consults_status_check check (status in ('new', 'accepted', 'done', 'referred'));
+  end if;
+end $$;
+alter table app_consults add column if not exists closed_at timestamptz;
+alter table app_consults add column if not exists followup_at timestamptz;
+alter table app_consults add column if not exists followup text check (followup is null or followup in ('better', 'same', 'worse'));
+alter table app_consults add column if not exists followup_answered_at timestamptz;
+alter table app_consults add column if not exists asap boolean not null default false;
+-- online_until: a doctor who said "I'm online now", until when. photo: the doctor's profile photo, a small JPEG.
+alter table app_users add column if not exists online_until timestamptz;
+alter table app_users add column if not exists photo bytea check (photo is null or octet_length(photo) <= 200000);
+alter table app_users add column if not exists photo_at timestamptz;
+
 alter table app_users enable row level security;
 alter table app_sessions enable row level security;
 alter table app_consults enable row level security;

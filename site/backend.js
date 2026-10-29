@@ -22,7 +22,8 @@
   }
 
   function toUser(u) {
-    return { id: u.id, role: u.role, name: u.name, email: u.email || "", phone: u.phone || "", tg: u.tg || "", profile: u.profile || {}, updated: String(u.updated_at || "").slice(0, 10), verified: !!u.verified, pending: !!u.pending, inviteAt: u.invite_at ? Date.parse(u.invite_at) : 0, tgLinked: !!u.tg_linked, admin: !!u.admin, remote: true };
+    return { id: u.id, role: u.role, name: u.name, email: u.email || "", phone: u.phone || "", tg: u.tg || "", profile: u.profile || {}, updated: String(u.updated_at || "").slice(0, 10), verified: !!u.verified, pending: !!u.pending, inviteAt: u.invite_at ? Date.parse(u.invite_at) : 0, tgLinked: !!u.tg_linked, admin: !!u.admin, remote: true,
+      onlineUntil: u.online ? Date.parse(u.online) : 0, photoUrl: u.photo ? C.api + "?photo=" + u.id + "&v=" + u.photo : "" };
   }
   function toConsult(c) {
     return {
@@ -30,6 +31,7 @@
       age: c.age == null ? "" : String(c.age), sex: c.sex || "f", phone: c.phone, region: c.region || "", district: c.district || "",
       complaint: c.complaint, since: String(c.since == null ? 1 : c.since), chronic: c.chronic || "", meds: c.meds || "", allergy: c.allergy || "",
       spec: c.spec || "", doc: c.doc || "", status: c.status, doctorId: c.doctor_id || "", doctorName: c.doctor_name || "", call: !!c.call, callAt: c.call_at ? Date.parse(c.call_at) : 0, outcome: c.outcome,
+      asap: !!c.asap, closedAt: c.closed_at ? Date.parse(c.closed_at) : 0, followupAt: c.followup_at ? Date.parse(c.followup_at) : 0, followup: c.followup || "",
       price: c.price == null ? null : Number(c.price), payStatus: c.pay_status || "none", paidAt: c.paid_at ? Date.parse(c.paid_at) : 0, payProvider: c.pay_provider || "",
       msgs: (c.messages || []).map(function (m) { return { from: m.kind, name: m.name || "", text: m.body || "", file: m.file_id || "", at: Date.parse(m.created_at) }; })
     };
@@ -94,6 +96,14 @@
       return photos[id];
     },
     notify: function () { return notify; },
+    /* the doctor says an in-person visit is needed instead; nothing is charged */
+    refer: async function (cid, advice, note) { await call("refer", { id: cid, advice: advice, note: note }); await refresh(); },
+    /* the patient's answer to "how are you feeling?": better, same or worse */
+    followup: async function (cid, answer, note) { await call("followup", { id: cid, answer: answer, note: note }); await refresh(); },
+    /* a doctor online now for 60, 120 or 240 minutes; 0 turns it off */
+    setOnline: async function (minutes) { await call("set_online", { minutes: minutes }); await refresh(); },
+    /* photo: { data } from the photo shrinker, or null to remove */
+    setPhoto: async function (photo) { await call("set_photo", { photo: photo ? { data: photo.data } : null }); await refresh(); },
     /* which of Payme and Click this site takes, and where to send the patient to pay */
     pay: function () { return pay; },
     payLink: async function (cid, provider, lang) { return (await call("pay_link", { id: cid, provider: provider, lang: lang })).url; },

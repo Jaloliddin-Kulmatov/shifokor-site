@@ -871,3 +871,56 @@ body:has(.call.mini) { padding-bottom: 190px; }
   .misrow .now { display: block; padding-top: 4px; }
   .misrow .now .ic { display: none; }
 }
+
+/* care around a consultation: doctor photos, "online now", first available doctor, follow-up, suitable conditions */
+img.pimg { object-fit: cover; padding: 0; }
+.pav.lg { width: 96px; height: 96px; font-size: 1.8rem; }
+.badge.live { background: var(--ok-soft); color: var(--ok); }
+.badge.live .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 25%, transparent); }
+.roles.two-roles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 520px) { .roles.two-roles { grid-template-columns: minmax(0, 1fr); } }
+.livecard h2 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.livegrid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.photobox { display: flex; gap: 14px; align-items: flex-start; padding-left: 20px; border-left: 1px solid var(--line); }
+@media (max-width: 760px) { .livegrid { grid-template-columns: minmax(0, 1fr); } .photobox { padding: 16px 0 0; border-left: 0; border-top: 1px solid var(--line); } }
+.carecard { margin-bottom: 18px; border: 1.5px solid var(--accent); }
+.carecard.warn { border-color: var(--risk); }
+.carecard p { margin: 6px 0 14px; }
+.btns { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* which problems suit an online consultation */
+.oc { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+.occol { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card, 18px); padding: 18px 20px; }
+.occol h3 { display: flex; align-items: center; gap: 8px; font-size: 1.05rem; margin: 0 0 10px; }
+.occol h3 .ic { color: var(--accent); }
+.occol.not { background: var(--risk-soft); border-color: transparent; }
+.occol.not h3 .ic { color: var(--risk); }
+.occol ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.ocpromise { display: flex; gap: 8px; align-items: flex-start; margin: 16px 0 0; font-weight: 600; }
+.ocpromise .ic { color: var(--accent); flex: none; margin-top: 3px; }
+.oc.mini { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.ocmini { margin-top: 12px; border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; }
+.ocmini summary { cursor: pointer; font-weight: 600; }
+@media (max-width: 760px) { .oc { grid-template-columns: minmax(0, 1fr); } }
+
+/* home: task cards with one next step each, a trust strip and a call-to-action band */
+.act .actp { color: var(--muted); font-size: 0.95rem; }
+.act .actgo { margin-top: 8px; font-weight: 600; color: var(--accent); font-size: 0.95rem; }
+.act .actlive { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 0.88rem; color: var(--muted); }
+.act.now { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.act.now .act-ic { background: rgba(255, 255, 255, 0.18); color: var(--accent-ink); }
+.act.now .actp, .act.now .actgo, .act.now .actlive { color: var(--accent-ink); }
+.act.now .actp { opacity: 0.88; }
+.trust { list-style: none; margin: 18px 0 0; padding: 14px 18px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card, 18px); }
+.trust li { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 0.92rem; }
+.trust .ic { color: var(--accent); flex: none; width: 22px; height: 22px; }
+@media (max-width: 900px) { .trust { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .trust { grid-template-columns: minmax(0, 1fr); } }
+.ctaband { text-align: center; }
+.ctaband h2 { color: var(--deep-ink); }
+.ctaband p { opacity: 0.85; margin: 8px auto 20px; max-width: 52ch; }
+.ctaband .btns { justify-content: center; }
+.ctaband .btn.ghost { color: var(--deep-ink); border-color: var(--deep-line); }
+.ctaband .btn.ghost:hover { background: var(--deep-line); }
+@media (max-width: 520px) { .act > :not(.act-ic) { grid-column: 2; } }
+@media (max-width: 640px) { .facts { flex-wrap: wrap; } .facts .cpfrom { flex-basis: 100%; } }

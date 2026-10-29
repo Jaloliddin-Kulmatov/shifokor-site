@@ -136,6 +136,20 @@ do $$ begin
   end if;
 end $$;
 
+-- Calls in an online consultation run straight between the two browsers (WebRTC). These are only the set-up
+-- messages the server passes between the patient and the doctor; they're deleted after a few minutes.
+-- call_at: when the doctor last started a call, so the patient sees it ringing and Telegram isn't spammed.
+create table if not exists app_signals (
+  id bigint generated always as identity primary key,
+  consult_id uuid not null references app_consults (id) on delete cascade,
+  sender uuid not null references app_users (id) on delete cascade,
+  kind text not null check (kind in ('hello', 'offer', 'answer', 'bye')),
+  body text not null default '' check (char_length(body) <= 20000),
+  created_at timestamptz not null default now()
+);
+create index if not exists app_signals_consult_idx on app_signals (consult_id, id);
+alter table app_consults add column if not exists call_at timestamptz;
+
 alter table app_users enable row level security;
 alter table app_sessions enable row level security;
 alter table app_consults enable row level security;
@@ -143,4 +157,5 @@ alter table app_messages enable row level security;
 alter table app_appts enable row level security;
 alter table app_reviews enable row level security;
 alter table app_files enable row level security;
+alter table app_signals enable row level security;
 `;

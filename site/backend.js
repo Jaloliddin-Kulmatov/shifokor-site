@@ -11,10 +11,10 @@
   var set = function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   function setToken(t) { token = t || null; try { if (token) localStorage.setItem(TK, token); else localStorage.removeItem(TK); } catch (e) {} }
 
-  async function call(action, data) {
+  async function call(action, data, keep) {
     var headers = { "Content-Type": "application/json" };
     if (token) headers.Authorization = "Bearer " + token;
-    var r = await fetch(C.api, { method: "POST", headers: headers, body: JSON.stringify(Object.assign({ action: action }, data || {})) });
+    var r = await fetch(C.api, { method: "POST", headers: headers, body: JSON.stringify(Object.assign({ action: action }, data || {})), keepalive: !!keep });
     var j = {};
     try { j = await r.json(); } catch (e) {}
     if (!r.ok) { var err = new Error(j.error || "server"); err.code = j.error || "server"; err.status = r.status; throw err; }
@@ -29,7 +29,7 @@
       id: c.id, n: Number(c.n), at: Date.parse(c.created_at), userId: c.patient_id, type: c.type, who: c.who, name: c.name,
       age: c.age == null ? "" : String(c.age), sex: c.sex || "f", phone: c.phone, region: c.region || "", district: c.district || "",
       complaint: c.complaint, since: String(c.since == null ? 1 : c.since), chronic: c.chronic || "", meds: c.meds || "", allergy: c.allergy || "",
-      spec: c.spec || "", doc: c.doc || "", status: c.status, doctorId: c.doctor_id || "", doctorName: c.doctor_name || "", call: !!c.call, outcome: c.outcome,
+      spec: c.spec || "", doc: c.doc || "", status: c.status, doctorId: c.doctor_id || "", doctorName: c.doctor_name || "", call: !!c.call, callAt: c.call_at ? Date.parse(c.call_at) : 0, outcome: c.outcome,
       msgs: (c.messages || []).map(function (m) { return { from: m.kind, name: m.name || "", text: m.body || "", file: m.file_id || "", at: Date.parse(m.created_at) }; })
     };
   }
@@ -91,6 +91,9 @@
       return photos[id];
     },
     notify: function () { return notify; },
+    /* call set-up messages; keep lets a "bye" still go out while the page closes */
+    signal: function (cid, kind, body, keep) { return call("signal", { id: cid, kind: kind, body: body || "" }, keep); },
+    signals: function (cid, after) { return call("signals", { id: cid, after: after }); },
     /* opens the bot in Telegram; pressing Start there links this account */
     tgLink: async function () { return (await call("tg_link")).url; },
     tgUnlink: async function () { await call("tg_unlink"); await refresh(); },

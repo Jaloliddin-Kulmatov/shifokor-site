@@ -67,7 +67,7 @@
   var bookings = function () { return store.get(K.bookings, []); };
   var saveBookings = function (l) { store.set(K.bookings, l); };
   var BE = window.SB || null;   /* server connection from backend.js, or null in demo mode */
-  function beMsg(t, x) { var c = (x && x.code) || ""; return { exists: t.e_exists, login: t.e_login, email: t.e_email, phone: t.e_phone, tg: t.e_tg, password: t.e_pw, name: t.e_name, contact: t.e_contact, date: t.e_ap_date, limit: t.e_ap_limit, dup: t.e_ap_dup, clinic: t.e_ap_clinic, time: t.e_ap_time, closed: t.e_ap_closed, unverified: t.e_ap_unv, no_tg: t.nt_off, forbidden: t.adm_forbidden, reviewed: t.e_reviewed, stars: t.e_stars, photos: t.e_photos, photo: t.ph_bad }[c] || t.be_err; }
+  function beMsg(t, x) { var c = (x && x.code) || ""; return { exists: t.e_exists, login: t.e_login, email: t.e_email, phone: t.e_phone, tg: t.e_tg, password: t.e_pw, name: t.e_name, contact: t.e_contact, date: t.e_ap_date, limit: t.e_ap_limit, dup: t.e_ap_dup, clinic: t.e_ap_clinic, time: t.e_ap_time, closed: t.e_ap_closed, unverified: t.e_ap_unv, no_tg: t.nt_off, forbidden: t.adm_forbidden, reviewed: t.e_reviewed, stars: t.e_stars, photos: t.e_photos, photo: t.ph_bad, slow: t.e_slow }[c] || t.be_err; }
   if (BE) ["en", "uz", "ru"].forEach(function (l) { T[l].acc_demo = T[l].be_online; T[l].cs_demo = T[l].be_online; });
 
   /* ---------------- sample directory ---------------- */
@@ -901,6 +901,15 @@
     var list = consults().filter(function (c) { return c.doctorId === u.id || (c.status === "new" && (c.doc ? c.doc === u.id : !c.spec || c.spec === sp || (sp === "gp" && !c.spec))); }).sort(function (a, b) { return b.at - a.at; });
     return '<div class="dcard" style="margin-bottom:22px"><h2>' + t.cs_doc_list_h + "</h2>" + (list.length ? '<div class="visits">' + list.map(csRow).join("") + "</div>" : '<p class="muted" style="margin-top:8px">' + t.cs_none + "</p>") + "</div>";
   }
+  /* the doctor pressed "call" in the last 3 minutes */
+  var ringNow = function (c) { return !!c.callAt && Date.now() - c.callAt < 180e3; };
+  function openCall(c, role) {
+    var t = L();
+    if (!window.ShifokorCall) return;
+    ShifokorCall.open({ cid: c.id, role: role, media: c.type === "video" ? "video" : "audio", title: t.cs_no(c.n), peer: role === "d" ? c.name : c.doctorName, t: t, demo: !BE,
+      done: function (sec) { if (sec) toast(t.cl_ended(Math.floor(sec / 60) + ":" + pad(sec % 60))); render(true); } });
+    render(true);
+  }
   function viewConsultThread(id) {
     var t = L(), c = consultById(id); if (!c) return '<div class="wrap pad"><div class="empty">' + t.not_found + "</div></div>";
     markSeen([["c" + c.id, (c.msgs || []).length]]);
@@ -917,7 +926,9 @@
     if (mineDoc && c.status === "accepted") actions = (c.type !== "text" ? '<button class="btn" type="button" data-cs="call" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "mic") + t.cs_call + "</button>" : "") +
       '<details class="finish"><summary>' + t.cs_finish + '</summary><form id="csfinish" data-id="' + c.id + '" novalidate><div class="radio">' + t.on_out.map(function (o, i) { return '<label><input type="radio" name="csout" value="' + i + '">' + o + "</label>"; }).join("") + '</div><div class="fld"><label for="cs-sum">' + t.vs_note + '</label><textarea id="cs-sum" maxlength="600"></textarea></div><div class="err" id="csf-err"></div><button class="btn" type="submit">' + t.vs_save + "</button></form></details>";
     if (!isDoc && c.status === "accepted" && c.call) actions = '<button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "mic") + t.cs_join + "</button>";
+    var ringing = !isDoc && c.status === "accepted" && c.type !== "text" && ringNow(c) && !(window.ShifokorCall && ShifokorCall.active());
     return '<div class="wrap"><a class="back" href="' + (isDoc ? "#/account" : "#/visits") + '">‹ ' + (isDoc ? t.nav_account : t.nav_visits) + '</a><div class="sechead" style="padding-top:12px"><div><h1 style="font-size:clamp(1.6rem,1.3rem + 1.4vw,2.3rem)">' + t.cs_no(c.n) + "</h1><div class=\"badges\">" + csBadge(c.status) + '<span class="badge plain">' + t.cs_types[c.type][0] + "</span></div></div>" + (isDoc ? '<span class="sample">' + t.cs_doc_view + "</span>" : "") + "</div>" +
+      (ringing ? '<div class="ring" role="status"><span class="ring-ic">' + ic(c.type === "video" ? "video" : "mic") + "</span><div><b>" + t.cl_ringing + "</b><span>" + esc(c.doctorName) + '</span></div><button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + t.cs_join + "</button></div>" : "") +
       '<div class="pf" style="padding-top:18px"><div>' + (!isDoc && c.status === "done" && c.doctorId && (u ? c.userId === u.id : !c.userId) ? rvCard("c", c.id, c.doctorName, false) : "") + '<div class="dcard"><h2>' + t.cs_details + "</h2>" + details + "</div>" + (isDoc && !mineDoc && c.status !== "new" ? "" : "") + '<p class="fine" style="margin-top:14px">' + t.cs_demo + "</p></div>" +
       '<aside class="dcard chatcard"><h2>' + t.cs_thread + '</h2><div class="room-log" id="cslog">' + (msgs || '<div class="sys">' + t.cs_sent + "</div>") + "</div>" +
       (canWrite ? '<form class="room-send withph" id="csmsg" data-id="' + c.id + '" style="margin-top:10px">' + (PH && PH.cid === c.id ? '<div class="phpend"><img src="' + PH.url + '" alt="' + esc(t.ph_alt) + '"><span>' + t.ph_ready + '</span><button class="btn ghost sm" type="button" data-act="phdrop">' + t.ph_remove + "</button></div>" : "") +
@@ -1196,10 +1207,6 @@
       var psrc = photoSrc(m.id);
       return '<div class="sheet phview" role="dialog" aria-modal="true" aria-labelledby="dh">' + head() + '<h2 id="dh">' + t.ph_alt + "</h2>" + (psrc ? '<img src="' + psrc + '" alt="' + esc(t.ph_alt) + '">' : '<p class="muted">' + t.ph_loading + "</p>") + '<p class="fine">' + t.ph_privacy + "</p></div>";
     }
-    if (m.type === "call") {
-      var mb2 = function (k, icn, label) { return '<button class="chip" type="button" data-rmode="' + k + '" aria-pressed="' + (m.media === k) + '">' + ic(icn) + label + "</button>"; };
-      return '<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="dh">' + head() + '<h2 id="dh">' + t.cs_types[m.media === "video" ? "video" : "audio"][0] + '</h2><p class="muted" style="margin-top:4px">' + esc(m.title) + '</p><div class="room-modes" style="margin:16px 0">' + mb2("audio", "mic", t.rm_audio) + mb2("video", "video", t.rm_video) + '</div><div class="callbox">' + ic(m.media === "video" ? "video" : "mic") + "<p>" + t.cs_call_demo + '</p></div><p style="margin-top:18px"><button class="btn danger" type="button" data-act="close">' + t.rm_leave + "</button></p></div>";
-    }
     if (m.type === "msg") {
       var mf = m.key ? facByKey[m.key] : null, wrong = m.kind === "wrong";
       return '<form class="sheet" id="msform" role="dialog" aria-modal="true" aria-labelledby="dh" novalidate>' + head() + '<h2 id="dh">' + (wrong ? t.ms_h_wrong : t.ms_h_missing) + "</h2>" + (mf ? '<p class="muted" style="margin:6px 0 16px">' + esc(facName(mf)) + " · " + esc(placeOf(mf)) + "</p>" : '<p style="margin:6px 0 16px"></p>') +
@@ -1320,10 +1327,10 @@
     if (ds.cs) {
       var cl = consults(), cc = cl.filter(function (x) { return x.id === ds.id; })[0], du = me(); if (!cc) return;
       if (BE && ds.cs === "accept") { if (!du || du.role !== "doctor") { toast(t.cs_only_doc); return; } BE.updateConsult(cc.id, { status: "accepted", doctor_id: du.id, doctor_name: du.name }, t.cs_accepted(du.name)).then(function () { render(true); }, function () { toast(t.be_err); }); return; }
-      if (BE && ds.cs === "call") { BE.updateConsult(cc.id, { call: true }, t.cs_call_msg(cc.type)).then(function () { render(true); }, function () { toast(t.be_err); }); openModal({ type: "call", media: cc.type, title: t.cs_no(cc.n) }); return; }
+      if (BE && ds.cs === "call") { BE.updateConsult(cc.id, { call: true }, t.cs_call_msg(cc.type)).then(function () { render(true); }, function (x) { toast(beMsg(t, x)); }); openCall(cc, "d"); return; }
       if (ds.cs === "accept") { if (!du || du.role !== "doctor") { toast(t.cs_only_doc); return; } cc.status = "accepted"; cc.doctorId = du.id; cc.doctorName = du.name; cc.msgs.push({ from: "s", text: t.cs_accepted(du.name), at: Date.now() }); saveConsults(cl); render(true); return; }
-      if (ds.cs === "call") { cc.call = true; cc.msgs.push({ from: "s", text: t.cs_call_msg(cc.type), at: Date.now() }); saveConsults(cl); render(true); openModal({ type: "call", media: cc.type, title: t.cs_no(cc.n) }); return; }
-      if (ds.cs === "join") { openModal({ type: "call", media: cc.type, title: t.cs_no(cc.n) }); return; }
+      if (ds.cs === "call") { if (!ringNow(cc)) cc.msgs.push({ from: "s", text: t.cs_call_msg(cc.type), at: Date.now() }); cc.call = true; cc.callAt = Date.now(); saveConsults(cl); render(true); openCall(cc, "d"); return; }
+      if (ds.cs === "join") { openCall(cc, "p"); return; }
     }
     if (ds.pq) { go("#/prices?" + qs(prQuery({ q: ds.pq }))); return; }
     if (ds.apday || ds.appart || ds.apwho) { apCollect(); if (ds.apday) AP.day = ds.apday; if (ds.appart) AP.part = ds.appart; if (ds.apwho) { AP.who = ds.apwho; var mu7 = me(); AP.name = ds.apwho === "self" && mu7 && mu7.role === "patient" ? mu7.name : ""; } render(true); return; }
@@ -1626,7 +1633,19 @@
   window.addEventListener("hashchange", function () { PH = null; cancelAsk = null; apAsk = null; APX = null; RR = null; render(false); });
 
   render(false);
+  /* a patient anywhere on the site hears about a doctor's call once per ring */
+  var rung = {};
+  function ringCheck() {
+    var u = me(); if (!u || u.role === "doctor" || (window.ShifokorCall && ShifokorCall.active())) return;
+    consults().forEach(function (c) {
+      if (c.userId !== u.id || c.status !== "accepted" || c.type === "text" || !ringNow(c) || rung[c.id] === c.callAt) return;
+      rung[c.id] = c.callAt;
+      if (current.path !== "/consult/" + c.id) toast(L().cl_ring_toast(c.n));
+      try { if (navigator.vibrate) navigator.vibrate([300, 150, 300]); } catch (x) {}
+    });
+  }
   if (BE) BE.on(function () {
+    ringCheck();
     var p = current.path;
     if (p === "/consult" || p === "/register" || p === "/login") { hdr(); return; }
     if (p === "/account") accCollect();

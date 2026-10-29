@@ -924,3 +924,29 @@ img.pimg { object-fit: cover; padding: 0; }
 .ctaband .btn.ghost:hover { background: var(--deep-line); }
 @media (max-width: 520px) { .act > :not(.act-ic) { grid-column: 2; } }
 @media (max-width: 640px) { .facts { flex-wrap: wrap; } .facts .cpfrom { flex-basis: 100%; } }
+
+/* photos (Unsplash, free licence) and the do‘ppi logo */
+.logo { width: 32px; height: 32px; }
+.art-photo { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; object-position: 62% center; border-radius: 28px; box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.6); }
+.act { overflow: hidden; }
+.act-media { display: block; margin: -22px -20px 12px; height: 132px; background: var(--accent-soft); color: var(--accent); overflow: hidden; }
+.act-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.act-media.plain { display: grid; place-items: center; }
+.act-media.plain svg { width: 54px; height: 54px; opacity: 0.85; }
+.act:nth-child(4) .act-media.plain { background: var(--peach, #FDEDE4); color: #C2613F; }
+.act-media + .act-ic { display: none; }
+.act.now .act-media img { opacity: 0.95; }
+@media (max-width: 520px) { .act-media { display: none; } .act-media + .act-ic { display: grid; } }
+.misgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 440px); gap: clamp(20px, 4vw, 44px); align-items: center; }
+.shot { margin: 0; position: relative; }
+.shot img { display: block; width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: var(--r-card, 18px); }
+.shot figcaption { position: absolute; left: 12px; bottom: 12px; padding: 4px 10px; border-radius: 99px; background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 0.82rem; }
+.shot.wide { margin-bottom: 22px; }
+.shot.wide img { aspect-ratio: 3 / 1; }
+@media (max-width: 760px) { .misgrid { grid-template-columns: minmax(0, 1fr); } .shot.wide img { aspect-ratio: 2 / 1; } }
+.credits { margin-top: 18px; text-align: center; }
+.ctagrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 360px); gap: 28px; align-items: center; text-align: left; }
+.ctagrid .btns { justify-content: flex-start; }
+.ctagrid p { margin-left: 0; }
+.ctaart { width: 100%; height: auto; display: block; }
+@media (max-width: 760px) { .ctagrid { grid-template-columns: minmax(0, 1fr); text-align: center; } .ctagrid .btns { justify-content: center; } .ctagrid p { margin-left: auto; } .ctaart { max-width: 280px; margin: 0 auto; } }

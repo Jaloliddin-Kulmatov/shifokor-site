@@ -1,5 +1,7 @@
 # Shifokor
 
+**Live:** [shifokor-site.vercel.app](https://shifokor-site.vercel.app) · **Code:** [github.com/Jaloliddin-Kulmatov/shifokor-site](https://github.com/Jaloliddin-Kulmatov/shifokor-site)
+
 Find a good doctor, know the price before you go, and ask a specialist online. Built first for people living in villages, in Uzbek, Russian and English.
 
 State polyclinic queues, medical records and prescriptions belong to DMED and my.gov.uz; Shifokor points people there instead of competing with it. It focuses on what DMED doesn't do: choosing the right specialist (state or private), checked credentials, prices up front, and online consultation in Uzbek.

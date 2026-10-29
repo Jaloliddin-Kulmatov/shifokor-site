@@ -30,7 +30,9 @@
     phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/>',
     chat: '<path d="M4 5h16v11H8l-4 4z"/>',
     mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/>',
-    home: '<path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z"/>'
+    home: '<path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z"/>',
+    card: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h4"/>',
+    star: '<path d="M12 4l2.5 5 5.5.8-4 3.9.9 5.5L12 16.6l-4.9 2.6.9-5.5-4-3.9 5.5-.8z"/>'
   };
   var ic = function (n) { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + ICONS[n] + "</svg>"; };
 
@@ -228,7 +230,8 @@
       '<div class="hfmore"><a class="btn light" href="#/consult">' + ic("chat") + t.hf_consult + '</a><a class="hflink" href="#/prices">' + ic("tag") + t.hf_prices + "</a></div></form>";
     var docs = sortDocs(users().filter(function (u) { return u.role === "doctor"; }), "best").slice(0, 6);
     var regs = regSel.map(function (r) { return '<a class="chip" href="#/doctors?' + qs({ r: r.code }) + '">' + esc(nmL(r)) + "</a>"; }).join("");
-    var why = '<div class="why">' + t.why.map(function (x, i) { return '<div class="whyi"><span class="act-ic">' + ic(["shield", "tag", "home"][i]) + "</span><b>" + x[0] + "</b><p>" + x[1] + "</p></div>"; }).join("") + "</div>";
+    /* "pay online" only shows when Payme or Click is switched on */
+    var why = '<div class="why">' + t.why.map(function (x, i) { return i === 3 && !payOn() ? "" : '<div class="whyi"><span class="act-ic">' + ic(["search", "tag", "video", "card", "star", "shield"][i]) + "</span><b>" + x[0] + "</b><p>" + x[1] + "</p></div>"; }).join("") + "</div>";
     return '<div class="band deep"><div class="wrap hero"><div><h1>' + t.hf_h1 + '</h1><p class="sub">' + t.hf_sub + "</p>" + form + "</div>" + heroArt() + "</div></div>" +
       '<div class="wrap pad" style="padding-bottom:20px"><h2>' + t.act_h + '</h2><div class="acts">' + acts + "</div></div>" +
       '<div class="wrap pad" style="padding-top:12px"><div class="sechead"><h2>' + t.new_docs_h + '</h2><a class="btn ghost sm" href="#/doctors">' + t.new_docs_all + "</a></div>" + (docs.length ? '<div class="results" style="padding:14px 0 0">' + docs.map(docCard).join("") + "</div>" : '<div class="empty" style="margin-top:14px">' + t.new_docs_none + ' <a href="#/register" data-regrole-link="doctor">' + t.reg_doc_cta + "</a></div>") + "</div>" +

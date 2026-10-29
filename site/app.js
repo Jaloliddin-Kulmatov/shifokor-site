@@ -234,6 +234,9 @@
     var why = '<div class="why">' + t.why.map(function (x, i) { return i === 3 && !payOn() ? "" : '<div class="whyi"><span class="act-ic">' + ic(["search", "tag", "video", "card", "star", "shield"][i]) + "</span><b>" + x[0] + "</b><p>" + x[1] + "</p></div>"; }).join("") + "</div>";
     return '<div class="band deep"><div class="wrap hero"><div><h1>' + t.hf_h1 + '</h1><p class="sub">' + t.hf_sub + "</p>" + form + "</div>" + heroArt() + "</div></div>" +
       '<div class="wrap pad" style="padding-bottom:20px"><h2>' + t.act_h + '</h2><div class="acts">' + acts + "</div></div>" +
+      /* why Shifokor exists: a good doctor is easy to find in a city and hard to find in a village */
+      '<div class="wrap pad mission" style="padding-top:12px"><h2>' + t.mis_h + '</h2><p class="lead">' + t.mis_p + '</p><div class="mis"><div class="mishead" aria-hidden="true"><span>' + t.mis_was + "</span><span>" + t.mis_now + "</span></div>" +
+        t.mis_rows.map(function (r) { return '<div class="misrow"><p class="was" data-l="' + esc(t.mis_was) + '">' + r[0] + '</p><p class="now" data-l="' + esc(t.mis_now) + '">' + ic("check") + "<span>" + r[1] + "</span></p></div>"; }).join("") + "</div></div>" +
       '<div class="wrap pad" style="padding-top:12px"><div class="sechead"><h2>' + t.new_docs_h + '</h2><a class="btn ghost sm" href="#/doctors">' + t.new_docs_all + "</a></div>" + (docs.length ? '<div class="results" style="padding:14px 0 0">' + docs.map(docCard).join("") + "</div>" : '<div class="empty" style="margin-top:14px">' + t.new_docs_none + ' <a href="#/register" data-regrole-link="doctor">' + t.reg_doc_cta + "</a></div>") + "</div>" +
       '<div class="band alt"><div class="wrap pad"><h2>' + t.why_h + "</h2>" + why + "</div></div>" +
       '<div class="wrap pad">' + "<h2>" + t.how3_h + "</h2>" + steps([t.how_f.map(function (x) { return x[0]; }), t.how_f.map(function (x) { return x[1]; })]) + "</div>" +

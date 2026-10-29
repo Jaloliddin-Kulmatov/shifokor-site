@@ -851,3 +851,23 @@ body:has(.call.mini) { padding-bottom: 190px; }
 .imres:last-child { border-bottom: 0; }
 .imlink { display: flex; gap: 8px; align-items: center; }
 .imlink input { flex: 1 1 auto; min-width: 0; font: 0.88rem var(--font-mono); padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); }
+
+/* home: why Shifokor exists, "usually" next to "with Shifokor" */
+.mission .lead { max-width: 70ch; }
+.mis { margin-top: 18px; border: 1px solid var(--line); border-radius: var(--r-card, 18px); overflow: hidden; background: var(--surface); }
+.mishead, .misrow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.mishead span { padding: 12px 20px; font-weight: 600; font-size: 0.9rem; color: var(--muted); }
+.mishead span + span { color: var(--accent); }
+.misrow { border-top: 1px solid var(--line); }
+.misrow p { margin: 0; padding: 14px 20px; }
+.misrow .was { color: var(--muted); }
+.misrow .now { display: flex; gap: 8px; align-items: flex-start; font-weight: 500; }
+.misrow .now .ic { color: var(--accent); flex: none; margin-top: 3px; }
+@media (max-width: 640px) {
+  .mishead { display: none; }
+  .misrow { grid-template-columns: minmax(0, 1fr); }
+  .misrow p::before { content: attr(data-l); display: block; font-size: 0.78rem; font-weight: 600; color: var(--muted); margin-bottom: 2px; }
+  .misrow .was { padding-bottom: 4px; }
+  .misrow .now { display: block; padding-top: 4px; }
+  .misrow .now .ic { display: none; }
+}

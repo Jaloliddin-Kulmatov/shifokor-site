@@ -6,7 +6,7 @@
   var C = window.SHIFOKOR_CONFIG || {};
   if (!C.api) { window.SB = null; return; }
 
-  var TK = "shifokor-token", photos = {}, token = null, uid = null, listeners = [], ready = false, busy = null, last = "", notify = { tg: false, sms: false }, pay = { payme: false, click: false }, earn = null;
+  var TK = "shifokor-token", photos = {}, token = null, uid = null, listeners = [], ready = false, busy = null, last = "", notify = { tg: false, sms: false }, pay = { payme: false, click: false }, earn = null, ona = { preg: null, mothers: [] };
   try { token = localStorage.getItem(TK); } catch (e) {}
   var set = function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   function setToken(t) { token = t || null; try { if (token) localStorage.setItem(TK, token); else localStorage.removeItem(TK); } catch (e) {} }
@@ -49,6 +49,17 @@
     return { id: r.id, target: r.target_id, stars: r.stars, body: r.body || "", author: r.author || "", hidden: !!r.hidden, reply: r.reply || "", at: Date.parse(r.created_at), kind: r.by_consult ? "c" : "v", consult: r.consult_id || "", appt: r.appt_id || "", mine: !!r.mine };
   }
 
+  /* the pregnancy profile in the shape the page uses; dates stay YYYY-MM-DD */
+  function toOna(o) {
+    o = o || {};
+    var p = o.preg;
+    return {
+      preg: p ? { due: String(p.due_date).slice(0, 10), born: p.born_on ? String(p.born_on).slice(0, 10) : "", doctor: p.doctor_id || "", doctorName: p.doctor_name || "", family: p.family_name || "", familyLinked: !!p.family_linked, familyWaiting: !!p.family_waiting,
+        checks: (p.checks || []).map(function (c) { return { week: c.week, signs: c.signs || [], at: Date.parse(c.created_at) }; }) } : null,
+      mothers: (o.mothers || []).map(function (m) { return { name: m.name, phone: m.phone || "", due: String(m.due_date).slice(0, 10), born: m.born_on ? String(m.born_on).slice(0, 10) : "", lastSigns: m.last_signs || [], lastAt: m.last_at ? Date.parse(m.last_at) : 0 }; })
+    };
+  }
+
   function refresh() {
     if (busy) return busy;
     busy = (async function () {
@@ -59,6 +70,7 @@
       notify = j.notify || notify;
       pay = j.pay || pay;
       earn = j.earnings || null;
+      ona = toOna(j.ona);
       if (!uid && token) setToken(null);
       set("shifokor-users", (j.users || []).map(toUser));
       set("shifokor-session", uid);
@@ -96,6 +108,14 @@
       return photos[id];
     },
     notify: function () { return notify; },
+    /* "Onalar uchun": the woman's own pregnancy profile, or a doctor's pregnant patients */
+    ona: function () { return ona; },
+    pregSave: async function (o) { await call("preg_save", o); await refresh(); },
+    pregCheck: async function (signs) { var j = await call("preg_check", { signs: signs }); await refresh(); return j.urgent; },
+    pregFamily: async function (name) { var j = await call("preg_family", { name: name }); await refresh(); return j.url; },
+    pregFamilyOff: async function () { await call("preg_family_off"); await refresh(); },
+    pregBorn: async function (date) { await call("preg_born", { date: date }); await refresh(); },
+    pregDelete: async function () { await call("preg_delete"); await refresh(); },
     /* the doctor says an in-person visit is needed instead; nothing is charged */
     refer: async function (cid, advice, note) { await call("refer", { id: cid, advice: advice, note: note }); await refresh(); },
     /* the patient's answer to "how are you feeling?": better, same or worse */

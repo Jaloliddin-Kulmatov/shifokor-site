@@ -240,7 +240,8 @@
     var regs = regSel.map(function (r) { return '<a class="chip" href="#/doctors?' + qs({ r: r.code }) + '">' + esc(nmL(r)) + "</a>"; }).join("");
     /* "pay online" only shows when Payme or Click is switched on */
     var why = '<div class="why">' + t.why.map(function (x, i) { return i === 3 && !payOn() ? "" : '<div class="whyi"><span class="act-ic">' + ic(["search", "tag", "video", "card", "star", "shield"][i]) + "</span><b>" + x[0] + "</b><p>" + x[1] + "</p></div>"; }).join("") + "</div>";
-    return '<div class="band deep"><div class="wrap hero"><div><h1>' + t.hf_h1 + '</h1><p class="sub">' + t.hf_sub + "</p>" + form + "</div>" + heroArt() + "</div></div>" + trust +
+    var onaPanel = '<div class="wrap" style="padding-top:22px"><div class="panel rural onapanel"><div class="icobox">' + ic("heart") + "</div><div><h3>" + t.ona_home_h + "</h3><p>" + t.ona_home_p + '</p></div><div class="btns"><a class="btn" href="#/ona">' + t.ona_home_go + '</a><a class="btn ghost" href="#/doctors?' + qs({ s: "gyn", fem: "1" }) + '">' + t.ona_home_docs + "</a></div></div></div>";
+    return '<div class="band deep"><div class="wrap hero"><div><h1>' + t.hf_h1 + '</h1><p class="sub">' + t.hf_sub + "</p>" + form + "</div>" + heroArt() + "</div></div>" + trust + onaPanel +
       '<div class="wrap pad" style="padding-bottom:20px"><h2>' + t.act_h + '</h2><div class="acts">' + acts + "</div></div>" +
       /* why Shifokor exists: a good doctor is easy to find in a city and hard to find in a village */
       '<div class="wrap pad mission" style="padding-top:12px"><div class="misgrid"><div><h2>' + t.mis_h + '</h2><p class="lead">' + t.mis_p + '</p></div><figure class="shot">' + photo("nukus-phone", t.img_nukus, "(max-width: 760px) 90vw, 440px") + "<figcaption>" + t.img_nukus_cap + '</figcaption></figure></div><div class="mis"><div class="mishead" aria-hidden="true"><span>' + t.mis_was + "</span><span>" + t.mis_now + "</span></div>" +
@@ -633,7 +634,7 @@
   function accCollect() {
     if (!ACC) return; var v = function (id) { var el = $(id); return el ? el.value.trim() : undefined; }, pr = ACC.pr;
     ["name", "email", "phone", "tg"].forEach(function (k) { var x = v("a-" + k); if (x !== undefined) ACC[k] = x; });
-    var map = { "a-region": "region", "a-district": "district", "p-village": "village", "d-spec": "spec", "d-spec-other": "spec_other", "d-years": "years", "d-lic": "lic", "d-edu": "edu", "d-bio": "bio", "c-type": "ctype", "c-own": "own", "c-addr": "addr", "c-hours": "hours", "c-lic": "lic", "c-about": "about", "d-reply": "reply", "d-ohours": "ohours" };
+    var map = { "a-region": "region", "a-district": "district", "p-village": "village", "d-spec": "spec", "d-spec-other": "spec_other", "d-years": "years", "d-lic": "lic", "d-edu": "edu", "d-bio": "bio", "c-type": "ctype", "c-own": "own", "c-addr": "addr", "c-hours": "hours", "c-lic": "lic", "c-about": "about", "d-reply": "reply", "d-ohours": "ohours", "d-sex": "sex" };
     Object.keys(map).forEach(function (id) { var x = v(id); if (x !== undefined) pr[map[id]] = x; });
     if ($("c-claim")) { var m = matchPlace(v("c-claim")); pr.fac = m && m.t === "f" ? m.key : ""; pr.claim = v("c-claim"); }
     if ($("d-cp-text")) { pr.cp = {}; ["text", "audio", "video"].forEach(function (k) { var x = v("d-cp-" + k); pr.cp[k] = x === "" ? "" : Math.max(0, Math.round(+x) || 0); }); }
@@ -658,6 +659,7 @@
     if (role === "doctor") {
       body = '<fieldset class="accsec"><legend>' + t.sec_basic + '</legend><div class="two"><div class="fld"><label for="d-spec">' + t.d_spec + '</label><select id="d-spec">' + DOC_SP.map(function (k) { return '<option value="' + k + '"' + (pr.spec === k ? " selected" : "") + ">" + t.docsp[k] + "</option>"; }).join("") + "</select></div>" + fi("d-spec-other", t.d_spec_other, pr.spec_other) + "</div>" +
         '<div class="two">' + fi("d-years", t.d_years, pr.years, "number", ' min="0" max="70"') + fi("d-lic", t.d_lic, pr.lic) + "</div>" +
+        '<div class="two"><div class="fld"><label for="d-sex">' + t.d_sex + '</label><select id="d-sex">' + [["", "—"], ["f", t.cs_sexes.f], ["m", t.cs_sexes.m]].map(function (o) { return '<option value="' + o[0] + '"' + ((pr.sex || "") === o[0] ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") + '</select><p class="fine" style="margin-top:4px">' + t.d_sex_hint + "</p></div></div>" +
         '<div class="fld"><span class="flabel">' + t.d_langs + '</span><div class="checks" id="d-langs">' + ["uz", "ru", "en", "kaa", "tg"].map(function (l) { var n = { kaa: "Qaraqalpaq", tg: "Tojik" }[l] || t.lg[l]; return '<label class="mini"><input type="checkbox" value="' + l + '"' + (pr.langs.indexOf(l) > -1 ? " checked" : "") + ">" + n + "</label>"; }).join("") + "</div></div>" +
         '<div class="fld"><span class="flabel">' + t.d_modes + '</span><div class="checks" id="d-modes">' + [["in", t.tab_in], ["on", t.tab_on]].map(function (m) { return '<label class="mini"><input type="checkbox" value="' + m[0] + '"' + (pr.modes.indexOf(m[0]) > -1 ? " checked" : "") + ">" + m[1] + "</label>"; }).join("") + "</div></div>" +
         ta("d-bio", t.d_bio, pr.bio, t.d_bio_ph) + "</fieldset>" +
@@ -676,7 +678,7 @@
     var del = ACC_DEL ? '<div class="confirm-row"><b>' + t.acc_del_q + '</b><button class="btn danger sm" type="button" data-act="accdel-yes">' + t.acc_del_yes + '</button><button class="btn ghost sm" type="button" data-act="accdel-no">' + t.v_keep + "</button></div>" : "";
     var pub = role === "doctor" ? "#/doc/" + u.id : role === "clinic" ? "#/c/" + u.id : "";
     return '<div class="wrap pad acc"><div class="sechead"><div><div class="eyebrow">' + t.role[role] + "</div><h1>" + esc(u.name) + '</h1></div><div class="btns">' + (pub ? '<a class="btn ghost sm" href="' + pub + '">' + t.acc_view + "</a>" : "") + '<button class="btn ghost sm" type="button" data-act="logout">' + t.logout + '</button></div></div><div class="demo" style="margin:14px 0 20px">' + t.acc_demo + "</div>" +
-      trustCard(u) + notifyCard(u) + (role === "doctor" ? liveCard(u) + earnCard() + docInbox(u) : role === "clinic" ? clinicInbox(u) : "") + (role !== "patient" ? rvMine(u) : "") + '<form class="form accform" id="accform" novalidate>' + contact + body + '<div class="err" id="a-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.acc_save + "</button></form>" +
+      trustCard(u) + notifyCard(u) + (role === "doctor" ? liveCard(u) + mothersCard() + earnCard() + docInbox(u) : role === "clinic" ? clinicInbox(u) : "") + (role !== "patient" ? rvMine(u) : "") + '<form class="form accform" id="accform" novalidate>' + contact + body + '<div class="err" id="a-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.acc_save + "</button></form>" +
       '<p style="margin-top:20px"><button class="linkbtn" type="button" data-act="accdel">' + t.acc_del + "</button></p>" + del + "</div>";
   }
 
@@ -756,12 +758,12 @@
       '<div class="facts">' + (m != null ? '<div class="cpfrom"><small>' + t.cp_h + '</small><b class="nums">' + (m === 0 ? t.free_c : esc(t.cp_from(num(m) + " " + unit()))) + "</b></div>" : "") +
       (on ? '<a class="btn sm" href="#/consult?' + qs({ doc: u.id }) + '">' + ic("chat") + t.pr_consult + "</a>" : "") + '<a class="btn ghost sm" href="#/doc/' + u.id + '">' + t.view + "</a></div></article>";
   }
-  function dfQuery() { var v = function (id) { var el = $(id); return el ? el.value.trim() : ""; }; return { s: v("df-s"), r: v("df-r"), q: v("df-q"), lg: v("df-lg"), on: $("df-on") && $("df-on").checked ? "1" : "", sort: v("df-sort") }; }
+  function dfQuery() { var v = function (id) { var el = $(id); return el ? el.value.trim() : ""; }; return { s: v("df-s"), r: v("df-r"), q: v("df-q"), lg: v("df-lg"), on: $("df-on") && $("df-on").checked ? "1" : "", fem: $("df-fem") && $("df-fem").checked ? "1" : "", sort: v("df-sort") }; }
   function viewDoctors(q) {
     var t = L(), qq = norm(q.q);
     var list = users().filter(function (u) {
       var pr = u.profile || {}; if (u.role !== "doctor") return false;
-      if ((q.s && pr.spec !== q.s) || (q.r && pr.region !== q.r) || (q.on && !isOnline(u)) || (q.lg && (pr.langs || []).indexOf(q.lg) < 0)) return false;
+      if ((q.s && pr.spec !== q.s) || (q.r && pr.region !== q.r) || (q.on && !isOnline(u)) || (q.fem && pr.sex !== "f") || (q.lg && (pr.langs || []).indexOf(q.lg) < 0)) return false;
       return !qq || norm([u.name, specName(pr)].concat((pr.work || []).map(wpLabel), (pr.svc || []).map(function (x) { return x.name; })).join(" ")).indexOf(qq) > -1;
     });
     list = sortDocs(list, q.sort || "best");
@@ -773,7 +775,8 @@
       sel("df-lg", t.df_lang, [["", t.df_any_lang]].concat(["uz", "ru", "en", "kaa", "tg"].map(function (l) { return [l, langName(l)]; })), q.lg || "") +
       sel("df-sort", t.df_sort, ["best", "rating", "cheap", "exp"].map(function (k) { return [k, t.df_sorts[k]]; }), q.sort || "best") +
       '<label class="sel">' + t.ds_name + ' <input id="df-q" class="pinput" style="width:180px;text-align:left" value="' + esc(q.q || "") + '" placeholder="' + esc(t.ds_name_ph) + '"></label>' +
-      '<label class="sel chkf"><input type="checkbox" id="df-on"' + (q.on ? " checked" : "") + "> " + t.df_online + "</label></form>";
+      '<label class="sel chkf"><input type="checkbox" id="df-on"' + (q.on ? " checked" : "") + "> " + t.df_online + "</label>" +
+      '<label class="sel chkf"><input type="checkbox" id="df-fem"' + (q.fem ? " checked" : "") + "> " + t.df_fem + "</label></form>";
     return '<div class="band deep"><div class="wrap bhead"><div class="eyebrow">' + t.nav_doctors + "</div><h1>" + t.doctors_h2 + '</h1><p class="sub">' + t.doctors_p2 + '</p><p style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap"><a class="btn light" href="#/consult">' + ic("chat") + t.hf_consult + '</a><a class="btn ghost" style="color:var(--deep-ink);border-color:var(--deep-line)" href="#/register" data-regrole-link="doctor">' + t.reg_doc_cta + "</a></p></div></div>" +
       '<div class="wrap pad" style="padding-top:20px">' + filters + '<div class="results" style="padding:14px 0 0">' + (list.length ? list.map(docCard).join("") : '<div class="empty">' + t.no_doctors + "</div>") + "</div>" +
       '<h2 style="margin:40px 0 14px;font-size:1.4rem">' + t.clinics_reg_h + '</h2><div class="results" style="padding:0">' + (clinics.length ? clinics.map(function (c) { var pr = c.profile || {}; return '<article class="fcard"><div class="ficon c-' + (pr.ctype || "clinic") + '">' + ic(CAT_IC[pr.ctype || "clinic"]) + '</div><div class="fmain"><h3><a href="#/c/' + c.id + '">' + esc(c.name) + '</a></h3><div class="spec">' + t.cat[pr.ctype || "clinic"] + '</div><div class="badges">' + (c.verified ? vBadge(c) : "") + "</div>" + (pr.district && disByCode[pr.district] ? '<div class="meta">' + ic("pin") + esc(nmL(disByCode[pr.district]) + ", " + nmL(REG[disByCode[pr.district].r])) + "</div>" : "") + '</div><div class="facts"><a class="btn ghost sm" href="#/c/' + c.id + '">' + t.view + "</a></div></article>"; }).join("") : '<div class="empty">' + t.no_clinics_reg + "</div>") + "</div></div>";
@@ -946,6 +949,64 @@
     return '<div class="dcard paycard" id="pay"><h2>' + t.pay_h + '</h2><p class="payamt nums">' + esc(money(c.price)) + '</p><p class="muted">' + t.pay_p(esc(c.doctorName)) + "</p>" +
       (paying() === c.id ? '<p class="note-box" role="status">' + t.pay_checking + "</p>" : "") +
       (btns ? '<div class="paybtns">' + btns + "</div>" : '<p class="note-box">' + t.pay_off + "</p>") + '<p class="fine">' + (BE ? t.pay_safe : t.pay_demo_note) + "</p></div>";
+  }
+  /* ---------------- "Onalar uchun": pregnancy and the first six weeks after birth ---------------- */
+  var KO = "shifokor-ona", ONA_WEEKS = [12, 20, 26, 30, 34, 36, 38, 40];   /* WHO: at least 8 antenatal contacts */
+  var ONA_PREG = ["bleed", "head", "swell", "fever", "move", "belly", "water", "fit", "breath"], ONA_BORN = ["bleed", "fever", "head", "breath", "bfever", "bfeed", "byellow", "bbreath", "bfit"];
+  var ON = { mode: "due", urgent: false, ok: false, famUrl: "", del: false };
+  function myPreg() { var u = me(); if (!u) return null; if (BE) return BE.ona().preg; return store.get(KO, {})[u.id] || null; }
+  function savePregDemo(p) { var u = me(), all = store.get(KO, {}); if (p) all[u.id] = p; else delete all[u.id]; store.set(KO, all); }
+  var dayN = function (s) { return Math.round((fromIso(String(s).slice(0, 10)) - today0()) / 864e5); };   /* days from today */
+  var pregWeek = function (due) { return Math.floor((280 - dayN(due)) / 7); };
+  var weekDate = function (due, w) { var d = fromIso(due); d.setDate(d.getDate() - (280 - 7 * w)); return iso(d); };
+  var gynDocs = function () { return users().filter(function (u) { return u.role === "doctor" && (u.profile || {}).spec === "gyn"; }).sort(function (a, b) { return ((b.profile || {}).sex === "f") - ((a.profile || {}).sex === "f"); }); };
+  function onaSetup(p) {
+    var t = L(), docs = gynDocs(), cur = p ? p.doctor : "";
+    return '<form class="form accform" id="onaform" novalidate><fieldset class="accsec"><legend>' + t.ona_setup_h + '</legend><div class="seg" role="group" style="margin-bottom:12px">' + [["due", t.ona_mode_due], ["lmp", t.ona_mode_lmp]].map(function (x) { return '<button type="button" data-onamode="' + x[0] + '" aria-pressed="' + (ON.mode === x[0]) + '">' + x[1] + "</button>"; }).join("") + "</div>" +
+      '<div class="two"><div class="fld"><label for="ona-date">' + (ON.mode === "lmp" ? t.ona_lmp_l : t.ona_due_l) + '</label><input id="ona-date" type="date" value="' + (p && ON.mode === "due" ? p.due : "") + '"></div>' +
+      '<div class="fld"><label for="ona-doc">' + t.ona_doc_l + '</label><select id="ona-doc"><option value="">' + t.ona_doc_later + "</option>" + docs.map(function (d) { return '<option value="' + d.id + '"' + (cur === d.id ? " selected" : "") + ">" + esc(d.name) + ((d.profile || {}).sex === "f" ? " · " + t.ona_fem : "") + "</option>"; }).join("") + "</select></div></div>" +
+      '<div class="err" id="ona-err" aria-live="polite"></div><button class="btn" type="submit">' + t.ona_save + '</button><p class="fine" style="margin-top:10px">' + t.ona_privacy + "</p></fieldset></form>";
+  }
+  function onaIntro() { var t = L(); return '<div class="why">' + t.ona_why.map(function (x, i) { return '<div class="whyi"><span class="act-ic">' + ic(["heart", "bell", "shield"][i]) + "</span><b>" + x[0] + "</b><p>" + x[1] + "</p></div>"; }).join("") + "</div>"; }
+  /* a doctor's pregnant patients who chose them, with their last check-in */
+  function mothersCard() {
+    var t = L(), u = me(), all = store.get(KO, {});
+    var l = BE ? BE.ona().mothers : Object.keys(all).filter(function (k) { return all[k].doctor === u.id; }).map(function (k) { var p = all[k], c = (p.checks || [])[0]; return { name: (userById(k) || {}).name || "—", phone: (userById(k) || {}).phone || "", due: p.due, born: p.born, lastSigns: c ? c.signs : [], lastAt: c ? c.at : 0 }; });
+    if (!l.length) return "";
+    return '<div class="dcard" style="margin-bottom:22px"><h2>' + t.ona_mothers_h + "</h2>" + l.map(function (m) {
+      var bad = m.lastSigns && m.lastSigns.length;
+      return '<div class="porow"><b>' + esc(m.name) + '</b><span class="muted">' + (m.born ? t.ona_after : t.ona_week(pregWeek(m.due))) + (m.phone ? " · " + esc(fmtPhone(m.phone)) : "") + "</span>" + (m.lastAt ? '<span class="badge ' + (bad ? "risk" : "ok") + '">' + (bad ? m.lastSigns.map(function (k) { return t.ona_signs[k]; }).join(", ") : t.ona_fine) + "</span>" : "<span>—</span>") + "</div>";
+    }).join("") + "</div>";
+  }
+  function viewOna() {
+    var t = L(), u = me(), p = myPreg();
+    var head = '<div class="band deep"><div class="wrap bhead"><div class="eyebrow">' + t.nav_ona + "</div><h1>" + t.ona_h + '</h1><p class="sub">' + t.ona_p + "</p></div></div>";
+    if (!u) return head + '<div class="wrap pad">' + onaIntro() + '<div class="btns" style="margin-top:22px"><a class="btn big" href="#/register">' + t.ona_join + '</a><a class="btn ghost big" href="#/login">' + t.go_login + "</a></div></div>";
+    if (u.role === "doctor") return head + '<div class="wrap pad">' + (mothersCard() || '<p class="muted">' + t.ona_mothers_none + "</p>") + "</div>";
+    if (!p) return head + '<div class="wrap pad acc">' + onaIntro() + '<div style="margin-top:24px">' + onaSetup(null) + "</div></div>";
+    var born = !!p.born, w = pregWeek(p.due), left = dayN(p.due), list = born ? ONA_BORN : ONA_PREG, doc = p.doctor ? userById(p.doctor) : null;
+    var top = born ? '<div class="dcard onaweek"><span>' + t.ona_after + "</span><b>" + t.ona_days_after(Math.max(0, -dayN(p.born))) + "</b><small>" + t.ona_born_on(poDay(p.born)) + "</small></div>"
+      : '<div class="dcard onaweek"><span>' + t.ona_week_l + " · " + t.ona_tri[w < 14 ? 0 : w < 28 ? 1 : 2] + "</span><b>" + t.ona_week(Math.max(1, Math.min(42, w))) + '</b><div class="onabar" role="img" aria-label="' + esc(t.ona_week(w)) + '"><i style="width:' + Math.max(3, Math.min(100, w / 40 * 100)) + '%"></i></div><small>' + t.ona_due(poDay(p.due), left) + "</small></div>";
+    var check = '<div class="dcard onacheck" id="onacheck"><h2>' + (born ? t.ona_q_born : t.ona_q) + "</h2>" +
+      (ON.urgent ? '<div class="emerg" role="alert" style="margin:10px 0 14px"><b>' + t.ona_urgent_h + "</b> " + t.ona_urgent_p + ' <span class="btns" style="margin-top:10px"><a class="btn danger sm" href="tel:103">' + ic("phone") + '103</a><a class="btn ghost sm" href="#/find?near=1">' + ic("hosp") + t.ona_hosp + "</a></span></div>" : "") +
+      (ON.ok ? '<p class="note-box ok-box">' + t.ona_ok_done + "</p>" : "") +
+      '<button class="btn" type="button" data-ona="ok">' + ic("check") + t.ona_ok + '</button><p class="muted" style="margin:16px 0 8px">' + t.ona_signs_h + '</p><div class="signs">' +
+      list.map(function (c) { return '<label class="chk"><input type="checkbox" value="' + c + '" name="onasign"><span>' + t.ona_signs[c] + "</span></label>"; }).join("") +
+      '</div><button class="btn danger" type="button" data-ona="send">' + t.ona_send + "</button></div>";
+    var hist = (p.checks || []).length ? '<div class="dcard"><h2>' + t.ona_hist_h + "</h2>" + p.checks.slice(0, 8).map(function (c) { return '<div class="porow"><span class="nums">' + esc(fmt(new Date(c.at), { day: "numeric", month: "short" })) + "</span>" + (c.signs.length ? '<span class="badge risk">' + c.signs.map(function (k) { return t.ona_signs[k]; }).join(", ") + "</span>" : '<span class="badge ok">' + t.ona_fine + "</span>") + '<span class="muted">' + (c.week ? t.ona_week(c.week) : "") + "</span></div>"; }).join("") + "</div>" : "";
+    var nextW = ONA_WEEKS.filter(function (x) { return x >= w; })[0];
+    var sched = born ? "" : '<div class="dcard"><h2>' + t.ona_sched_h + '</h2><ol class="sched">' + ONA_WEEKS.map(function (x) { var st = x < w ? "past" : x === nextW ? "next" : ""; return '<li class="' + st + '"><b>' + t.ona_week(x) + '</b><span class="nums">' + esc(poDay(weekDate(p.due, x))) + "</span>" + (st === "next" ? '<span class="badge warn">' + t.ona_next + "</span>" : st === "past" ? '<span class="muted">✓</span>' : "") + "</li>"; }).join("") + '</ol><p class="fine">' + t.ona_sched_note + "</p></div>";
+    var docBox = '<div class="dcard"><h2>' + t.ona_doc_h + "</h2>" + (doc || p.doctorName ? "<p><b>" + esc(doc ? doc.name : p.doctorName) + "</b>" + (doc ? " · " + esc(specName(doc.profile || {})) : "") + '</p><div class="btns"><a class="btn sm" href="#/consult?' + qs({ doc: p.doctor }) + '">' + ic("chat") + t.ona_doc_write + "</a></div>" : '<p class="muted">' + t.ona_doc_none + '</p><a class="btn sm" href="#/doctors?' + qs({ s: "gyn", fem: "1" }) + '">' + ic("search") + t.ona_doc_find + "</a>") + "</div>";
+    var tgOn = BE && BE.notify().tg;
+    var fam = '<div class="dcard"><h2>' + t.ona_fam_h + '</h2><p class="muted">' + t.ona_fam_p + "</p>" +
+      (p.familyLinked ? "<p><b>" + esc(p.family) + "</b> · " + t.ona_fam_on + '</p><button class="btn ghost sm" type="button" data-ona="famoff">' + t.ona_fam_off + "</button>"
+        : ON.famUrl ? "<p>" + t.ona_fam_send(esc(p.family)) + '</p><div class="msgbox">' + esc(ON.famUrl) + '</div><div class="btns" style="margin-top:8px"><button class="btn sm" type="button" data-ona="famcopy">' + ic("copy") + t.ona_fam_copy + "</button></div>"
+        : tgOn ? (p.familyWaiting ? '<p class="fine">' + t.ona_fam_wait(esc(p.family)) + "</p>" : "") + '<div class="fld"><label for="ona-fam">' + t.ona_fam_name + '</label><input id="ona-fam" maxlength="80" placeholder="' + esc(t.ona_fam_ph) + '"></div><button class="btn sm" type="button" data-ona="fam">' + t.ona_fam_btn + "</button>"
+        : '<p class="fine">' + t.ona_fam_notg + "</p>") + "</div>";
+    var sets = '<details class="finish"><summary>' + t.ona_set_h + "</summary>" + (born ? "<p>" + t.ona_born_on(poDay(p.born)) + ' <button class="linkbtn" type="button" data-ona="unborn">' + t.ona_unborn + "</button></p>"
+        : '<div class="fld"><label for="ona-born">' + t.ona_born_l + '</label><input id="ona-born" type="date" max="' + iso(today0()) + '"></div><button class="btn sm" type="button" data-ona="born">' + t.ona_born_btn + "</button>") +
+      '<div style="margin-top:14px">' + onaSetup(p) + "</div><p>" + (ON.del ? '<button class="btn danger sm" type="button" data-ona="delok">' + t.ona_del_yes + '</button> <button class="btn ghost sm" type="button" data-ona="delno">' + t.po_cancel + "</button>" : '<button class="linkbtn" type="button" data-ona="del">' + t.ona_del + "</button>") + "</p></details>";
+    return head + '<div class="wrap"><div class="pf"><div>' + top + check + hist + '</div><aside class="onaside">' + sched + docBox + fam + sets + '<p class="fine">' + t.ona_privacy + "</p></aside></div></div>";
   }
   /* the patient's side after a consultation: "come in person" advice, or "how are you feeling?" two days later */
   function careCard(c) {
@@ -1482,6 +1543,7 @@
     else if (path === "/account") { html = viewAccount(); route = "account"; }
     else if (path === "/settings") { html = viewSettings(); route = "settings"; }
     else if (path === "/admin") { html = viewAdmin(q); route = "admin"; }
+    else if (path === "/ona") { html = viewOna(); route = "ona"; }
     else if (path === "/consult") { html = viewConsult(q); route = "consult"; }
     else if (path.indexOf("/consult/") === 0) { html = viewConsultThread(path.slice(9)); route = "consult"; }
     else if (path === "/doctors") { html = viewDoctors(q); route = "doctors"; }
@@ -1570,6 +1632,30 @@
     if (ds.act === "phdrop") { var tx0 = $("csmsg-in") ? $("csmsg-in").value : ""; PH = null; render(true); if ($("csmsg-in")) { $("csmsg-in").value = tx0; $("csmsg-in").focus(); } return; }
     if (ds.cssafe) { csCollect(); CS.safe = ds.cssafe; render(true); return; }
     if (ds.csfor) { csCollect(); CS.who = ds.csfor; render(true); return; }
+    if (ds.onamode) { var dd = $("ona-doc") ? $("ona-doc").value : ""; ON.mode = ds.onamode; render(true); if ($("ona-doc")) $("ona-doc").value = dd; if ($("ona-date") && ON.mode === "lmp") $("ona-date").value = ""; return; }
+    if (ds.ona) {
+      var op = myPreg(), oa = ds.ona, done = function () { render(true); }, fail = function (x) { el.disabled = false; toast(beMsg(t, x)); };
+      if (!op) return;
+      if (oa === "ok" || oa === "send") {
+        var signs = oa === "ok" ? [] : all('input[name="onasign"]:checked').map(function (i) { return i.value; });
+        if (oa === "send" && !signs.length) { toast(t.ona_pick); return; }
+        var after = function (urgent) { ON.urgent = !!urgent; ON.ok = !urgent; render(true); var oc = $("onacheck"); if (oc) oc.scrollIntoView({ block: "start" }); };
+        if (BE) { el.disabled = true; BE.pregCheck(signs).then(after, fail); return; }
+        op.checks = [{ week: op.born ? null : pregWeek(op.due), signs: signs, at: Date.now() }].concat(op.checks || []); savePregDemo(op); after(signs.length > 0); return;
+      }
+      if (oa === "fam") { var fn = (($("ona-fam") || {}).value || "").trim(); if (!fn) { toast(t.ona_fam_name); return; } el.disabled = true; BE.pregFamily(fn).then(function (url) { ON.famUrl = url; render(true); }, fail); return; }
+      if (oa === "famcopy") { try { navigator.clipboard.writeText(ON.famUrl).then(function () { toast(t.copied); }, function () { toast(t.copy_fail); }); } catch (x) { toast(t.copy_fail); } return; }
+      if (oa === "famoff") { ON.famUrl = ""; BE.pregFamilyOff().then(done, fail); return; }
+      if (oa === "born" || oa === "unborn") {
+        var bd = oa === "born" ? ($("ona-born") || {}).value : "";
+        if (oa === "born" && !bd) { toast(t.ona_born_l); return; }
+        ON.urgent = ON.ok = false;
+        if (BE) { BE.pregBorn(bd).then(done, fail); return; }
+        op.born = bd; savePregDemo(op); render(true); return;
+      }
+      if (oa === "del" || oa === "delno") { ON.del = oa === "del"; render(true); return; }
+      if (oa === "delok") { ON = { mode: "due", urgent: false, ok: false, famUrl: "", del: false }; if (BE) { BE.pregDelete().then(done, fail); return; } savePregDemo(null); render(true); return; }
+    }
     if (ds.csasap) { csCollect(); CS.asap = ds.csasap === "1"; if (CS.asap) CS.doc = ""; render(true); return; }
     if (ds.fu) {
       var fcl = consults(), fc = fcl.filter(function (x) { return x.id === ds.id; })[0]; if (!fc) return;
@@ -1771,6 +1857,15 @@
       var fid3 = ph3 ? demoPhoto(ph3) : ""; if (ph3 && !fid3) { toast(t.ph_full); return; }
       PH = null; c3.msgs.push({ from: asDoc ? "d" : "p", name: asDoc ? du3.name : c3.name, text: txt, file: fid3, at: Date.now() }); saveConsults(cl3); render(true);
       var lg2 = $("cslog"); if (lg2) lg2.scrollTop = lg2.scrollHeight; if ($("csmsg-in")) $("csmsg-in").focus(); return;
+    }
+    if (id === "onaform") {
+      var od = $("ona-date").value, odoc = $("ona-doc").value, oerr = $("ona-err");
+      if (!od) { oerr.textContent = ON.mode === "lmp" ? t.ona_lmp_l : t.ona_due_l; return; }
+      var due = ON.mode === "lmp" ? (function () { var d = fromIso(od); d.setDate(d.getDate() + 280); return iso(d); })() : od;
+      if (dayN(due) < -60 || dayN(due) > 300) { oerr.textContent = t.ona_err_date; return; }
+      var odone = function () { ON.mode = "due"; ON.urgent = ON.ok = false; toast(t.ona_saved); render(true); };
+      if (BE) { BE.pregSave(ON.mode === "lmp" ? { lmp: od, doctor: odoc } : { due: od, doctor: odoc }).then(odone, function (x) { oerr.textContent = x.code === "date" ? t.ona_err_date : beMsg(t, x); }); return; }
+      var cur = myPreg() || { checks: [] }; cur.due = due; cur.doctor = odoc; cur.doctorName = odoc ? (userById(odoc) || {}).name || "" : ""; savePregDemo(cur); odone(); return;
     }
     if (id === "csrefer") {
       var adv = $("cs-adv").value.trim(), rid = e.target.dataset.id, ru = me();
@@ -1974,7 +2069,7 @@
   });
   /* another tab booked or changed something: refresh so a taken slot disappears here too */
   window.addEventListener("storage", function (e) { if (e.key && e.key.indexOf("shifokor-") === 0) rerender(); });
-  window.addEventListener("hashchange", function () { PH = null; cancelAsk = null; apAsk = null; APX = null; RR = null; PO.form = null; PO.del = ""; IM.del = ""; render(false); });
+  window.addEventListener("hashchange", function () { PH = null; cancelAsk = null; apAsk = null; APX = null; RR = null; PO.form = null; PO.del = ""; IM.del = ""; ON.urgent = ON.ok = ON.del = false; ON.famUrl = ""; render(false); });
 
   render(false);
   /* a patient anywhere on the site hears about a doctor's call once per ring */

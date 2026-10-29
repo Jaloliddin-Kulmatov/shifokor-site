@@ -225,6 +225,33 @@ alter table app_users add column if not exists online_until timestamptz;
 alter table app_users add column if not exists photo bytea check (photo is null or octet_length(photo) <= 200000);
 alter table app_users add column if not exists photo_at timestamptz;
 
+-- Care for pregnant women and young mothers: a pregnancy profile, weekly check-ins, check-up reminders,
+-- and a family member who hears about danger signs. Only the woman, her chosen doctor and that family member see it.
+create table if not exists app_preg (
+  user_id uuid primary key references app_users (id) on delete cascade,
+  due_date date not null,
+  born_on date,
+  doctor_id uuid references app_users (id) on delete set null,
+  family_name text check (family_name is null or char_length(family_name) <= 80),
+  family_code text unique,
+  family_code_at timestamptz,
+  family_chat bigint,
+  asked_at timestamptz,
+  checked_at timestamptz,
+  reminded_week int not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists app_preg_doctor_idx on app_preg (doctor_id);
+create table if not exists app_preg_checks (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references app_users (id) on delete cascade,
+  week int,
+  signs text[] not null default '{}',
+  created_at timestamptz not null default now()
+);
+create index if not exists app_preg_checks_user_idx on app_preg_checks (user_id, created_at);
+
 alter table app_users enable row level security;
 alter table app_sessions enable row level security;
 alter table app_consults enable row level security;
@@ -235,4 +262,6 @@ alter table app_files enable row level security;
 alter table app_signals enable row level security;
 alter table app_payments enable row level security;
 alter table app_payouts enable row level security;
+alter table app_preg enable row level security;
+alter table app_preg_checks enable row level security;
 `;

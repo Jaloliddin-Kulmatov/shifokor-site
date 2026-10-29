@@ -950,3 +950,24 @@ img.pimg { object-fit: cover; padding: 0; }
 .ctagrid p { margin-left: 0; }
 .ctaart { width: 100%; height: auto; display: block; }
 @media (max-width: 760px) { .ctagrid { grid-template-columns: minmax(0, 1fr); text-align: center; } .ctagrid .btns { justify-content: center; } .ctagrid p { margin-left: auto; } .ctaart { max-width: 280px; margin: 0 auto; } }
+
+/* "Onalar uchun" */
+.onapanel { background: var(--peach, #FDEDE4); border-color: transparent; }
+.onapanel .icobox { background: #fff; color: #C2613F; }
+.onapanel .btns { justify-content: flex-end; }
+@media (max-width: 760px) { .onapanel .btns { justify-content: flex-start; } }
+.onaweek { display: grid; gap: 6px; margin-bottom: 18px; }
+.onaweek > span { color: var(--muted); font-weight: 600; font-size: 0.9rem; }
+.onaweek > b { font: 700 clamp(2rem, 1.6rem + 1.6vw, 2.8rem) var(--font-display); line-height: 1.1; }
+.onaweek small { color: var(--muted); }
+.onabar { height: 10px; border-radius: 99px; background: var(--accent-soft); overflow: hidden; }
+.onabar i { display: block; height: 100%; border-radius: 99px; background: var(--accent); }
+.onacheck { margin-bottom: 18px; }
+.onacheck .signs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 14px; margin-bottom: 14px; }
+@media (max-width: 520px) { .onacheck .signs { grid-template-columns: minmax(0, 1fr); } }
+.onaside { display: grid; gap: 18px; align-content: start; }
+.sched { list-style: none; margin: 8px 0 10px; padding: 0; display: grid; gap: 6px; }
+.sched li { display: grid; grid-template-columns: 6em minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; }
+.sched li.past { color: var(--muted); }
+.sched li.next { background: var(--ochre-soft); }
+.menu a.menuona { font-weight: 600; }

@@ -252,6 +252,27 @@ create table if not exists app_preg_checks (
 );
 create index if not exists app_preg_checks_user_idx on app_preg_checks (user_id, created_at);
 
+-- Medicines after a consultation: the doctor's list (rx) and the patient's requests for home delivery by a partner
+-- pharmacy, which calls with the price and time; payment is on delivery.
+alter table app_consults add column if not exists rx jsonb;
+alter table app_consults add column if not exists rx_at timestamptz;
+create table if not exists app_med_orders (
+  id uuid primary key default gen_random_uuid(),
+  consult_id uuid not null references app_consults (id) on delete cascade,
+  patient_id uuid references app_users (id) on delete set null,
+  patient_name text,
+  rx jsonb not null,
+  region text,
+  address text not null check (char_length(address) <= 300),
+  phone text not null,
+  note text check (note is null or char_length(note) <= 300),
+  status text not null default 'new' check (status in ('new', 'confirmed', 'on_way', 'delivered', 'cancelled')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists app_med_orders_consult_idx on app_med_orders (consult_id);
+create index if not exists app_med_orders_patient_idx on app_med_orders (patient_id);
+
 alter table app_users enable row level security;
 alter table app_sessions enable row level security;
 alter table app_consults enable row level security;
@@ -264,4 +285,5 @@ alter table app_payments enable row level security;
 alter table app_payouts enable row level security;
 alter table app_preg enable row level security;
 alter table app_preg_checks enable row level security;
+alter table app_med_orders enable row level security;
 `;

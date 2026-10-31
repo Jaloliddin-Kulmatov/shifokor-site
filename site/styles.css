@@ -1213,3 +1213,23 @@ img.pimg { object-fit: cover; padding: 0; }
 @media (max-width: 1000px) { .hcgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .hcgrid { grid-template-columns: minmax(0, 1fr); } }
 [id^="ab-"] { scroll-margin-top: 76px; }
+
+/* medicines after a consultation, and home delivery */
+.rxcard { margin-bottom: 18px; }
+.rxlist { margin: 10px 0 14px; padding-left: 22px; display: grid; gap: 8px; }
+.rxlist li b { display: block; }
+.rxlist li span { color: var(--muted); font-size: 0.93rem; }
+.rxrow { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.6fr) 90px auto; gap: 10px; align-items: end; padding-bottom: 10px; border-bottom: 1px dashed var(--line); margin-bottom: 10px; }
+.rxrow .fld { margin: 0; }
+.rxrow .linkbtn { padding-bottom: 12px; }
+@media (max-width: 700px) { .rxrow { grid-template-columns: minmax(0, 1fr) 90px; } .rxrow .fld:first-child, .rxrow .fld:nth-child(2) { grid-column: 1 / -1; } }
+.rxdel { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 16px 0 4px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 1.05rem; }
+.rxdel .ic { color: var(--accent); }
+.rxsteps { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; counter-reset: rs; }
+.rxsteps li { counter-increment: rs; padding-top: 30px; position: relative; font-size: 0.86rem; color: var(--muted); text-align: center; }
+.rxsteps li::before { content: counter(rs); position: absolute; top: 0; left: 50%; margin-left: -12px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--line); color: var(--ink); font: 700 0.8rem var(--font-body); }
+.rxsteps li.done::before { content: "✓"; background: var(--accent); color: var(--accent-ink); }
+.rxsteps li.now { color: var(--ink); font-weight: 700; }
+.rxsteps li.now::before { background: var(--accent); color: var(--accent-ink); box-shadow: 0 0 0 4px var(--accent-soft); }
+.vcrx { display: flex; gap: 8px; align-items: flex-start; margin: 16px 0 0; color: var(--muted); font-size: 0.95rem; }
+.vcrx .ic { color: var(--accent); flex: none; margin-top: 3px; }

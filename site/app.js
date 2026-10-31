@@ -291,7 +291,7 @@
     /* "pay online" only shows when Payme or Click is switched on */
     var why = '<div class="why">' + t.why.map(function (x, i) { return i === 3 && !payOn() ? "" : '<div class="whyi"><span class="act-ic">' + ic(["search", "tag", "video", "card", "star", "shield"][i]) + "</span><b>" + x[0] + "</b><p>" + x[1] + "</p></div>"; }).join("") + "</div>";
     /* "consult a doctor online" with a big phone and three trust cards, then how to use it, as on Doctor Anywhere */
-    var vcSec = '<div class="band soft"><div class="wrap pad vcgrid"><div><h2>' + t.vc_h + '</h2><p class="lead">' + t.vc_p + '</p><ul class="vcregs">' + regSel.map(function (r) { return '<li><a href="#/doctors?' + qs({ r: r.code }) + '">' + esc(nmL(r)) + "</a></li>"; }).join("") + '</ul><a class="btn big" href="#/consult?now=1">' + ic("video") + t.vc_go + '</a></div><div class="vcart">' + phCall(true) + "</div></div>" +
+    var vcSec = '<div class="band soft"><div class="wrap pad vcgrid"><div><h2>' + t.vc_h + '</h2><p class="lead">' + t.vc_p + '</p><ul class="vcregs">' + regSel.map(function (r) { return '<li><a href="#/doctors?' + qs({ r: r.code }) + '">' + esc(nmL(r)) + "</a></li>"; }).join("") + '</ul><a class="btn big" href="#/consult?now=1">' + ic("video") + t.vc_go + '</a><p class="vcrx">' + ic("home") + "<span>" + t.vc_rx + "</span></p></div>" + '<div class="vcart">' + phCall(true) + "</div></div>" +
       '<div class="wrap tcards">' + t.tc.map(function (x, i) { return '<div class="tcard"><div class="tcimg t' + i + '">' + ic(["shield", "free", "check"][i]) + "</div><div><b>" + x[0] + "</b><p>" + x[1] + "</p></div></div>"; }).join("") + "</div></div>";
     var howSec = '<div class="wrap pad howgrid"><div class="howart"><span class="bignum" aria-hidden="true">01</span>' + phHome() + '</div><div><h2>' + t.how_use_h + '</h2><ol class="howlist">' + t.how_f.map(function (x, i) { return '<li><span class="hn">0' + (i + 1) + "</span><div><b>" + x[0] + "</b><p>" + x[1] + "</p></div></li>"; }).join("") + '</ol><a class="btn" href="#/doctors">' + ic("search") + t.hm_cta_pick + "</a></div></div>";
     return '<div class="band deep homehero"><div class="wrap hero"><div><h1>' + t.hf_h1 + '</h1><p class="herotag">' + t.hero_tag + '</p><p class="sub">' + t.hf_sub + "</p>" + form + "</div>" + heroPhones() + "</div></div>" +
@@ -1179,11 +1179,60 @@
     var ringing = !isDoc && c.status === "accepted" && c.type !== "text" && ringNow(c) && !due && !(window.ShifokorCall && ShifokorCall.active());
     return '<div class="wrap"><a class="back" href="' + (isDoc ? "#/account" : "#/visits") + '">‹ ' + (isDoc ? t.nav_account : t.nav_visits) + '</a><div class="sechead" style="padding-top:12px"><div><h1 style="font-size:clamp(1.6rem,1.3rem + 1.4vw,2.3rem)">' + t.cs_no(c.n) + "</h1><div class=\"badges\">" + csBadge(c.status) + payBadge(c) + (c.asap && c.status === "new" ? '<span class="badge warn">' + t.asap_badge + "</span>" : "") + (isDoc && c.followup ? '<span class="badge ' + (c.followup === "worse" ? "warn" : "ok") + '">' + t.fu_doc(t.fu_opts[c.followup]) + "</span>" : "") + '<span class="badge plain">' + t.cs_types[c.type][0] + "</span></div></div>" + (isDoc ? '<span class="sample">' + t.cs_doc_view + "</span>" : "") + "</div>" +
       (ringing ? '<div class="ring" role="status"><span class="ring-ic">' + ic(c.type === "video" ? "video" : "mic") + "</span><div><b>" + t.cl_ringing + "</b><span>" + esc(c.doctorName) + '</span></div><button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + t.cs_join + "</button></div>" : "") +
-      '<div class="pf" style="padding-top:18px"><div>' + (!isDoc && due && (u ? c.userId === u.id : !c.userId) ? payCard(c) : "") + (!isDoc && (u ? c.userId === u.id : !c.userId) ? careCard(c) : "") + (!isDoc && c.status === "done" && c.doctorId && (u ? c.userId === u.id : !c.userId) ? rvCard("c", c.id, c.doctorName, false) : "") + '<div class="dcard"><h2>' + t.cs_details + "</h2>" + details + "</div>" + (isDoc && !mineDoc && c.status !== "new" ? "" : "") + '<p class="fine" style="margin-top:14px">' + t.cs_demo + "</p></div>" +
+      '<div class="pf" style="padding-top:18px"><div>' + (!isDoc && due && (u ? c.userId === u.id : !c.userId) ? payCard(c) : "") + (!isDoc && (u ? c.userId === u.id : !c.userId) ? careCard(c) : "") + rxCard(c, mineDoc, !isDoc && (u ? c.userId === u.id : !c.userId)) + (!isDoc && c.status === "done" && c.doctorId && (u ? c.userId === u.id : !c.userId) ? rvCard("c", c.id, c.doctorName, false) : "") + '<div class="dcard"><h2>' + t.cs_details + "</h2>" + details + "</div>" + (isDoc && !mineDoc && c.status !== "new" ? "" : "") + '<p class="fine" style="margin-top:14px">' + t.cs_demo + "</p></div>" +
       '<aside class="dcard chatcard"><h2>' + t.cs_thread + '</h2><div class="room-log" id="cslog">' + (msgs || '<div class="sys">' + t.cs_sent + "</div>") + "</div>" +
       (canWrite ? '<form class="room-send withph" id="csmsg" data-id="' + c.id + '" style="margin-top:10px">' + (PH && PH.cid === c.id ? '<div class="phpend"><img src="' + PH.url + '" alt="' + esc(t.ph_alt) + '"><span>' + t.ph_ready + '</span><button class="btn ghost sm" type="button" data-act="phdrop">' + t.ph_remove + "</button></div>" : "") +
         '<label class="btn ghost phbtn" title="' + esc(t.ph_add) + '"><input type="file" accept="image/*" id="csmsg-ph" class="vh" aria-label="' + esc(t.ph_add) + '">' + ic("camera") + '</label><input id="csmsg-in" class="pinput" style="width:100%;text-align:left" placeholder="' + esc(t.cs_write) + '" aria-label="' + esc(t.cs_write) + '" autocomplete="off"><button class="btn" type="submit">' + t.cs_send_msg + '</button></form><p class="fine" style="margin-top:6px">' + t.ph_privacy + "</p>" : "") +
       (actions ? '<div class="stack" style="margin-top:12px">' + actions + "</div>" : "") + (!isDoc && c.status === "new" ? "" : "") + '<p class="fine" style="margin-top:10px">' + t.cs_sms_note + "</p></aside></div></div>";
+  }
+  /* ---------------- medicines after a consultation, and home delivery ---------------- */
+  /* the doctor writes what to take; the patient can ask a partner pharmacy to deliver it (price by phone, paid on delivery) */
+  var KMO = "shifokor-medorders", RX = null, RXO = null;   /* doctor's open list editor { cid, rows }; patient's open order form */
+  var medOrders = function () { return store.get(KMO, []); };
+  var RX_ST = ["new", "confirmed", "on_way", "delivered"];
+  function rxList(rx) { var t = L(); return '<ol class="rxlist">' + rx.map(function (m) { return "<li><b>" + esc(m.name) + "</b>" + (m.how || m.days ? "<span>" + esc([m.how, m.days ? t.rx_days(m.days) : ""].filter(Boolean).join(" · ")) + "</span>" : "") + "</li>"; }).join("") + "</ol>"; }
+  function rxCollect() { if (!RX) return; RX.rows = RX.rows.map(function (r, i) { var v = function (k) { var el = $("rx-" + k + "-" + i); return el ? el.value : ""; }; return { name: v("n"), how: v("h"), days: v("d") }; }); }
+  function rxoCollect() { if (!RXO) return; ["region", "addr", "phone", "note"].forEach(function (k) { var el = $("rxo-" + k); if (el) RXO[k] = el.value; }); var c = $("rxo-ok"); if (c) RXO.ok = c.checked; }
+  function rxCard(c, mineDoc, isPat) {
+    var t = L(), rx = c.rx || [];
+    if (mineDoc && (c.status === "accepted" || c.status === "done")) {
+      if (RX && RX.cid === c.id) {
+        var fl = function (id, label, v, extra) { return '<div class="fld"><label for="' + id + '">' + label + '</label><input id="' + id + '" value="' + esc(v == null ? "" : v) + '"' + (extra || "") + "></div>"; };
+        return '<form class="dcard rxcard" id="rxform" data-id="' + c.id + '" novalidate><h2>' + t.rx_h + '</h2><p class="muted">' + t.rx_doc_p + "</p>" + RX.rows.map(function (r, i) {
+          return '<div class="rxrow">' + fl("rx-n-" + i, t.rx_name, r.name, ' maxlength="120"') + fl("rx-h-" + i, t.rx_how, r.how, ' maxlength="200" placeholder="' + esc(t.rx_how_ph) + '"') + fl("rx-d-" + i, t.rx_days_l, r.days, ' type="number" min="1" max="365" inputmode="numeric"') + '<button class="linkbtn" type="button" data-rx="rm" data-i="' + i + '">' + t.rx_rm + "</button></div>";
+        }).join("") + (RX.rows.length < 15 ? '<p><button class="btn ghost sm" type="button" data-rx="add">' + ic("plus") + t.rx_add + "</button></p>" : "") + '<div class="err" id="rx-err" aria-live="polite"></div><div class="btns"><button class="btn" type="submit">' + t.rx_save + '</button><button class="btn ghost" type="button" data-rx="close">' + t.po_cancel + "</button></div></form>";
+      }
+      return '<div class="dcard rxcard"><h2>' + t.rx_h + "</h2>" + (rx.length ? rxList(rx) : '<p class="muted">' + t.rx_none_doc + "</p>") + '<button class="btn ghost sm" type="button" data-rx="edit" data-id="' + c.id + '">' + (rx.length ? t.rx_edit : ic("plus") + t.rx_write) + "</button></div>";
+    }
+    if (!isPat || !rx.length) return "";
+    var mine = medOrders().filter(function (o) { return o.consultId === c.id; }), o = mine.filter(function (x) { return x.status !== "cancelled"; })[0];
+    var body;
+    if (o) {
+      var k = RX_ST.indexOf(o.status);
+      body = '<ol class="rxsteps">' + RX_ST.map(function (st, i) { return '<li class="' + (i < k ? "done" : i === k ? "now" : "") + '">' + t.rx_st[st] + "</li>"; }).join("") + '</ol><p class="muted" style="margin:10px 0 0">' + esc(o.address) + " · " + esc(fmtPhone(o.phone)) + "</p>" +
+        (o.status === "new" ? '<p class="fine">' + t.rx_wait + '</p><button class="linkbtn" type="button" data-rx="odel" data-id="' + o.id + '">' + t.rx_cancel + "</button>" : "");
+    } else if (RXO && RXO.cid === c.id) {
+      body = '<form id="rxoform" data-id="' + c.id + '" novalidate><div class="fld"><label for="rxo-region">' + t.f_region + '</label><select id="rxo-region"><option value="">—</option>' + REG.slice().sort(function (a, b) { return nmL(a).localeCompare(nmL(b)); }).map(function (r) { return '<option value="' + r.code + '"' + (RXO.region === r.code ? " selected" : "") + ">" + esc(nmL(r)) + "</option>"; }).join("") + "</select></div>" +
+        '<div class="fld"><label for="rxo-addr">' + t.rx_addr + '</label><textarea id="rxo-addr" maxlength="300" rows="2" placeholder="' + esc(t.rx_addr_ph) + '">' + esc(RXO.addr) + "</textarea></div>" +
+        '<div class="fld"><label for="rxo-phone">' + t.cs_phone + '</label><input id="rxo-phone" type="tel" inputmode="tel" value="' + esc(RXO.phone) + '"></div>' +
+        '<div class="fld"><label for="rxo-note">' + t.rx_note + '</label><input id="rxo-note" maxlength="300" value="' + esc(RXO.note) + '"></div>' +
+        '<label class="chk"><input type="checkbox" id="rxo-ok"' + (RXO.ok ? " checked" : "") + "><span>" + t.rx_ok + '</span></label><div class="err" id="rxo-err" aria-live="polite"></div><div class="btns"><button class="btn" type="submit">' + t.rx_send + '</button><button class="btn ghost" type="button" data-rx="oclose">' + t.po_cancel + "</button></div></form>";
+    } else body = '<p class="muted" style="margin:6px 0 12px">' + t.rx_offer + '</p><button class="btn" type="button" data-rx="order" data-id="' + c.id + '">' + ic("home") + t.rx_order + "</button>";
+    return '<div class="dcard rxcard"><h2>' + t.rx_h_pat(esc(c.doctorName)) + "</h2>" + rxList(rx) + '<h3 class="rxdel">' + ic("home") + t.rx_del_h + ' <span class="badge plain">' + t.rx_pilot + "</span></h3>" + body + "</div>";
+  }
+  /* admins: every delivery request, moved along as the pharmacy reports back */
+  var MO = { list: null, busy: false, err: "" };
+  function moLoad() { if (!BE || MO.busy) return; MO.busy = true; BE.adminMedOrders().then(function (j) { MO.list = j.orders || []; MO.err = ""; }, function (x) { MO.err = beMsg(L(), x); MO.list = MO.list || []; }).then(function () { MO.busy = false; if (current.path === "/admin") render(true); }); }
+  function viewMedOrders() {
+    var t = L(); if (BE && !MO.list) { moLoad(); return '<p class="muted">…</p>'; }
+    var l = BE ? MO.list.map(function (o) { return { id: o.id, n: o.n, doctor: o.doctor_name, name: o.patient_name, rx: o.rx || [], region: o.region, address: o.address, phone: o.phone, note: o.note, status: o.status, at: Date.parse(o.created_at), cid: o.consult_id }; })
+      : medOrders().map(function (o) { var c = consultById(o.consultId) || {}; return { id: o.id, n: c.n, doctor: c.doctorName, name: c.name, rx: c.rx || [], region: o.region, address: o.address, phone: o.phone, note: o.note, status: o.status, at: o.at, cid: o.consultId }; });
+    return '<p class="muted">' + t.mo_p + "</p>" + (MO.err ? '<p class="err">' + esc(MO.err) + "</p>" : "") + (l.length ? l.map(function (o) {
+      var open = o.status !== "delivered" && o.status !== "cancelled";
+      return '<div class="dcard admrow' + (open ? "" : " past") + '"><div class="rvtop"><b>' + esc(o.name || "") + '</b><span class="muted nums"> · ' + esc(fmtPhone(o.phone)) + " · №" + esc(String(o.n || "")) + " · " + fmt(new Date(o.at), { day: "numeric", month: "short" }) + '</span> <span class="badge ' + (o.status === "delivered" ? "ok" : o.status === "cancelled" ? "plain" : "warn") + '">' + (o.status === "cancelled" ? t.rx_cancelled : t.rx_st[o.status]) + "</span></div>" +
+        rxList(o.rx) + '<p style="margin:6px 0">' + ic("pin") + " " + esc([o.region && regByCode[o.region] ? nmL(regByCode[o.region]) : "", o.address].filter(Boolean).join(", ")) + "</p>" + (o.note ? '<p class="muted">' + esc(o.note) + "</p>" : "") +
+        (open ? '<div class="btns">' + ["confirmed", "on_way", "delivered"].filter(function (st) { return RX_ST.indexOf(st) > RX_ST.indexOf(o.status); }).map(function (st) { return '<button class="btn sm" type="button" data-mos="' + st + '" data-id="' + o.id + '">' + t.rx_st[st] + "</button>"; }).join("") + '<button class="btn ghost sm" type="button" data-mos="cancelled" data-id="' + o.id + '">' + t.rx_cancel + "</button></div>" : "") + "</div>";
+    }).join("") : '<p class="muted">' + t.adm_none + "</p>");
   }
   function homeDoctorSearch() {
     var t = L(), list = users().filter(function (u) { return u.role === "doctor"; }).slice(-3).reverse();
@@ -1512,11 +1561,12 @@
       '<form class="form" id="claimform" novalidate style="margin-top:18px"><div class="fld"><label for="cl-pw">' + t.im_pw + '</label><input id="cl-pw" type="password" autocomplete="new-password" minlength="6"></div><div class="fld"><label for="cl-pw2">' + t.im_pw2 + '</label><input id="cl-pw2" type="password" autocomplete="new-password" minlength="6"></div>' +
       '<label class="chk"><input type="checkbox" id="cl-ok"><span>' + t.im_claim_agree + '</span></label><div class="err" id="cl-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.im_claim_go + '</button></form><p class="fine" style="margin-top:12px">' + t.im_claim_fine + "</p></div>";
   }
-  var admTabs = function (cur) { var t = L(); return '<div class="chips admtabs">' + [["chk", t.adm_tab_chk], ["pay", t.adm_tab_pay], ["import", t.adm_tab_import]].map(function (x) { return '<button class="chip" type="button" data-admtab="' + x[0] + '" aria-pressed="' + (cur === x[0]) + '">' + x[1] + "</button>"; }).join("") + "</div>"; };
+  var admTabs = function (cur) { var t = L(); return '<div class="chips admtabs">' + [["chk", t.adm_tab_chk], ["pay", t.adm_tab_pay], ["import", t.adm_tab_import], ["meds", t.adm_tab_meds]].map(function (x) { return '<button class="chip" type="button" data-admtab="' + x[0] + '" aria-pressed="' + (cur === x[0]) + '">' + x[1] + "</button>"; }).join("") + "</div>"; };
   function viewAdmin(q) {
     var t = L(), u = me();
     if (!BE || !u || !u.admin) return '<div class="wrap pad"><div class="empty">' + t.adm_forbidden + "</div></div>";
     if (q && q.tab === "import") return '<div class="wrap pad" style="max-width:980px">' + admTabs("import") + '<h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.im_h + "</h1>" + viewImport() + "</div>";
+    if (q && q.tab === "meds") return '<div class="wrap pad" style="max-width:900px">' + admTabs("meds") + '<h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.mo_h + "</h1>" + viewMedOrders() + "</div>";
     if (q && q.tab === "pay") return '<div class="wrap pad" style="max-width:900px">' + admTabs("pay") + '<h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.po_h + "</h1>" + viewPayouts() + "</div>";
     if (!ADM.list) { admLoad(); return '<div class="wrap pad"><p class="muted">…</p></div>'; }
     var row = function (x) {
@@ -1789,6 +1839,23 @@
       if (oa === "delok") { ON = { mode: "due", urgent: false, ok: false, famUrl: "", del: false }; if (BE) { BE.pregDelete().then(done, fail); return; } savePregDemo(null); render(true); return; }
     }
     if (ds.csasap) { csCollect(); CS.asap = ds.csasap === "1"; if (CS.asap) CS.doc = ""; render(true); return; }
+    if (ds.rx) {
+      var rxc = consultById(ds.id || (RX && RX.cid) || (RXO && RXO.cid) || "");
+      if (ds.rx === "edit" && rxc) { RX = { cid: rxc.id, rows: (rxc.rx && rxc.rx.length ? rxc.rx : [{ name: "", how: "", days: "" }]).map(function (m) { return { name: m.name, how: m.how || "", days: m.days || "" }; }) }; render(true); if ($("rx-n-0")) $("rx-n-0").focus(); return; }
+      if (ds.rx === "add") { rxCollect(); RX.rows.push({ name: "", how: "", days: "" }); render(true); if ($("rx-n-" + (RX.rows.length - 1))) $("rx-n-" + (RX.rows.length - 1)).focus(); return; }
+      if (ds.rx === "rm") { rxCollect(); RX.rows.splice(+ds.i, 1); if (!RX.rows.length) RX.rows.push({ name: "", how: "", days: "" }); render(true); return; }
+      if (ds.rx === "close") { RX = null; render(true); return; }
+      if (ds.rx === "order" && rxc) { RXO = { cid: rxc.id, region: rxc.region || "", addr: "", phone: rxc.phone ? fmtPhone(rxc.phone) : "", note: "", ok: false }; render(true); if ($("rxo-addr")) $("rxo-addr").focus(); return; }
+      if (ds.rx === "oclose") { RXO = null; render(true); return; }
+      if (ds.rx === "odel") {
+        if (BE) { el.disabled = true; BE.medOrderCancel(ds.id).then(function () { render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
+        var mol = medOrders(); mol.forEach(function (o) { if (o.id === ds.id && o.status === "new") o.status = "cancelled"; }); store.set(KMO, mol); render(true); return;
+      }
+    }
+    if (ds.mos) {
+      if (BE) { el.disabled = true; BE.adminMedStatus(ds.id, ds.mos).then(function () { MO.list = null; render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
+      var mol2 = medOrders(); mol2.forEach(function (o) { if (o.id === ds.id) o.status = ds.mos; }); store.set(KMO, mol2); render(true); return;
+    }
     if (ds.fu) {
       var fcl = consults(), fc = fcl.filter(function (x) { return x.id === ds.id; })[0]; if (!fc) return;
       var fnote = t.fu_note(t.fu_opts[ds.fu]);
@@ -1998,6 +2065,20 @@
       var odone = function () { ON.mode = "due"; ON.urgent = ON.ok = false; toast(t.ona_saved); render(true); };
       if (BE) { BE.pregSave(ON.mode === "lmp" ? { lmp: od, doctor: odoc } : { due: od, doctor: odoc }).then(odone, function (x) { oerr.textContent = x.code === "date" ? t.ona_err_date : beMsg(t, x); }); return; }
       var cur = myPreg() || { checks: [] }; cur.due = due; cur.doctor = odoc; cur.doctorName = odoc ? (userById(odoc) || {}).name || "" : ""; savePregDemo(cur); odone(); return;
+    }
+    if (id === "rxform") {
+      rxCollect(); var rxid = e.target.dataset.id, rows = RX.rows.filter(function (r) { return r.name.trim(); }).map(function (r) { return { name: r.name.trim().slice(0, 120), how: r.how.trim().slice(0, 200), days: r.days ? Math.round(+r.days) : null }; });
+      if (rows.some(function (r) { return r.days != null && !(r.days >= 1 && r.days <= 365); })) { $("rx-err").textContent = t.rx_err_days; return; }
+      if (BE) { BE.consultRx(rxid, rows).then(function () { RX = null; toast(t.rx_saved); render(true); }, function (x) { $("rx-err").textContent = beMsg(t, x); }); return; }
+      var xcl = consults(); xcl.forEach(function (c) { if (c.id === rxid) { c.rx = rows; c.rxAt = Date.now(); } }); saveConsults(xcl); RX = null; toast(t.rx_saved); render(true); return;
+    }
+    if (id === "rxoform") {
+      rxoCollect(); var ocid = e.target.dataset.id, oerr = $("rxo-err");
+      if (!RXO.region || RXO.addr.trim().length < 5 || !okPhone(RXO.phone)) { oerr.textContent = t.rx_err_fill; return; }
+      if (!RXO.ok) { oerr.textContent = t.rx_err_ok; return; }
+      var ord = { id: ocid, region: RXO.region, address: RXO.addr.trim(), phone: RXO.phone, note: RXO.note.trim() };
+      if (BE) { BE.medOrder(ord).then(function () { RXO = null; toast(t.rx_sent); render(true); }, function (x) { oerr.textContent = beMsg(t, x); }); return; }
+      var mol3 = medOrders(); mol3.unshift({ id: "mo" + Date.now().toString(36), consultId: ocid, status: "new", region: ord.region, address: ord.address, phone: ord.phone.replace(/\D/g, ""), note: ord.note, at: Date.now() }); store.set(KMO, mol3); RXO = null; toast(t.rx_sent); render(true); return;
     }
     if (id === "csrefer") {
       var adv = $("cs-adv").value.trim(), rid = e.target.dataset.id, ru = me();
@@ -2229,6 +2310,8 @@
     if ($("apform")) apCollect();
     if ($("apreply")) apxCollect();
     if ($("rvform")) rvCollect();
+    if ($("rxform")) rxCollect();
+    if ($("rxoform")) rxoCollect();
     if ($("poform")) poCollect();
     if ($("im-text")) IM.text = $("im-text").value;
     if ($("rvreply-in") && RR) RR.text = $("rvreply-in").value;

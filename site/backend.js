@@ -32,11 +32,13 @@
       complaint: c.complaint, since: String(c.since == null ? 1 : c.since), chronic: c.chronic || "", meds: c.meds || "", allergy: c.allergy || "",
       spec: c.spec || "", doc: c.doc || "", status: c.status, doctorId: c.doctor_id || "", doctorName: c.doctor_name || "", call: !!c.call, callAt: c.call_at ? Date.parse(c.call_at) : 0, outcome: c.outcome,
       asap: !!c.asap, closedAt: c.closed_at ? Date.parse(c.closed_at) : 0, followupAt: c.followup_at ? Date.parse(c.followup_at) : 0, followup: c.followup || "",
+      rx: Array.isArray(c.rx) ? c.rx : [], rxAt: c.rx_at ? Date.parse(c.rx_at) : 0,
       price: c.price == null ? null : Number(c.price), payStatus: c.pay_status || "none", paidAt: c.paid_at ? Date.parse(c.paid_at) : 0, payProvider: c.pay_provider || "",
       msgs: (c.messages || []).map(function (m) { return { from: m.kind, name: m.name || "", text: m.body || "", file: m.file_id || "", at: Date.parse(m.created_at) }; })
     };
   }
 
+  function toMedOrder(o) { return { id: o.id, consultId: o.consult_id, status: o.status, region: o.region || "", address: o.address, phone: o.phone, note: o.note || "", at: Date.parse(o.created_at), upd: Date.parse(o.updated_at) }; }
   function toAppt(a) {
     return {
       id: a.id, n: Number(a.n), at: Date.parse(a.created_at), userId: a.patient_id, clinicId: a.clinic_id, clinicName: a.clinic_name, fac: a.fac || "",
@@ -77,6 +79,7 @@
       set("shifokor-consults", (j.consults || []).map(toConsult));
       set("shifokor-appts", (j.appts || []).map(toAppt));
       set("shifokor-reviews", (j.reviews || []).map(toReview));
+      set("shifokor-medorders", (j.med_orders || []).map(toMedOrder));
       ready = true;
       var raw = JSON.stringify(j), changed = raw !== last; last = raw;
       if (changed) listeners.forEach(function (f) { try { f(); } catch (e) { console.warn(e); } });   /* polls that bring nothing new don't redraw the page */
@@ -141,6 +144,11 @@
     /* a doctor's own earnings and payouts, or null when there are none yet */
     earnings: function () { return earn; },
     adminPayouts: function () { return call("admin_payouts"); },
+    consultRx: async function (cid, rx) { await call("consult_rx", { id: cid, rx: rx }); await refresh(); },
+    medOrder: async function (o) { var j = await call("med_order", o); await refresh(); return j; },
+    medOrderCancel: async function (id) { await call("med_order_cancel", { id: id }); await refresh(); },
+    adminMedOrders: function () { return call("admin_med_orders"); },
+    adminMedStatus: function (id, status) { return call("admin_med_status", { id: id, status: status }); },
     /* o: { doctor, amount, paid_on, ref, note } */
     adminPayout: function (o) { return call("admin_payout", o); },
     adminPayoutDelete: function (id) { return call("admin_payout_delete", { id: id }); },

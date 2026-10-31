@@ -11,7 +11,9 @@
     cat_h: "Mutaxassislik bo‘yicha qidiring",
     cat_p: "Yaxshi shifokor topish qiyin, shuning uchun odamlar ko‘pincha kimdir tavsiya qilgan shifokorga boradi. Shifokorda xususiy klinikalar va shifokorlarni mutaxassislik bo‘yicha qidirasiz, reyting va boshqa bemorlar sharhlariga qarab tanlaysiz.",
     cat_n: function (n) { return n + " ta shifokor"; },
-    top_docs_h: "Eng yaxshi baholangan shifokorlar"
+    top_docs_h: "Eng yaxshi baholangan shifokorlar",
+    hero_tag: "Istalgan vaqtda, istalgan joydan",
+    hrv_h: "Bemorlar shifokorlar haqida"
   });
 
   add("ru", {
@@ -23,7 +25,9 @@
     cat_h: "Поиск по специальности",
     cat_p: "Хорошего врача найти трудно, поэтому чаще всего идут к тому, кого кто-то посоветовал. На Shifokor вы ищете частные клиники и врачей по специальности и выбираете по рейтингу и отзывам других пациентов.",
     cat_n: function (n) { return "врачей: " + n; },
-    top_docs_h: "Врачи с лучшими оценками"
+    top_docs_h: "Врачи с лучшими оценками",
+    hero_tag: "В любое время, из любого места",
+    hrv_h: "Пациенты о врачах"
   });
 
   add("en", {
@@ -35,6 +39,8 @@
     cat_h: "Search by specialty",
     cat_p: "A good doctor is hard to find, so people usually go to whoever someone recommended. On Shifokor you search private clinics and doctors by specialty and choose by rating and other patients’ reviews.",
     cat_n: function (n) { return n + (n === 1 ? " doctor" : " doctors"); },
-    top_docs_h: "Top-rated doctors"
+    top_docs_h: "Top-rated doctors",
+    hero_tag: "Anytime, from anywhere",
+    hrv_h: "What patients say about doctors"
   });
 })(window.SHIFOKOR_T);

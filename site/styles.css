@@ -971,3 +971,11 @@ img.pimg { object-fit: cover; padding: 0; }
 .sched li.past { color: var(--muted); }
 .sched li.next { background: var(--ochre-soft); }
 .menu a.menuona { font-weight: 600; }
+
+/* search by specialty on the home page */
+.specgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
+.specbox { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); text-decoration: none; transition: border-color .15s, transform .15s; }
+.specbox:hover { border-color: var(--accent); transform: translateY(-1px); }
+.specbox .muted { font-size: .88rem; }
+@media (max-width: 960px) { .specgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .specgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

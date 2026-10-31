@@ -236,7 +236,10 @@
     var regSel = REG.slice().sort(function (a, b) { return nmL(a).localeCompare(nmL(b)); });
     var form = '<form class="hfform" id="hfform" role="search"><div class="srow3"><div class="sf"><label for="hf-s">' + t.hf_spec + '</label><select id="hf-s"><option value="">' + t.all_specs + "</option>" + DOC_SP.filter(function (k) { return k !== "other"; }).map(function (k) { return '<option value="' + k + '">' + t.docsp[k] + "</option>"; }).join("") + '</select></div><div class="sf"><label for="hf-r">' + t.f_region + '</label><select id="hf-r"><option value="">' + t.all_regions + "</option>" + regSel.map(function (r) { return '<option value="' + r.code + '">' + esc(nmL(r)) + "</option>"; }).join("") + '</select></div><button class="btn big" type="submit">' + ic("search") + t.hf_go + "</button></div>" +
       '<div class="hfmore"><a class="btn light" href="#/consult">' + ic("chat") + t.hf_consult + '</a><a class="hflink" href="#/prices">' + ic("tag") + t.hf_prices + "</a></div></form>";
-    var docs = sortDocs(users().filter(function (u) { return u.role === "doctor"; }), "best").slice(0, 6);
+    var docs = realFirst(withSamples().filter(function (u) { return u.role === "doctor"; }), "rating").slice(0, 6);
+    /* search by specialty, with how many doctors each has */
+    var specs = DOC_SP.filter(function (k) { return k !== "other"; }).map(function (k) { return { k: k, n: withSamples().filter(function (u) { return u.role === "doctor" && (u.profile || {}).spec === k; }).length }; });
+    var cats = '<div class="wrap pad" style="padding-top:12px"><h2>' + t.cat_h + '</h2><p class="lead">' + t.cat_p + '</p><div class="specgrid">' + specs.map(function (x) { return '<a class="specbox" href="#/doctors?' + qs({ s: x.k }) + '"><b>' + t.docsp[x.k] + '</b><span class="muted">' + t.cat_n(x.n) + "</span></a>"; }).join("") + "</div></div>";
     var regs = regSel.map(function (r) { return '<a class="chip" href="#/doctors?' + qs({ r: r.code }) + '">' + esc(nmL(r)) + "</a>"; }).join("");
     /* "pay online" only shows when Payme or Click is switched on */
     var why = '<div class="why">' + t.why.map(function (x, i) { return i === 3 && !payOn() ? "" : '<div class="whyi"><span class="act-ic">' + ic(["search", "tag", "video", "card", "star", "shield"][i]) + "</span><b>" + x[0] + "</b><p>" + x[1] + "</p></div>"; }).join("") + "</div>";
@@ -247,7 +250,7 @@
       '<div class="wrap pad mission" style="padding-top:12px"><div class="misgrid"><div><h2>' + t.mis_h + '</h2><p class="lead">' + t.mis_p + '</p></div><figure class="shot">' + photo("nukus-phone", t.img_nukus, "(max-width: 760px) 90vw, 440px") + "<figcaption>" + t.img_nukus_cap + '</figcaption></figure></div><div class="mis"><div class="mishead" aria-hidden="true"><span>' + t.mis_was + "</span><span>" + t.mis_now + "</span></div>" +
         t.mis_rows.map(function (r) { return '<div class="misrow"><p class="was" data-l="' + esc(t.mis_was) + '">' + r[0] + '</p><p class="now" data-l="' + esc(t.mis_now) + '">' + ic("check") + "<span>" + r[1] + "</span></p></div>"; }).join("") + "</div></div>" +
       (live.length ? '<div class="wrap pad" style="padding-top:12px"><div class="sechead"><h2>' + t.hm_online_h + '</h2><a class="btn sm" href="#/consult?now=1">' + ic("chat") + t.hm_cta_now + '</a></div><div class="results" style="padding:14px 0 0">' + live.slice(0, 3).map(docCard).join("") + "</div></div>" : "") +
-      '<div class="wrap pad" style="padding-top:12px"><div class="sechead"><h2>' + t.new_docs_h + '</h2><a class="btn ghost sm" href="#/doctors">' + t.new_docs_all + "</a></div>" + (docs.length ? '<div class="results" style="padding:14px 0 0">' + docs.map(docCard).join("") + "</div>" : '<div class="empty" style="margin-top:14px">' + t.new_docs_none + ' <a href="#/register" data-regrole-link="doctor">' + t.reg_doc_cta + "</a></div>") + "</div>" +
+      cats + '<div class="wrap pad" style="padding-top:12px"><div class="sechead"><h2>' + t.top_docs_h + '</h2><a class="btn ghost sm" href="#/doctors">' + t.new_docs_all + "</a></div>" + (docs.length ? '<div class="results" style="padding:14px 0 0">' + docs.map(docCard).join("") + "</div>" : '<div class="empty" style="margin-top:14px">' + t.new_docs_none + ' <a href="#/register" data-regrole-link="doctor">' + t.reg_doc_cta + "</a></div>") + "</div>" +
       '<div class="wrap pad"><h2>' + t.oc_h + '</h2><p class="lead">' + t.oc_p + "</p>" + ocLists(false) + "</div>" +
       '<div class="band alt"><div class="wrap pad"><h2>' + t.why_h + "</h2>" + why + "</div></div>" +
       '<div class="wrap pad">' + "<h2>" + t.how3_h + "</h2>" + steps([t.how_f.map(function (x) { return x[0]; }), t.how_f.map(function (x) { return x[1]; })]) + "</div>" +
@@ -557,7 +560,13 @@
   var KU = "shifokor-users", KS = "shifokor-session";
   var users = function () { return store.get(KU, []); };
   var saveUsers = function (l) { store.set(KU, l); };
-  var userById = function (id) { return users().filter(function (u) { return u.id === id; })[0] || null; };
+  /* sample doctors and reviews (samples.js): marked "Namuna", never stored, never bookable */
+  var SMP = window.SHIFOKOR_SAMPLES || { d: [], r: [] };
+  var withSamples = function () { return users().concat(SMP.d); };
+  var userById = function (id) { return withSamples().filter(function (u) { return u.id === id; })[0] || null; };
+  /* real doctors first, then samples, each group in the chosen order */
+  var realFirst = function (list, how) { return sortDocs(list.filter(function (u) { return !u.sample; }), how).concat(sortDocs(list.filter(function (u) { return u.sample; }), how)); };
+  var smpBadge = function () { return '<span class="sample">' + L().smp_badge + "</span>"; };
   var me = function () { var id = store.get(KS, null); return id ? userById(id) : null; };
   var REGROLE = "patient", ACC = null, ACC_DEL = false;
   var DOC_SP = ["gp", "therapist", "pediatrics", "gyn", "cardio", "neuro", "surgery", "dental", "ent", "eye", "derm", "uro", "endo", "other"];
@@ -694,8 +703,8 @@
     var t = L(), u = userById(id); if (!u || u.role !== "doctor") return '<div class="wrap pad"><div class="empty">' + t.not_found + "</div></div>";
     var pr = u.profile || {}, langs = (pr.langs || []).map(function (l) { return { kaa: "Qaraqalpaq", tg: "Tojik" }[l] || t.lg[l]; }).join(", ");
     var region = pr.district && disByCode[pr.district] ? nmL(disByCode[pr.district]) + ", " + nmL(REG[disByCode[pr.district].r]) : pr.region && regByCode[pr.region] ? nmL(regByCode[pr.region]) : "";
-    return '<div class="wrap"><a class="back" href="#/doctors">‹ ' + t.nav_doctors + '</a><div class="pf"><div><div class="who">' + personAv(u) + "<div><h1>" + esc(u.name) + '</h1><div class="spec">' + esc(specName(pr)) + (pr.years ? " · " + t.exp(pr.years) : "") + '</div><div class="badges"><span class="badge">' + t.on_sh + "</span>" + vBadge(u) + (ratingOf(u.id).n ? '<a href="#reviews" data-scroll="reviews" class="badge plain rbadge">' + ratingLine(u.id) + "</a>" : "") + (isOnline(u) ? '<span class="badge plain">' + ic("video") + t.online_b + "</span>" : "") + "</div></div></div>" +
-      (u.pending ? '<p class="note-box">' + t.im_pending_note + "</p>" : "") +
+    return '<div class="wrap"><a class="back" href="#/doctors">‹ ' + t.nav_doctors + '</a><div class="pf"><div><div class="who">' + personAv(u) + "<div><h1>" + esc(u.name) + '</h1><div class="spec">' + esc(specName(pr)) + (pr.years ? " · " + t.exp(pr.years) : "") + '</div><div class="badges">' + (u.sample ? smpBadge() : '<span class="badge">' + t.on_sh + "</span>" + vBadge(u)) + (ratingOf(u.id).n ? '<a href="#reviews" data-scroll="reviews" class="badge plain rbadge">' + ratingLine(u.id) + "</a>" : "") + (isOnline(u) ? '<span class="badge plain">' + ic("video") + t.online_b + "</span>" : "") + "</div></div></div>" +
+      (u.pending ? '<p class="note-box">' + t.im_pending_note + "</p>" : "") + (u.sample ? '<p class="note-box">' + t.smp_note + ' <a href="#/doctors?' + qs({ s: pr.spec }) + '">' + t.smp_real + "</a></p>" : "") +
       (pr.bio ? '<div class="sect"><p class="lead" style="margin:0">' + esc(pr.bio) + "</p></div>" : "") +
       ((pr.work || []).length ? '<div class="sect"><h2>' + t.works_at + '</h2><ul class="list">' + pr.work.map(function (w) { return "<li>" + wpLink(w) + "</li>"; }).join("") + "</ul></div>" : "") +
       cpBlock(u) +
@@ -706,7 +715,7 @@
       '<aside class="stick"><h2>' + esc(u.name) + "</h2>" + (cpMin(u) != null ? '<p class="cpaside"><small>' + t.cp_h + "</small><b>" + (cpMin(u) === 0 ? t.free_c : esc(t.cp_from(num(cpMin(u)) + " " + unit()))) + "</b>" + (pr.reply ? '<span class="muted">' + t.reply_txt(pr.reply) + "</span>" : "") + "</p>" : "") + '<div class="stack">' + (isOnline(u) ? '<a class="btn" href="#/consult?' + qs({ doc: u.id }) + '">' + ic("chat") + t.cs_req_doc + "</a>" : "") + tgBtn(u) + "</div></aside></div></div>";
   }
   function cpBlock(u) {
-    var t = L(), pr = u.profile || {}, c = cpOf(pr); if (!isOnline(u)) return "";
+    var t = L(), pr = u.profile || {}, c = cpOf(pr); if (!offersCp(u)) return "";
     var rows = ["text", "audio", "video"].filter(function (k) { return c[k] != null; }).map(function (k) { return "<tr><td>" + ic(k === "text" ? "chat" : k === "audio" ? "mic" : "video") + " " + t.cp_types[k] + '</td><td class="n nums">' + esc(money(c[k])) + "</td></tr>"; }).join("");
     var info = [pr.reply ? t.reply_txt(pr.reply) : "", pr.ohours ? t.ohours_l + ": " + esc(pr.ohours) : "", t.cp_pay].filter(Boolean).join(" · ");
     return '<div class="sect"><h2>' + t.cp_h + "</h2>" + (rows ? '<div class="tablewrap"><table><tbody>' + rows + "</tbody></table></div>" : '<p class="muted">' + t.cp_none + "</p>") + '<p class="muted" style="margin-top:10px;font-size:.92rem">' + info + "</p></div>";
@@ -730,11 +739,12 @@
   /* consultation prices on a doctor's profile: { text, audio, video }, null when not offered, 0 when free */
   function cpOf(pr) { var c = (pr && pr.cp) || {}, o = {}; ["text", "audio", "video"].forEach(function (k) { o[k] = c[k] === "" || c[k] == null ? null : Math.max(0, +c[k] || 0); }); return o; }
   /* an imported doctor who hasn't claimed their profile can't answer, so they take no online consultations yet */
-  var isOnline = function (u) { return !u.pending && ((u.profile || {}).modes || []).indexOf("on") > -1; };
+  var offersCp = function (u) { return !u.pending && ((u.profile || {}).modes || []).indexOf("on") > -1; };
+  var isOnline = function (u) { return !u.sample && offersCp(u); };
   /* a doctor who switched on "I'm online now" */
   var onlineNow = function (u) { return isOnline(u) && !!u.onlineUntil && u.onlineUntil > Date.now(); };
   var liveBadge = function () { return '<span class="badge live"><i class="dot"></i>' + L().on_now + "</span>"; };
-  function cpMin(u) { if (!isOnline(u)) return null; var c = cpOf(u.profile), v = ["text", "audio", "video"].map(function (k) { return c[k]; }).filter(function (x) { return x != null; }); return v.length ? Math.min.apply(null, v) : null; }
+  function cpMin(u) { if (!offersCp(u)) return null; var c = cpOf(u.profile), v = ["text", "audio", "video"].map(function (k) { return c[k]; }).filter(function (x) { return x != null; }); return v.length ? Math.min.apply(null, v) : null; }
   var money = function (v) { return v === 0 ? L().free_c : num(v) + " " + unit(); };
   var langName = function (l) { return { kaa: "Qaraqalpaq", tg: "Tojik" }[l] || L().lg[l] || l; };
   function wantedNote(d, type) { var t = L(), p = cpOf(d.profile)[type]; return t.cs_wanted + ": " + d.name + (p != null ? " · " + t.cs_types[type][0] + " " + money(p) : ""); }
@@ -753,7 +763,7 @@
     var region = pr.district && disByCode[pr.district] ? nmL(disByCode[pr.district]) : pr.region && regByCode[pr.region] ? nmL(regByCode[pr.region]) : "";
     var meta2 = [region, (pr.langs || []).map(langName).join(", ")].filter(Boolean).join(" · ");
     return '<article class="fcard doccard">' + avatarOf(u, "sm") + '<div class="fmain"><h3><a href="#/doc/' + u.id + '">' + esc(u.name) + '</a></h3><div class="spec">' + esc(specName(pr)) + (pr.years ? " · " + t.exp(pr.years) : "") + "</div>" +
-      '<div class="badges">' + (onlineNow(u) ? liveBadge() : "") + (ratingOf(u.id).n ? ratingLine(u.id) : "") + (u.verified ? vBadge(u) : "") + (on ? '<span class="badge plain">' + ic("video") + t.online_b + "</span>" : "") + "</div>" +
+      '<div class="badges">' + (onlineNow(u) ? liveBadge() : "") + (ratingOf(u.id).n ? ratingLine(u.id) : "") + (u.verified ? vBadge(u) : "") + (u.sample ? smpBadge() : "") + (on ? '<span class="badge plain">' + ic("video") + t.online_b + "</span>" : "") + "</div>" +
       (w ? '<div class="meta">' + ic("hosp") + esc(wpLabel(w)) + "</div>" : "") + (meta2 ? '<div class="meta">' + ic("pin") + esc(meta2) + "</div>" : "") + "</div>" +
       '<div class="facts">' + (m != null ? '<div class="cpfrom"><small>' + t.cp_h + '</small><b class="nums">' + (m === 0 ? t.free_c : esc(t.cp_from(num(m) + " " + unit()))) + "</b></div>" : "") +
       (on ? '<a class="btn sm" href="#/consult?' + qs({ doc: u.id }) + '">' + ic("chat") + t.pr_consult + "</a>" : "") + '<a class="btn ghost sm" href="#/doc/' + u.id + '">' + t.view + "</a></div></article>";
@@ -761,12 +771,12 @@
   function dfQuery() { var v = function (id) { var el = $(id); return el ? el.value.trim() : ""; }; return { s: v("df-s"), r: v("df-r"), q: v("df-q"), lg: v("df-lg"), on: $("df-on") && $("df-on").checked ? "1" : "", fem: $("df-fem") && $("df-fem").checked ? "1" : "", sort: v("df-sort") }; }
   function viewDoctors(q) {
     var t = L(), qq = norm(q.q);
-    var list = users().filter(function (u) {
+    var list = withSamples().filter(function (u) {
       var pr = u.profile || {}; if (u.role !== "doctor") return false;
       if ((q.s && pr.spec !== q.s) || (q.r && pr.region !== q.r) || (q.on && !isOnline(u)) || (q.fem && pr.sex !== "f") || (q.lg && (pr.langs || []).indexOf(q.lg) < 0)) return false;
       return !qq || norm([u.name, specName(pr)].concat((pr.work || []).map(wpLabel), (pr.svc || []).map(function (x) { return x.name; })).join(" ")).indexOf(qq) > -1;
     });
-    list = sortDocs(list, q.sort || "best");
+    list = realFirst(list, q.sort || "best");
     var clinics = users().filter(function (u) { return u.role === "clinic" && (!q.r || (u.profile || {}).region === q.r); });
     var sel = function (id, label, opts, cur) { return '<label class="sel">' + label + ' <select id="' + id + '">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (cur === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") + "</select></label>"; };
     var filters = '<form class="filters" id="docfilter">' +
@@ -778,7 +788,7 @@
       '<label class="sel chkf"><input type="checkbox" id="df-on"' + (q.on ? " checked" : "") + "> " + t.df_online + "</label>" +
       '<label class="sel chkf"><input type="checkbox" id="df-fem"' + (q.fem ? " checked" : "") + "> " + t.df_fem + "</label></form>";
     return '<div class="band deep"><div class="wrap bhead"><div class="eyebrow">' + t.nav_doctors + "</div><h1>" + t.doctors_h2 + '</h1><p class="sub">' + t.doctors_p2 + '</p><p style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap"><a class="btn light" href="#/consult">' + ic("chat") + t.hf_consult + '</a><a class="btn ghost" style="color:var(--deep-ink);border-color:var(--deep-line)" href="#/register" data-regrole-link="doctor">' + t.reg_doc_cta + "</a></p></div></div>" +
-      '<div class="wrap pad" style="padding-top:20px">' + filters + '<div class="results" style="padding:14px 0 0">' + (list.length ? list.map(docCard).join("") : '<div class="empty">' + t.no_doctors + "</div>") + "</div>" +
+      '<div class="wrap pad" style="padding-top:20px">' + filters + (list.some(function (u) { return u.sample; }) ? '<p class="note-box" style="margin:16px 0 0">' + t.smp_dir + "</p>" : "") + '<div class="results" style="padding:14px 0 0">' + (list.length ? list.map(docCard).join("") : '<div class="empty">' + t.no_doctors + "</div>") + "</div>" +
       '<h2 style="margin:40px 0 14px;font-size:1.4rem">' + t.clinics_reg_h + '</h2><div class="results" style="padding:0">' + (clinics.length ? clinics.map(function (c) { var pr = c.profile || {}; return '<article class="fcard"><div class="ficon c-' + (pr.ctype || "clinic") + '">' + ic(CAT_IC[pr.ctype || "clinic"]) + '</div><div class="fmain"><h3><a href="#/c/' + c.id + '">' + esc(c.name) + '</a></h3><div class="spec">' + t.cat[pr.ctype || "clinic"] + '</div><div class="badges">' + (c.verified ? vBadge(c) : "") + "</div>" + (pr.district && disByCode[pr.district] ? '<div class="meta">' + ic("pin") + esc(nmL(disByCode[pr.district]) + ", " + nmL(REG[disByCode[pr.district].r])) + "</div>" : "") + '</div><div class="facts"><a class="btn ghost sm" href="#/c/' + c.id + '">' + t.view + "</a></div></article>"; }).join("") : '<div class="empty">' + t.no_clinics_reg + "</div>") + "</div></div>";
   }
 
@@ -885,7 +895,7 @@
     var u = me(), pr = (u && u.profile) || {};
     CSPH = [];
     CS = { docQ: q.doc || "", asap: q.now === "1" && !q.doc, type: "text", safe: "", who: "self", name: u && u.role === "patient" ? u.name : "", age: "", sex: "f", phone: u && u.phone ? fmtPhone(u.phone) : "", region: pr.region || "", district: pr.district || "", complaint: "", since: "1", chronic: "", meds: "", allergy: "", spec: "", doc: q.doc || "", consent: false };
-    var d = q.doc ? userById(q.doc) : null; if (d) CS.spec = (d.profile || {}).spec || "";
+    var d = q.doc ? userById(q.doc) : null; if (d) CS.spec = (d.profile || {}).spec || ""; if (d && d.sample) CS.doc = "";
   }
   function csCollect() {
     if (!CS) return;
@@ -1135,7 +1145,7 @@
   }
   /* ---------------- reviews: only after a finished consultation or a visit ---------------- */
   var KR = "shifokor-reviews";
-  var reviews = function () { return store.get(KR, []); };
+  var reviews = function () { return store.get(KR, []).concat(SMP.r); };
   var RV = null, RR = null;   /* open review form { key, stars, body, anon }; open reply { id, text } */
   function ratingOf(id) { var l = reviews().filter(function (r) { return r.target === id && !r.hidden; }), n = l.length; return { n: n, avg: n ? l.reduce(function (a, r) { return a + r.stars; }, 0) / n : 0 }; }
   /* a few reviews say less than many: pull small counts towards 4 stars before ranking */
@@ -1158,7 +1168,7 @@
   function rvList(u) {
     var t = L(), l = reviews().filter(function (r) { return r.target === u.id && !r.hidden; }).sort(function (a, b) { return b.at - a.at; });
     var item = function (r) { return '<div class="rvitem"><div class="rvtop">' + starsTxt(r.stars) + " <b>" + esc(r.author || t.rv_anon_name) + '</b><span class="muted"> · ' + t.rv_kind[r.kind] + " · " + fmt(new Date(r.at), { day: "numeric", month: "short" }) + "</span></div>" + (r.body ? '<p class="pre">' + esc(r.body) + "</p>" : "") + (r.reply ? '<div class="rvreply"><b>' + t.rv_reply_h + ":</b> " + esc(r.reply) + "</div>" : "") + "</div>"; };
-    return '<div class="sect" id="reviews"><h2>' + t.rv_h + " " + ratingLine(u.id) + "</h2>" + (l.length ? l.map(item).join("") : '<p class="muted">' + t.rv_none + "</p>") + '<p class="fine" style="margin-top:10px">' + t.rv_only + "</p></div>";
+    return '<div class="sect" id="reviews"><h2>' + t.rv_h + " " + ratingLine(u.id) + "</h2>" + (l.length ? l.map(item).join("") : '<p class="muted">' + t.rv_none + "</p>") + '<p class="fine" style="margin-top:10px">' + (u.sample ? t.smp_rv : t.rv_only) + "</p></div>";
   }
   /* account page: "I'm online now" and the profile photo patients see */
   function liveCard(u) {
@@ -1918,14 +1928,14 @@
       var rsrc = rk === "c" ? consultById(rid) : appts().filter(function (x) { return x.id === rid; })[0], rmu = me();
       if (!rsrc || myReview(rk, rid)) { rer.textContent = t.e_reviewed; return; }
       var nm = String((rmu && rmu.name) || (rk === "c" ? rsrc.name : rsrc.name) || "").trim().split(/\s+/);
-      var rl = reviews(); rl.push({ id: "r" + Date.now().toString(36), target: rk === "c" ? rsrc.doctorId : rsrc.clinicId, stars: R0.stars, body: R0.body.trim().slice(0, 600), author: R0.anon ? "" : nm[0] + (nm[1] ? " " + nm[1].charAt(0) + "." : ""), hidden: false, reply: "", at: Date.now(), kind: rk, consult: rk === "c" ? rid : "", appt: rk === "v" ? rid : "", mine: true });
+      var rl = store.get(KR, []); rl.push({ id: "r" + Date.now().toString(36), target: rk === "c" ? rsrc.doctorId : rsrc.clinicId, stars: R0.stars, body: R0.body.trim().slice(0, 600), author: R0.anon ? "" : nm[0] + (nm[1] ? " " + nm[1].charAt(0) + "." : ""), hidden: false, reply: "", at: Date.now(), kind: rk, consult: rk === "c" ? rid : "", appt: rk === "v" ? rid : "", mine: true });
       store.set(KR, rl); rdone(); return;
     }
     if (id === "rvreply") {
       var rpid = e.target.dataset.id, rtxt = $("rvreply-in").value.trim(); accCollect();
       var rpdone = function () { RR = null; toast(t.rv_reply_done); render(true); };
       if (BE) { BE.reviewReply(rpid, rtxt).then(rpdone, function (x) { toast(beMsg(t, x)); }); return; }
-      var rl2 = reviews(); rl2.forEach(function (x) { if (x.id === rpid) x.reply = rtxt.slice(0, 400); }); store.set(KR, rl2); rpdone(); return;
+      var rl2 = store.get(KR, []); rl2.forEach(function (x) { if (x.id === rpid) x.reply = rtxt.slice(0, 400); }); store.set(KR, rl2); rpdone(); return;
     }
     if (id === "hfform") { go("#/doctors?" + qs({ s: $("hf-s").value, r: $("hf-r").value })); return; }
     if (id === "prform") { go("#/prices?" + qs(prQuery())); return; }

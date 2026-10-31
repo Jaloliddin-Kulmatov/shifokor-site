@@ -6,7 +6,7 @@
   add("uz", {
     img_hero: "Shifokor noutbuk orqali bemor bilan video qo‘ng‘iroqda gaplashmoqda", img_phone: "Telefonda gaplashayotgan shifokor", img_desk: "Ish stoli yonida o‘tirgan shifokor ayol",
     img_nukus: "Nukusda telefonidan foydalanayotgan keksa ayol", img_nukus_cap: "Nukus, Qoraqalpog‘iston", img_sam: "Samarqanddagi Shohi Zinda majmuasi", img_sam_cap: "Samarqand",
-    ph_credit: "Rasmlar: Unsplash (Vitaly Gariev, Joel Heard, Alexander Popovkin).",
+    ph_credit: "Rasmlar: Unsplash (Vitaly Gariev, CDC, Joel Heard, Alexander Popovkin).",
     on_now: "Hozir onlayn", on_count: function (n) { return "Hozir " + n + " ta shifokor onlayn"; },
     asap_now: ["Birinchi bo‘sh shifokor", "Hozir onlayn shifokorlardan biri javob beradi. Oddiy muammolar uchun eng tez yo‘l."],
     asap_pick: ["Shifokorni o‘zim tanlayman", "Mutaxassis va narxni o‘zingiz tanlaysiz."],
@@ -41,7 +41,7 @@
   add("ru", {
     img_hero: "Врач разговаривает с пациентом по видеосвязи через ноутбук", img_phone: "Врач разговаривает по телефону", img_desk: "Женщина-врач сидит за рабочим столом",
     img_nukus: "Пожилая женщина с телефоном в Нукусе", img_nukus_cap: "Нукус, Каракалпакстан", img_sam: "Ансамбль Шахи-Зинда в Самарканде", img_sam_cap: "Самарканд",
-    ph_credit: "Фото: Unsplash (Vitaly Gariev, Joel Heard, Alexander Popovkin).",
+    ph_credit: "Фото: Unsplash (Vitaly Gariev, CDC, Joel Heard, Alexander Popovkin).",
     on_now: "Сейчас онлайн", on_count: function (n) { return "Сейчас онлайн врачей: " + n; },
     asap_now: ["Первый свободный врач", "Ответит один из врачей, которые сейчас онлайн. Самый быстрый путь при обычных проблемах."],
     asap_pick: ["Выберу врача сам", "Вы сами выбираете специалиста и цену."],
@@ -76,7 +76,7 @@
   add("en", {
     img_hero: "A doctor talking to a patient on a video call on a laptop", img_phone: "A doctor talking on the phone", img_desk: "A woman doctor sitting at her desk",
     img_nukus: "An older woman using her phone in Nukus", img_nukus_cap: "Nukus, Karakalpakstan", img_sam: "The Shah-i-Zinda ensemble in Samarkand", img_sam_cap: "Samarkand",
-    ph_credit: "Photos: Unsplash (Vitaly Gariev, Joel Heard, Alexander Popovkin).",
+    ph_credit: "Photos: Unsplash (Vitaly Gariev, CDC, Joel Heard, Alexander Popovkin).",
     on_now: "Online now", on_count: function (n) { return n + (n === 1 ? " doctor" : " doctors") + " online now"; },
     asap_now: ["First available doctor", "One of the doctors online now replies. The quickest way for common problems."],
     asap_pick: ["I'll choose the doctor", "You choose the specialist and the price."],

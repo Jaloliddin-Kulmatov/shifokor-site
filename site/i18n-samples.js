@@ -13,7 +13,8 @@
     cat_n: function (n) { return n + " ta shifokor"; },
     top_docs_h: "Eng yaxshi baholangan shifokorlar",
     hero_tag: "Istalgan vaqtda, istalgan joydan",
-    hrv_h: "Bemorlar shifokorlar haqida"
+    hrv_h: "Bemorlar shifokorlar haqida",
+    em_line: "Ko‘krakda og‘riq, nafas qisishi, hushdan ketish yoki kuchli qon ketishda maslahatni kutmang, darhol qo‘ng‘iroq qiling:"
   });
 
   add("ru", {
@@ -27,7 +28,8 @@
     cat_n: function (n) { return "врачей: " + n; },
     top_docs_h: "Врачи с лучшими оценками",
     hero_tag: "В любое время, из любого места",
-    hrv_h: "Пациенты о врачах"
+    hrv_h: "Пациенты о врачах",
+    em_line: "При боли в груди, одышке, потере сознания или сильном кровотечении не ждите консультации, сразу звоните:"
   });
 
   add("en", {
@@ -41,6 +43,7 @@
     cat_n: function (n) { return n + (n === 1 ? " doctor" : " doctors"); },
     top_docs_h: "Top-rated doctors",
     hero_tag: "Anytime, from anywhere",
-    hrv_h: "What patients say about doctors"
+    hrv_h: "What patients say about doctors",
+    em_line: "With chest pain, trouble breathing, fainting or heavy bleeding, don’t wait for a consultation, call now:"
   });
 })(window.SHIFOKOR_T);

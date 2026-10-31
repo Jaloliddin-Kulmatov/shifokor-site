@@ -14,31 +14,68 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
-<link rel="stylesheet" href="styles.css?v=20261031e">
+<link rel="stylesheet" href="styles.css?v=20261031g">
 </head>
 <body>
 <header class="top">
   <div class="wrap row">
     <a class="brand" href="#/" aria-label="Shifokor"><img class="logo" src="icon.svg" alt="" width="32" height="32"><span class="w">Shifokor</span></a>
     <nav class="nav" id="nav" aria-label="Main">
-      <a href="#/doctors" data-r="doctors" data-t="nav_doctors" class="desk"></a>
-      <a href="#/consult" data-r="consult" data-t="nav_consult" class="desk"></a>
-      <a href="#/prices" data-r="prices" data-t="nav_prices" class="desk"></a>
-      <a href="#/visits" data-r="visits" data-t="nav_visits" class="desk"></a>
-      <div class="dd">
-        <button type="button" id="browseBtn" class="ddbtn" aria-haspopup="true" aria-expanded="false" aria-controls="menu"><span data-t="nav_menu"></span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
-        <div class="menu" id="menu" hidden>
-          <a class="menuona" href="#/ona" data-t="nav_ona"></a>
-          <a class="mobonly" href="#/doctors" data-t="nav_doctors"></a>
-          <a class="mobonly" href="#/consult" data-t="nav_consult"></a>
-          <a class="mobonly" href="#/prices" data-t="nav_prices"></a>
-          <a class="mobonly" href="#/visits" data-t="nav_visits"></a>
-          <a class="setlink" href="#/settings" data-t="nav_set"></a>
-          <a href="#/admin" id="admlink" data-t="adm_nav" hidden></a>
-          <a class="sep" href="#/find" data-r="find" data-t="nav_hosp"></a>
+      <div class="dd desk">
+        <button type="button" class="ddbtn" data-routes="doctors consult prices specialists family" aria-haspopup="true" aria-expanded="false"><span data-t="nv_see"></span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="menu" hidden>
+          <a href="#/consult?now=1" data-t="nv_clinic"></a>
+          <a href="#/doctors" data-t="nv_panel"></a>
+          <a href="#/specialists" data-t="nv_spec"></a>
+          <a href="#/family" data-t="nv_family"></a>
+          <a href="#/prices" data-t="nav_prices"></a>
+        </div>
+      </div>
+      <div class="dd desk">
+        <button type="button" class="ddbtn" data-routes="ona wellness find browse" aria-haspopup="true" aria-expanded="false"><span data-t="nv_well"></span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="menu" hidden>
+          <a href="#/ona" data-t="nav_ona"></a>
+          <a href="#/doctors?s=psych" data-t="nv_mental"></a>
+          <a href="#/wellness" data-t="nv_tips"></a>
+          <a href="#/find" data-t="nav_hosp"></a>
           <a href="#/find?near=1" data-act="near" data-t="nav_near"></a>
-          <a href="#/browse/areas" data-t="br_regions"></a>
+        </div>
+      </div>
+      <div class="dd desk">
+        <button type="button" class="ddbtn" data-routes="about settings admin" aria-haspopup="true" aria-expanded="false"><span data-t="nv_about"></span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="menu" hidden>
+          <a href="#/about" data-t="nv_mission"></a>
+          <a href="#/about?s=network" data-t="nv_network"></a>
+          <a href="#/about?s=faq" data-t="nv_faq"></a>
           <a class="sep" href="#/register" data-regrole-link="doctor" data-t="join_line"></a>
+          <a class="sep" href="#/settings" data-t="nav_set"></a>
+          <a class="admlink" href="#/admin" data-t="adm_nav" hidden></a>
+        </div>
+      </div>
+      <a href="#/visits" data-r="visits" data-t="nav_visits" class="desk"></a>
+      <div class="dd mob">
+        <button type="button" class="ddbtn" data-routes="" aria-haspopup="true" aria-expanded="false"><span data-t="nav_menu"></span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="menu" hidden>
+          <span class="mh" data-t="nv_see"></span>
+          <a href="#/consult?now=1" data-t="nv_clinic"></a>
+          <a href="#/doctors" data-t="nv_panel"></a>
+          <a href="#/specialists" data-t="nv_spec"></a>
+          <a href="#/family" data-t="nv_family"></a>
+          <a href="#/prices" data-t="nav_prices"></a>
+          <span class="mh" data-t="nv_well"></span>
+          <a href="#/ona" data-t="nav_ona"></a>
+          <a href="#/doctors?s=psych" data-t="nv_mental"></a>
+          <a href="#/wellness" data-t="nv_tips"></a>
+          <a href="#/find" data-t="nav_hosp"></a>
+          <a href="#/find?near=1" data-act="near" data-t="nav_near"></a>
+          <span class="mh" data-t="nv_about"></span>
+          <a href="#/about" data-t="nv_mission"></a>
+          <a href="#/about?s=network" data-t="nv_network"></a>
+          <a href="#/about?s=faq" data-t="nv_faq"></a>
+          <a class="sep" href="#/register" data-regrole-link="doctor" data-t="join_line"></a>
+          <a class="sep" href="#/visits" data-t="nav_visits"></a>
+          <a href="#/settings" data-t="nav_set"></a>
+          <a class="admlink" href="#/admin" data-t="adm_nav" hidden></a>
         </div>
       </div>
     </nav>
@@ -66,31 +103,32 @@
 <div id="drawer" class="overlay" hidden></div>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
-<script src="i18n.js?v=20261031e"></script>
-<script src="i18n-extra.js?v=20261031e"></script>
-<script src="i18n-dir.js?v=20261031e"></script>
-<script src="i18n-acc.js?v=20261031e"></script>
-<script src="i18n-consult.js?v=20261031e"></script>
-<script src="i18n-home.js?v=20261031e"></script>
-<script src="i18n-appt.js?v=20261031e"></script>
-<script src="i18n-trust.js?v=20261031e"></script>
-<script src="i18n-focus.js?v=20261031e"></script>
-<script src="i18n-reviews.js?v=20261031e"></script>
-<script src="i18n-photos.js?v=20261031e"></script>
-<script src="i18n-calls.js?v=20261031e"></script>
-<script src="i18n-pay.js?v=20261031e"></script>
-<script src="i18n-payouts.js?v=20261031e"></script>
-<script src="i18n-mission.js?v=20261031e"></script>
-<script src="i18n-care.js?v=20261031e"></script>
-<script src="i18n-ona.js?v=20261031e"></script>
-<script src="i18n-import.js?v=20261031e"></script>
-<script src="i18n-samples.js?v=20261031e"></script>
-<script src="i18n-da.js?v=20261031e"></script>
-<script src="clinics.js?v=20261031e"></script>
-<script src="config.js?v=20261031e"></script>
-<script src="samples.js?v=20261031e"></script>
-<script src="backend.js?v=20261031e"></script>
-<script src="call.js?v=20261031e"></script>
-<script src="app.js?v=20261031e"></script>
+<script src="i18n.js?v=20261031g"></script>
+<script src="i18n-extra.js?v=20261031g"></script>
+<script src="i18n-dir.js?v=20261031g"></script>
+<script src="i18n-acc.js?v=20261031g"></script>
+<script src="i18n-consult.js?v=20261031g"></script>
+<script src="i18n-home.js?v=20261031g"></script>
+<script src="i18n-appt.js?v=20261031g"></script>
+<script src="i18n-trust.js?v=20261031g"></script>
+<script src="i18n-focus.js?v=20261031g"></script>
+<script src="i18n-reviews.js?v=20261031g"></script>
+<script src="i18n-photos.js?v=20261031g"></script>
+<script src="i18n-calls.js?v=20261031g"></script>
+<script src="i18n-pay.js?v=20261031g"></script>
+<script src="i18n-payouts.js?v=20261031g"></script>
+<script src="i18n-mission.js?v=20261031g"></script>
+<script src="i18n-care.js?v=20261031g"></script>
+<script src="i18n-ona.js?v=20261031g"></script>
+<script src="i18n-import.js?v=20261031g"></script>
+<script src="i18n-samples.js?v=20261031g"></script>
+<script src="i18n-da.js?v=20261031g"></script>
+<script src="i18n-nav.js?v=20261031g"></script>
+<script src="clinics.js?v=20261031g"></script>
+<script src="config.js?v=20261031g"></script>
+<script src="samples.js?v=20261031g"></script>
+<script src="backend.js?v=20261031g"></script>
+<script src="call.js?v=20261031g"></script>
+<script src="app.js?v=20261031g"></script>
 </body>
 </html>

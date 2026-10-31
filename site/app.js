@@ -816,8 +816,59 @@
       '<div class="badges">' + (onlineNow(u) ? liveBadge() : "") + (ratingOf(u.id).n ? ratingLine(u.id) : "") + (u.verified ? vBadge(u) : "") + (u.sample ? smpBadge() : "") + (on ? '<span class="badge plain">' + ic("video") + t.online_b + "</span>" : "") + "</div>" +
       (w ? '<div class="meta">' + ic("hosp") + esc(wpLabel(w)) + "</div>" : "") + (meta2 ? '<div class="meta">' + ic("pin") + esc(meta2) + "</div>" : "") + "</div>" +
       '<div class="facts">' + (m != null ? '<div class="cpfrom"><small>' + t.cp_h + '</small><b class="nums">' + (m === 0 ? t.free_c : esc(t.cp_from(num(m) + " " + unit()))) + "</b></div>" : "") +
-      (on ? '<a class="btn sm" href="#/consult?' + qs({ doc: u.id }) + '">' + ic("chat") + t.pr_consult + "</a>" : "") + '<a class="btn ghost sm" href="#/doc/' + u.id + '">' + t.view + "</a></div></article>";
+      (on ? '<a class="btn sm" href="#/consult?' + qs(Object.assign({}, dfKeep(), { doc: u.id })) + '">' + ic("chat") + t.pr_consult + "</a>" : u.sample && offersCp(u) ? '<a class="btn sm" href="#/consult?' + qs(Object.assign({}, dfKeep(), { s: (u.profile || {}).spec, smp: "1" })) + '">' + ic("chat") + t.pr_consult + "</a>" : "") + '<a class="btn ghost sm" href="#/doc/' + u.id + '">' + t.view + "</a></div></article>";
   }
+  /* ---------------- pages from the menus (after Doctor Anywhere): about, specialists, family health, wellness ---------------- */
+  function pageHead(eyebrow, h, p) { return '<div class="band deep"><div class="wrap bhead"><div class="eyebrow">' + eyebrow + "</div><h1>" + h + '</h1><p class="sub">' + p + "</p></div></div>"; }
+  var docsIn = function (k) { return withSamples().filter(function (u) { return u.role === "doctor" && (u.profile || {}).spec === k; }).length; };
+  function viewAbout() {
+    var t = L(), stats = [[num(FAC.length), t.ab_st[0]], [REG.length, t.ab_st[1]], [DIS.length, t.ab_st[2]], [DOC_SP.length - 1, t.ab_st[3]]];
+    return pageHead(t.nv_about, t.ab_h, t.ab_p) +
+      '<div class="wrap pad" id="ab-mission"><div class="misgrid"><div><h2>' + t.mis_h + '</h2><p class="lead">' + t.mis_p + '</p></div><figure class="shot">' + photo("nukus-phone", t.img_nukus, "(max-width: 760px) 90vw, 440px") + "<figcaption>" + t.img_nukus_cap + "</figcaption></figure></div></div>" +
+      '<div class="band soft" id="ab-check"><div class="wrap pad"><h2>' + t.ab_check_h + '</h2></div><div class="wrap tcards">' + t.tc.map(function (x, i) { return '<div class="tcard"><div class="tcimg t' + i + '">' + ic(["shield", "free", "check"][i]) + "</div><div><b>" + x[0] + "</b><p>" + x[1] + "</p></div></div>"; }).join("") + "</div></div>" +
+      '<div class="wrap pad" id="ab-network"><h2>' + t.nv_network + '</h2><p class="lead">' + t.ab_net_p + '</p><div class="stats">' + stats.map(function (x) { return '<div class="stat1"><b class="nums">' + x[0] + "</b><span>" + x[1] + "</span></div>"; }).join("") + "</div>" +
+      '<div class="btns" style="margin-top:20px"><a class="btn" href="#/find">' + ic("hosp") + t.nav_hosp + '</a><a class="btn ghost" href="#/browse/areas">' + ic("pin") + t.br_regions + '</a><a class="btn ghost" href="#/register" data-regrole-link="clinic">' + t.ab_clinic_join + "</a></div></div>" +
+      '<div class="band alt" id="ab-faq"><div class="wrap pad"><h2>' + t.nv_faq + '</h2><div class="faq">' + t.faq_f.map(function (q) { return "<details><summary>" + q[0] + "</summary><p>" + q[1] + "</p></details>"; }).join("") + "</div>" +
+      '<p class="joinline">' + t.join_line + ' <a href="#/register" data-regrole-link="doctor">' + t.join_go + "</a></p></div></div>";
+  }
+  /* "Siz uchun tibbiy yordam" (Doctor Anywhere's "Healthcare for you"): four ways in, with the lowest price among real doctors only */
+  var HC_SVG = {
+    gp: '<circle cx="24" cy="15" r="7"/><path d="M17 12q7-6 14 0"/><path d="M11 42v-6q0-9 13-9t13 9v6"/><path d="M18 28v6a3 3 0 0 0 6 0M30 28v8"/><circle cx="30" cy="38" r="2"/>',
+    spec: '<circle cx="24" cy="15" r="7"/><path d="M16 17q-1-11 8-11t8 11"/><path d="M12 38v-3q0-8 12-8t12 8v3"/><path d="M19 28v5a3 3 0 0 0 5 0M29 28v6"/><rect x="10" y="38" width="28" height="6" rx="1.5" fill="currentColor"/>',
+    psych: '<path d="M30 42v-6q8-2 8-9h-3q2-4-1-6 1-14-13-14-12 0-12 13 0 7 5 11v11"/><circle cx="21" cy="19" r="6" class="fill"/><path d="M21 22l-3-3a2 2 0 0 1 3-3 2 2 0 0 1 3 3z"/>',
+    pediatrics: '<rect x="13" y="6" width="22" height="38" rx="11"/><circle cx="24" cy="17" r="6"/><path d="M13 27l22 9" /><path d="M13 30l22 8v-3a11 11 0 0 1-11 9 11 11 0 0 1-11-9z" class="fill"/>'
+  };
+  function hcCards() {
+    var t = L(), real = users().filter(function (u) { return u.role === "doctor" && isOnline(u); });
+    var minOf = function (keep) { var v = real.filter(keep).map(cpMin).filter(function (x) { return x != null; }); return v.length ? Math.min.apply(null, v) : null; };
+    var spOf = function (u) { return (u.profile || {}).spec; };
+    var rows = [["gp", "#/consult?" + qs({ s: "gp" }), minOf(function (u) { return spOf(u) === "gp" || spOf(u) === "therapist"; })], ["spec", "#/specialists", minOf(function (u) { return ["gp", "therapist", "psych", "pediatrics"].indexOf(spOf(u)) < 0; })],
+      ["psych", "#/consult?" + qs({ s: "psych" }), minOf(function (u) { return spOf(u) === "psych"; })], ["pediatrics", "#/consult?" + qs({ s: "pediatrics" }), minOf(function (u) { return spOf(u) === "pediatrics"; })]];
+    return '<div class="wrap pad hcwrap"><h2>' + t.hc_h + '</h2><div class="hcgrid">' + rows.map(function (x) {
+      return '<a class="hccard" href="' + x[1] + '"><svg class="hcic" viewBox="0 0 48 48" aria-hidden="true">' + HC_SVG[x[0]] + "</svg><span><b>" + t.hc_names[x[0]] + "</b><small>" + (x[2] == null ? t.hc_price_none : x[2] === 0 ? t.free_c : t.hc_from(num(x[2]) + " " + unit())) + "</small></span></a>";
+    }).join("") + "</div></div>";
+  }
+  function viewSpecialists() {
+    var t = L();
+    return pageHead(t.nv_see, t.sp_h, t.sp_p) + '<div class="wrap pad"><div class="spcards">' + DOC_SP.filter(function (k) { return k !== "other"; }).map(function (k, i) {
+      return '<div class="spcard"><span class="sptile" style="background:' + AVC[i % 4] + '">' + esc(t.docsp[k].charAt(0)) + "</span><div><h3>" + t.docsp[k] + '</h3><p class="muted">' + t.sp_desc[k] + '</p><div class="btns"><a class="btn sm" href="#/consult?' + qs({ s: k }) + '">' + ic("chat") + t.pr_consult + '</a><a class="btn ghost sm" href="#/doctors?' + qs({ s: k }) + '">' + t.cat_n(docsIn(k)) + "</a></div></div></div>";
+    }).join("") + "</div></div>";
+  }
+  function viewFamily() {
+    var t = L(), links = ["#/consult?" + qs({ s: "pediatrics" }), "#/consult?" + qs({ s: "therapist" }), "#/ona", "#/consult?" + qs({ s: "psych" })], all2 = ["#/doctors?" + qs({ s: "pediatrics" }), "#/doctors?" + qs({ s: "therapist" }), "#/doctors?" + qs({ s: "gyn", fem: "1" }), "#/doctors?" + qs({ s: "psych" })];
+    var imgs = ["ped-baby", "elderly-visit", "pregnancy", "psychologist"];
+    return pageHead(t.nv_see, t.fam_h, t.fam_p) + '<div class="wrap pad famlist">' + t.sl.map(function (x, i) {
+      return '<section class="famrow slide s' + i + '"><div class="sltext"><span class="eyebrow">' + x[0] + "</span><h2>" + x[1] + "</h2><p>" + x[2] + '</p><ul class="slex">' + x[3].map(function (e) { return "<li>" + ic("check") + "<span>" + e + "</span></li>"; }).join("") + '</ul><div class="btns"><a class="btn" href="' + links[i] + '">' + (i === 2 ? x[4] : t.pr_consult) + '</a><a class="btn ghost" href="' + all2[i] + '">' + t.fam_all + "</a></div></div>" + photo(imgs[i], x[5], "(max-width: 760px) 90vw, 520px", "slimg") + "</section>";
+    }).join("") + '<p class="fine">' + t.sl_em + "</p></div>";
+  }
+  function viewWellness() {
+    var t = L(), icons = ["heart", "flask", "siren", "home", "chat", "check"];
+    return pageHead(t.nv_well, t.wl_h, t.wl_p) + '<div class="wrap pad"><div class="wlcards">' + t.wl.map(function (x, i) {
+      return '<article class="wlcard"><span class="act-ic">' + ic(icons[i]) + "</span><h2>" + x[0] + '</h2><ul class="slex one">' + x[1].map(function (e) { return "<li>" + ic("check") + "<span>" + e + "</span></li>"; }).join("") + '</ul><p class="wlwhen"><b>' + t.wl_when + "</b> " + x[2] + '</p><a class="btn ghost sm" href="' + x[3] + '">' + x[4] + " →</a></article>";
+    }).join("") + '</div><p class="note-box" style="margin-top:24px">' + t.wl_note + "</p></div>";
+  }
+  /* the doctors-list filters to keep when the application panel opens over it */
+  var dfKeep = function () { var q = current && (current.path === "/doctors" || current.path === "/consult") ? Object.assign({}, current.q) : {}; delete q.doc; delete q.now; delete q.smp; if (current && current.path === "/consult") delete q.s; return q; };
   function dfQuery() { var v = function (id) { var el = $(id); return el ? el.value.trim() : ""; }; return { s: v("df-s"), r: v("df-r"), q: v("df-q"), lg: v("df-lg"), on: $("df-on") && $("df-on").checked ? "1" : "", fem: $("df-fem") && $("df-fem").checked ? "1" : "", sort: v("df-sort") }; }
   function viewDoctors(q) {
     var t = L(), qq = norm(q.q);
@@ -840,8 +891,9 @@
       '<label class="sel">' + t.ds_name + ' <input id="df-q" class="pinput" style="width:180px;text-align:left" value="' + esc(q.q || "") + '" placeholder="' + esc(t.ds_name_ph) + '"></label>' +
       '<label class="sel chkf"><input type="checkbox" id="df-on"' + (q.on ? " checked" : "") + "> " + t.df_online + "</label>" +
       '<label class="sel chkf"><input type="checkbox" id="df-fem"' + (q.fem ? " checked" : "") + "> " + t.df_fem + '</label><div class="dfgo"><button class="btn" type="submit">' + ic("search") + t.df_go + "</button>" + (any ? '<a class="btn ghost" href="#/doctors">' + t.df_clear + "</a>" : "") + "</div></form>";
-    return '<div class="band deep"><div class="wrap bhead"><div class="eyebrow">' + t.nav_doctors + "</div><h1>" + t.doctors_h2 + '</h1><p class="sub">' + t.doctors_p2 + '</p><p style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap"><a class="btn light" href="#/consult">' + ic("chat") + t.hf_consult + '</a><a class="btn ghost" style="color:var(--deep-ink);border-color:var(--deep-line)" href="#/register" data-regrole-link="doctor">' + t.reg_doc_cta + "</a></p></div></div>" +
-      '<div class="wrap pad" style="padding-top:20px">' + filters + (list.some(function (u) { return u.sample; }) ? '<p class="note-box" style="margin:16px 0 0">' + t.smp_dir + "</p>" : "") + '<div class="results" style="padding:14px 0 0">' + (list.length ? '<p class="dfcount">' + t.df_found(list.length) + "</p>" + list.map(docCard).join("") : any ? '<div class="empty">' + t.df_none + ' <a href="#/doctors">' + t.df_clear + "</a></div>" + (near.length ? '<h2 class="subh" style="margin:22px 0 4px">' + t.df_near + "</h2>" + near.map(docCard).join("") : "") : '<div class="empty">' + t.no_doctors + "</div>") + "</div>" +
+    /* one page for choosing a doctor and applying: the first free doctor, or any card's button, opens the application over this list */
+    return '<div class="band deep"><div class="wrap bhead"><div class="eyebrow">' + t.nv_clinic + "</div><h1>" + t.oc_page_h + '</h1><p class="sub">' + t.oc_page_p + '</p><ol class="ocsteps">' + t.oc_page_steps.map(function (x, i) { return "<li><b>" + (i + 1) + "</b><span>" + x + "</span></li>"; }).join("") + '</ol><p style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap"><a class="btn light big" href="#/consult?' + qs(Object.assign({}, dfKeep(), { now: "1" })) + '">' + ic("video") + t.asap_now[0] + '</a><a class="btn ghost" style="color:var(--deep-ink);border-color:var(--deep-line)" href="#/register" data-regrole-link="doctor">' + t.reg_doc_cta + "</a></p></div></div>" +
+      hcCards() + '<div class="wrap pad" style="padding-top:8px"><h2 class="subh">' + t.nv_panel + "</h2>" + filters + (list.some(function (u) { return u.sample; }) ? '<p class="note-box" style="margin:16px 0 0">' + t.smp_dir + "</p>" : "") + '<div class="results" style="padding:14px 0 0">' + (list.length ? '<p class="dfcount">' + t.df_found(list.length) + "</p>" + list.map(docCard).join("") : any ? '<div class="empty">' + t.df_none + ' <a href="#/doctors">' + t.df_clear + "</a></div>" + (near.length ? '<h2 class="subh" style="margin:22px 0 4px">' + t.df_near + "</h2>" + near.map(docCard).join("") : "") : '<div class="empty">' + t.no_doctors + "</div>") + "</div>" +
       '<h2 style="margin:40px 0 14px;font-size:1.4rem">' + t.clinics_reg_h + '</h2><div class="results" style="padding:0">' + (clinics.length ? clinics.map(function (c) { var pr = c.profile || {}; return '<article class="fcard"><div class="ficon c-' + (pr.ctype || "clinic") + '">' + ic(CAT_IC[pr.ctype || "clinic"]) + '</div><div class="fmain"><h3><a href="#/c/' + c.id + '">' + esc(c.name) + '</a></h3><div class="spec">' + t.cat[pr.ctype || "clinic"] + '</div><div class="badges">' + (c.verified ? vBadge(c) : "") + "</div>" + (pr.district && disByCode[pr.district] ? '<div class="meta">' + ic("pin") + esc(nmL(disByCode[pr.district]) + ", " + nmL(REG[disByCode[pr.district].r])) + "</div>" : "") + '</div><div class="facts"><a class="btn ghost sm" href="#/c/' + c.id + '">' + t.view + "</a></div></article>"; }).join("") : '<div class="empty">' + t.no_clinics_reg + "</div>") + "</div></div>";
   }
 
@@ -947,8 +999,8 @@
   function csStart(q) {
     var u = me(), pr = (u && u.profile) || {};
     CSPH = [];
-    CS = { docQ: q.doc || "", asap: q.now === "1" && !q.doc, type: "text", who: "self", name: u && u.role === "patient" ? u.name : "", age: "", sex: "f", phone: u && u.phone ? fmtPhone(u.phone) : "", region: pr.region || "", district: pr.district || "", complaint: "", since: "1", chronic: "", meds: "", allergy: "", spec: "", doc: q.doc || "", consent: false };
-    var d = q.doc ? userById(q.doc) : null; if (d) CS.spec = (d.profile || {}).spec || ""; if (d && d.sample) CS.doc = "";
+    CS = { docQ: csKey(q), asap: (q.now === "1" || !!q.s) && !q.doc, type: "text", who: "self", name: u && u.role === "patient" ? u.name : "", age: "", sex: "f", phone: u && u.phone ? fmtPhone(u.phone) : "", region: pr.region || "", district: pr.district || "", complaint: "", since: "1", chronic: "", meds: "", allergy: "", spec: "", doc: q.doc || "", consent: false };
+    var d = q.doc ? userById(q.doc) : null; if (d) CS.spec = (d.profile || {}).spec || ""; if (d && d.sample) CS.doc = ""; if (!d && q.s) CS.spec = q.s;
   }
   function csCollect() {
     if (!CS) return;
@@ -957,8 +1009,12 @@
     var c = $("cs-consent"); if (c) CS.consent = c.checked;
   }
   var onlineDoctors = function (spec) { return users().filter(function (u) { var pr = u.profile || {}; return u.role === "doctor" && isOnline(u) && (!spec || pr.spec === spec); }); };
-  function viewConsult(q) {
-    var t = L(); if (!CS || CS.docQ !== (q.doc || "") || (q.now === "1" && !CS.asap && !CS.complaint)) csStart(q);
+  var csKey = function (q) { return (q.doc || "") + (q.s ? "|" + q.s : ""); };
+  /* where the apply panel's close button goes: the same doctors list, without the application */
+  var apClose = function () { var q = Object.assign({}, current.q); delete q.doc; delete q.now; delete q.smp; return "#/doctors" + (qs(q) ? "?" + qs(q) : ""); };
+  /* the application form; embed = a panel over the doctors list (#/consult), so choosing a doctor and applying is one page */
+  function viewConsult(q, embed) {
+    var t = L(); if (!CS || CS.docQ !== csKey(q) || (q.now === "1" && !CS.asap && !CS.complaint)) csStart(q);
     var c = CS, fi = function (id, label, val, type, extra) { return '<div class="fld"><label for="' + id + '">' + label + '</label><input id="' + id + '" type="' + (type || "text") + '" value="' + esc(val || "") + '"' + (extra || "") + "></div>"; };
     var types = ["text", "audio", "video"].map(function (k) { return '<button type="button" class="rolecard" data-cstype="' + k + '" aria-pressed="' + (c.type === k) + '"><span class="icobox">' + ic(k === "text" ? "chat" : k === "audio" ? "mic" : "video") + "</span><b>" + t.cs_types[k][0] + "</b><span>" + t.cs_types[k][1] + "</span></button>"; }).join("");
     var dis = '<div class="two"><div class="fld"><label for="cs-region">' + t.f_region + '</label><select id="cs-region"><option value="">—</option>' + REG.slice().sort(function (a, b) { return nmL(a).localeCompare(nmL(b)); }).map(function (r) { return '<option value="' + r.code + '"' + (c.region === r.code ? " selected" : "") + ">" + esc(nmL(r)) + "</option>"; }).join("") + '</select></div><div class="fld"><label for="cs-district">' + t.f_district + '</label><select id="cs-district">' + districtOptions(c.region, c.district) + "</select></div></div>";
@@ -980,6 +1036,15 @@
         return '<p class="cpnote">' + (p != null ? ic("tag") + " <b>" + esc(t.cp_price_note(t.cs_types[c.type][0], money(p))) + ".</b> " + (p > 0 && payOn() ? t.cp_pay_online : t.cp_pay) : anyP ? t.cp_not_offered : t.cp_none) + "</p>";
       })() + "</fieldset>" +
       '<label class="chk"><input type="checkbox" id="cs-consent"' + (c.consent ? " checked" : "") + "><span>" + t.cs_consent + '</span></label><div class="err" id="cs-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.cs_send + "</button>";
+    if (embed) {
+      var dd0 = q.doc ? userById(q.doc) : null, smp0 = dd0 && dd0.sample;
+      var ttl = dd0 && !smp0 ? t.ap_to(dd0.name) : c.asap ? (c.spec ? t.ap_spec(t.docsp[c.spec] || "") : t.asap_now[0]) : t.cs_h_short;
+      return '<a class="apov" href="' + apClose() + '" aria-label="' + esc(t.ap_x) + '" tabindex="-1"></a><aside class="applypanel" role="dialog" aria-modal="true" aria-labelledby="ap-h"><div class="aphead"><div><small>' + t.nv_clinic + '</small><h2 id="ap-h">' + esc(ttl) + '</h2></div><a class="apx" href="' + apClose() + '" aria-label="' + esc(t.ap_x) + '">×</a></div><div class="apbody">' +
+        (q.s && !q.doc ? '<p class="note-box">' + (q.smp ? t.ap_smp : t.ap_spec_note) + "</p>" : "") + '<p class="demo">' + t.cs_demo + "</p>" +
+        '<form class="form accform" id="csform" novalidate><fieldset class="accsec"><legend>' + t.cs_type + '</legend><div class="roles">' + types + "</div>" +
+        '<details class="ocmini"><summary>' + t.oc_q + "</summary>" + ocLists(true) + "</details></fieldset>" +
+        '<p class="emline">' + ic("phone") + "<span>" + t.em_line + ' <a href="tel:103">103</a></span></p>' + form + "</form></div></aside>";
+    }
     return '<div class="band deep"><div class="wrap bhead"><div class="eyebrow">' + t.nav_consult + "</div><h1>" + t.cs_h + '</h1><p class="sub">' + t.cs_p + "</p></div></div>" +
       '<div class="wrap pad acc" style="padding-top:28px">' + steps([t.cs_steps_h, t.cs_steps_p]) + '<div class="demo" style="margin:28px 0 20px">' + t.cs_demo + "</div>" +
       '<form class="form accform" id="csform" novalidate><fieldset class="accsec"><legend>' + t.cs_type + '</legend><div class="roles">' + types + "</div>" +
@@ -1280,7 +1345,7 @@
     var t = L(), ab = $("acctBtn"), mu = me(), n = unseen();
     if (ab) { ab.textContent = mu ? mu.name.split(" ")[0] : t.nav_login; ab.setAttribute("href", mu ? "#/account" : "#/login"); if (n.c) ab.setAttribute("data-n", n.c); else ab.removeAttribute("data-n"); }
     all('a[href="#/visits"]').forEach(function (a) { if (n.v) a.setAttribute("data-n", n.v); else a.removeAttribute("data-n"); });
-    var al = $("admlink"); if (al) al.hidden = !(mu && mu.admin);
+    all(".admlink").forEach(function (al) { al.hidden = !(mu && mu.admin); });
   }
   var ADM = { list: null, busy: false, err: "" };
   function admLoad() {
@@ -1605,7 +1670,11 @@
     else if (path === "/settings") { html = viewSettings(); route = "settings"; }
     else if (path === "/admin") { html = viewAdmin(q); route = "admin"; }
     else if (path === "/ona") { html = viewOna(); route = "ona"; }
-    else if (path === "/consult") { html = viewConsult(q); route = "consult"; }
+    else if (path === "/consult") { html = viewDoctors(q) + viewConsult(q, true); route = "consult"; }
+    else if (path === "/about") { html = viewAbout(); route = "about"; }
+    else if (path === "/specialists") { html = viewSpecialists(); route = "specialists"; }
+    else if (path === "/family") { html = viewFamily(); route = "family"; }
+    else if (path === "/wellness") { html = viewWellness(); route = "wellness"; }
     else if (path.indexOf("/consult/") === 0) { html = viewConsultThread(path.slice(9)); route = "consult"; }
     else if (path === "/doctors") { html = viewDoctors(q); route = "doctors"; }
     else if (path === "/prices") { html = viewPrices(q); route = "prices"; }
@@ -1619,28 +1688,31 @@
     else if (path === "/dashboard") { html = viewDashboard(); route = "dashboard"; }
     else if (path === "/assist") { html = viewAssist(); route = "assist"; }
     else html = viewHome();
-    var y = window.scrollY; destroyMap(); $("app").innerHTML = html; hydratePhotos();
+    var y = window.scrollY, apb = document.querySelector(".apbody"), apy = apb ? apb.scrollTop : 0; destroyMap(); $("app").innerHTML = html; hydratePhotos();
+    document.documentElement.classList.toggle("aplock", !!$("ap-h")); if (keepScroll && apy && document.querySelector(".apbody")) document.querySelector(".apbody").scrollTop = apy;
     if (pendingMap) { var items = pendingMap; pendingMap = null; if (items.fac) initFacMap(items.fac, items.single); else initMap(items); }
     all("[data-t]").forEach(function (el) { var v = t[el.dataset.t]; if (typeof v === "string") el.innerHTML = v; });
     all("[data-r]").forEach(function (a) { if (a.dataset.r === route) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
-    if (route === "browse") $("browseBtn").setAttribute("aria-current", "page"); else $("browseBtn").removeAttribute("aria-current");
+    all(".ddbtn[data-routes]").forEach(function (b) { if (b.dataset.routes && (" " + b.dataset.routes + " ").indexOf(" " + route + " ") > -1) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
     all("#lang button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.l === lang)); });
     document.title = "Shifokor: " + (lang === "ru" ? "ближайшая больница и врач" : lang === "uz" ? "sizga yaqin shifoxona va shifokor" : "nearby hospital and doctor");
     hdr();
     closeMenu();
     if (keepScroll) window.scrollTo(0, y); else { window.scrollTo(0, 0); $("app").focus({ preventScroll: true }); }
+    if (!keepScroll && $("ap-h")) { $("ap-h").setAttribute("tabindex", "-1"); $("ap-h").focus({ preventScroll: true }); }
+    if (!keepScroll && path === "/about" && q.s && $("ab-" + q.s)) { $("ab-" + q.s).scrollIntoView(); setTimeout(function () { var el = $("ab-" + q.s); if (el) el.scrollIntoView(); }, 350); }
   }
   function go(hash) { if (location.hash === hash) render(true); else location.hash = hash; }
   function rerender() { render(true); refreshModal(); }
 
   /* ---------------- events ---------------- */
-  function closeMenu() { var m = $("menu"); if (m && !m.hidden) { m.hidden = true; $("browseBtn").setAttribute("aria-expanded", "false"); } }
+  function closeMenu() { all(".menu").forEach(function (m) { m.hidden = true; }); all(".ddbtn").forEach(function (b) { b.setAttribute("aria-expanded", "false"); }); }
   function openBooking(o) { var p = byId(o.p), u = me(); openModal({ type: "book", step: "rf", p: o.p, d: o.d, t: o.t, m: o.m, k: svcsFor(p, o.m)[0].k, name: u ? u.name : "", phone: u && u.phone ? fmtPhone(u.phone) : "" }); }
 
   document.addEventListener("click", function (e) {
     if (!e.target.closest(".dd")) closeMenu();
-    if (e.target.closest("#browseBtn")) { var mn = $("menu"); mn.hidden = !mn.hidden; $("browseBtn").setAttribute("aria-expanded", String(!mn.hidden)); return; }
-    if (e.target.closest("#menu a")) { var ma = e.target.closest("#menu a"); if (ma.dataset.regroleLink) REGROLE = ma.dataset.regroleLink; closeMenu(); return; }
+    var db = e.target.closest(".ddbtn"); if (db) { var mn = db.nextElementSibling, was = mn.hidden; closeMenu(); mn.hidden = !was; db.setAttribute("aria-expanded", String(was)); return; }
+    if (e.target.closest(".menu a")) { var ma = e.target.closest(".menu a"); if (ma.dataset.regroleLink) REGROLE = ma.dataset.regroleLink; closeMenu(); if (!ma.dataset.act) return; }
     var el = e.target.closest("button, a"); if (!el) return;
     var ds = el.dataset, t = L();
 
@@ -2125,7 +2197,8 @@
   $("drawer").addEventListener("mousedown", function (e) { if (e.target === $("drawer")) closeModal(); });
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Escape") return;
-    if (modal) closeModal(); else if (!$("menu").hidden) { closeMenu(); $("browseBtn").focus(); }
+    var om = document.querySelector(".menu:not([hidden])");
+    if (modal) closeModal(); else if (om) { closeMenu(); om.previousElementSibling.focus(); } else if ($("ap-h")) go(apClose());
   });
   /* another tab booked or changed something: refresh so a taken slot disappears here too */
   window.addEventListener("storage", function (e) { if (e.key && e.key.indexOf("shifokor-") === 0) rerender(); });

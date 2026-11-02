@@ -252,6 +252,16 @@ create table if not exists app_preg_checks (
 );
 create index if not exists app_preg_checks_user_idx on app_preg_checks (user_id, created_at);
 
+-- Voice messages in the consultation chat are stored like photos.
+do $$ begin
+  if exists (select 1 from pg_constraint where conname = 'app_files_mime_check' and pg_get_constraintdef(oid) not like '%audio/webm%') then
+    alter table app_files drop constraint app_files_mime_check;
+    alter table app_files add constraint app_files_mime_check check (mime in ('image/jpeg', 'image/png', 'image/webp', 'audio/webm', 'audio/ogg', 'audio/mp4'));
+  end if;
+end $$;
+-- who started the call: 'd' (the doctor) or 'p' (the patient)
+alter table app_consults add column if not exists call_by text check (call_by is null or call_by in ('d', 'p'));
+
 -- Medicines after a consultation: the doctor's list (rx) and the patient's requests for home delivery by a partner
 -- pharmacy, which calls with the price and time; payment is on delivery.
 alter table app_consults add column if not exists rx jsonb;

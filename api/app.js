@@ -131,6 +131,17 @@ function photoOf(p) {
     : data.slice(0, 4).toString("latin1") === "RIFF" && data.slice(8, 12).toString("latin1") === "WEBP" ? "image/webp" : bad("photo");
   return { mime, data };
 }
+// A voice message arrives as { data: base64 }, up to about two minutes. The type comes from the file's first bytes.
+const MAX_VOICE = 30;   // per consultation
+function audioOf(a) {
+  const raw = a && typeof a.data === "string" && a.data.length <= 2200000 ? a.data.replace(/^data:[^,]*,/, "") : bad("audio");
+  const data = Buffer.from(raw, "base64");
+  if (data.length < 100 || data.length > 1600000) bad("audio");
+  const mime = data.slice(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3])) ? "audio/webm"
+    : data.slice(0, 4).toString("latin1") === "OggS" ? "audio/ogg"
+    : data.slice(4, 8).toString("latin1") === "ftyp" ? "audio/mp4" : bad("audio");
+  return { mime, data };
+}
 // Only the patient and the doctor of an accepted consultation can call; a finished one is closed.
 async function callPeer(b, me) {
   need(me);
@@ -234,7 +245,7 @@ const ACTIONS = {
       );
       consults = cs.rows;
       if (consults.length) {
-        const ms = await q("select consult_id, kind, name, body, file_id, created_at from app_messages where consult_id = any($1::uuid[]) order by id", [consults.map((c) => c.id)]);
+        const ms = await q("select m.consult_id, m.kind, m.name, m.body, m.file_id, f.mime as file_mime, m.created_at from app_messages m left join app_files f on f.id = m.file_id where m.consult_id = any($1::uuid[]) order by m.id", [consults.map((c) => c.id)]);
         const by = {};
         ms.rows.forEach((m) => { (by[m.consult_id] = by[m.consult_id] || []).push(m); });
         consults.forEach((c) => { c.messages = by[c.id] || []; });
@@ -375,14 +386,17 @@ const ACTIONS = {
     if (kind === "d" && c.pay_status === "due") throw new Fail(409, "unpaid");   // the doctor replies once the patient has paid
     const body = str(b.body, 2000);
     const photo = b.photo ? photoOf(b.photo) : null;
-    if (!body && !photo) bad("body");
+    const voice = !photo && b.audio ? audioOf(b.audio) : null;
+    if (!body && !photo && !voice) bad("body");
     let fileId = null;
-    if (photo) {
-      if (Number((await q("select count(*) from app_files where consult_id = $1", [c.id])).rows[0].count) >= MAX_PHOTOS) throw new Fail(429, "photos");
-      fileId = (await q("insert into app_files (consult_id, sender, mime, data) values ($1, $2, $3, $4) returning id", [c.id, me.id, photo.mime, photo.data])).rows[0].id;
+    const file = photo || voice;
+    if (file) {
+      const like = voice ? "audio/%" : "image/%", max = voice ? MAX_VOICE : MAX_PHOTOS;
+      if (Number((await q("select count(*) from app_files where consult_id = $1 and mime like $2", [c.id, like])).rows[0].count) >= max) throw new Fail(429, voice ? "voices" : "photos");
+      fileId = (await q("insert into app_files (consult_id, sender, mime, data) values ($1, $2, $3, $4) returning id", [c.id, me.id, file.mime, file.data])).rows[0].id;
     }
     await q("insert into app_messages (consult_id, sender, kind, name, body, file_id) values ($1, $2, $3, $4, $5, $6)", [c.id, me.id, kind, name, body, fileId]);
-    const what = photo ? "rasm yubordi" : kind === "d" ? "javob yozdi" : "yangi xabar yozdi";
+    const what = photo ? "rasm yubordi" : voice ? "ovozli xabar yubordi" : kind === "d" ? "javob yozdi" : "yangi xabar yozdi";
     if (kind === "d") await notifyUser(c.patient_id, "Shifokor: shifokor " + me.name + " " + what + " (ariza №" + c.n + "). " + SITE + "/#/consult/" + c.id);
     else if (c.doctor_id) await notifyUser(c.doctor_id, "Shifokor: bemor " + what + " (ariza №" + c.n + "). " + SITE + "/#/consult/" + c.id);
     return { ok: true, file: fileId };
@@ -419,14 +433,18 @@ const ACTIONS = {
   async call(b, me) {
     need(me);
     const c = await consultFor(me, b.id);
-    if (c.doctor_id !== me.id || c.status !== "accepted") throw new Fail(403, "forbidden");
+    // either side of an accepted consultation can start a call; the other gets a Telegram notice and a ringing banner
+    const by = c.doctor_id === me.id ? "d" : c.patient_id === me.id ? "p" : null;
+    if (!by || c.status !== "accepted") throw new Fail(403, "forbidden");
     if (c.pay_status === "due") throw new Fail(409, "unpaid");
     // pressing "call" again within two minutes rings the same call, so Telegram gets one notice
     const fresh = !c.call_at || Date.now() - new Date(c.call_at).getTime() > 120e3;
-    await q("update app_consults set call = true, call_at = now() where id = $1", [c.id]);
+    await q("update app_consults set call = true, call_at = now(), call_by = case when $2::boolean then $3 else coalesce(call_by, $3) end where id = $1", [c.id, fresh, by]);
     if (fresh) {
       await sysNote(c.id, b.note);
-      await notifyUser(c.patient_id, "Shifokor: shifokor " + me.name + " sizga " + (c.type === "video" ? "video" : "audio") + " qo‘ng‘iroq qilmoqda (ariza №" + c.n + "). Qo‘shiling: " + SITE + "/#/consult/" + c.id);
+      const media = c.type === "video" ? "video" : "audio";
+      if (by === "d") await notifyUser(c.patient_id, "Shifokor: shifokor " + me.name + " sizga " + media + " qo‘ng‘iroq qilmoqda (ariza №" + c.n + "). Qo‘shiling: " + SITE + "/#/consult/" + c.id);
+      else if (c.doctor_id) await notifyUser(c.doctor_id, "Shifokor: bemor " + c.name + " sizga " + media + " qo‘ng‘iroq qilmoqda (ariza №" + c.n + "). Qo‘shiling: " + SITE + "/#/consult/" + c.id);
     }
     return { ok: true };
   },

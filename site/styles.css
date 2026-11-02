@@ -1233,3 +1233,44 @@ img.pimg { object-fit: cover; padding: 0; }
 .rxsteps li.now::before { background: var(--accent); color: var(--accent-ink); box-shadow: 0 0 0 4px var(--accent-soft); }
 .vcrx { display: flex; gap: 8px; align-items: flex-start; margin: 16px 0 0; color: var(--muted); font-size: 0.95rem; }
 .vcrx .ic { color: var(--accent); flex: none; margin-top: 3px; }
+
+/* sign in and register like a real site */
+.top .regbtn { margin-left: 8px; }
+.top .regbtn[hidden] { display: none; }
+@media (max-width: 520px) { .top .regbtn { display: none; } }
+.authgate { padding: 16px 18px; border-radius: 16px; background: var(--accent-soft); margin-bottom: 14px; }
+.authgate b { display: block; font: 700 1.08rem var(--font-display); }
+.authgate p { margin: 6px 0 12px; color: var(--ink); }
+.authalt { display: grid; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); text-align: center; color: var(--muted); }
+.authtop { margin: 0 0 10px; color: var(--muted); }
+
+/* home search: name, language and quick filters */
+.hfrow2 { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; margin-top: 12px; }
+.hfrow2 .pinput { width: 100%; text-align: left; }
+.hfrow2 label { display: block; font: 600 0.85rem var(--font-body); margin-bottom: 6px; color: var(--muted); }
+.hfchips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.chipchk { position: relative; display: inline-flex; }
+.chipchk input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.chipchk span { padding: 7px 14px; border-radius: 99px; border: 1.5px solid var(--line); font-weight: 600; font-size: 0.9rem; color: var(--ink); background: var(--surface); }
+.chipchk input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.chipchk input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 640px) { .hfrow2 { grid-template-columns: minmax(0, 1fr); } }
+
+/* voice messages */
+.vobar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: var(--accent-soft); }
+.vobar audio { flex: 1; min-width: 180px; height: 36px; }
+.vobar.rec { background: var(--risk-soft); }
+.recdot { width: 12px; height: 12px; border-radius: 50%; background: var(--risk); animation: recblink 1s infinite; }
+@keyframes recblink { 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .recdot { animation: none; } }
+audio.voice { display: block; width: 240px; max-width: 100%; height: 36px; margin: 2px 0 4px; }
+/* on phones the search button comes after all the filters */
+@media (max-width: 640px) {
+  .hfform { display: flex; flex-direction: column; gap: 12px; }
+  .hfform .srow3 { display: contents; }
+  .hfform .srow3 > .sf { order: 1; }
+  .hfform .hfrow2 { order: 2; margin-top: 0; }
+  .hfform .hfchips { order: 3; margin-top: 0; }
+  .hfform .srow3 > button { order: 4; }
+  .hfform .hfmore { order: 5; }
+}

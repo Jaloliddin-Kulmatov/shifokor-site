@@ -278,6 +278,8 @@
     var acts = t.hm_cards.map(function (x, i) { return '<a class="act' + (i === 0 ? " now" : "") + '" href="' + links[i] + '"><span class="act-media' + (media[i] ? "" : " plain") + '">' + (media[i] ? photo(media[i][0], media[i][1], "(max-width: 520px) 90vw, 300px") : ic(icons[i])) + '</span><span class="act-ic">' + ic(icons[i]) + '</span><b>' + x[0] + '</b><span class="actp">' + x[1] + "</span>" + (i === 0 && live.length ? '<span class="actlive">' + liveBadge() + " " + t.on_count(live.length) + "</span>" : "") + '<span class="actgo">' + x[2] + " →</span></a>"; }).join("");
     var regSel = REG.slice().sort(function (a, b) { return nmL(a).localeCompare(nmL(b)); });
     var form = '<form class="hfform" id="hfform" role="search"><div class="srow3"><div class="sf"><label for="hf-s">' + t.hf_spec + '</label><select id="hf-s"><option value="">' + t.all_specs + "</option>" + DOC_SP.filter(function (k) { return k !== "other"; }).map(function (k) { return '<option value="' + k + '">' + t.docsp[k] + "</option>"; }).join("") + '</select></div><div class="sf"><label for="hf-r">' + t.f_region + '</label><select id="hf-r"><option value="">' + t.all_regions + "</option>" + regSel.map(function (r) { return '<option value="' + r.code + '">' + esc(nmL(r)) + "</option>"; }).join("") + '</select></div><button class="btn big" type="submit">' + ic("search") + t.hf_go + "</button></div>" +
+      '<div class="hfrow2"><div class="sf"><label for="hf-q">' + t.ds_name + '</label><input id="hf-q" class="pinput" placeholder="' + esc(t.ds_name_ph) + '"></div><div class="sf"><label for="hf-lg">' + t.df_lang + '</label><select id="hf-lg"><option value="">' + t.df_any_lang + "</option>" + ["uz", "ru", "en", "kaa", "tg"].map(function (l) { return '<option value="' + l + '">' + esc(langName(l)) + "</option>"; }).join("") + "</select></div></div>" +
+      '<div class="hfchips">' + [["hf-on", t.df_online], ["hf-fem", t.df_fem], ["hf-rate", t.hf_rated]].map(function (x) { return '<label class="chipchk"><input type="checkbox" id="' + x[0] + '"><span>' + x[1] + "</span></label>"; }).join("") + "</div>" +
       '<div class="hfmore"><a class="btn light" href="#/consult">' + ic("chat") + t.hf_consult + '</a><a class="hflink" href="#/prices">' + ic("tag") + t.hf_prices + "</a></div></form>";
     var docs = realFirst(withSamples().filter(function (u) { return u.role === "doctor"; }), "rating").slice(0, 6);
     /* search by specialty, with how many doctors each has */
@@ -674,7 +676,7 @@
     var t = L(), clinic = REGROLE === "clinic";
     var roles = ["patient", "doctor", "clinic"].map(function (r) { return '<button type="button" class="rolecard" data-regrole="' + r + '" aria-pressed="' + (REGROLE === r) + '"><span class="icobox">' + ic(r === "patient" ? "heart" : r === "doctor" ? "shield" : "hosp") + "</span><b>" + t.role[r] + "</b><span>" + t.role_d[r] + "</span></button>"; }).join("");
     var f = function (id, label, type, extra) { return '<div class="fld"><label for="' + id + '">' + label + '</label><input id="' + id + '" type="' + type + '"' + (extra || "") + "></div>"; };
-    return '<div class="wrap pad acc"><h1>' + t.reg_h + '</h1><p class="lead">' + t.reg_p + '</p><div class="demo" style="margin:16px 0 22px">' + t.acc_demo + '</div><div class="roles" role="group">' + roles + "</div>" +
+    return '<div class="wrap pad acc"><p class="authtop">' + t.have_acc + ' <a href="#/login">' + t.go_login + '</a></p><h1>' + t.reg_h + '</h1><p class="lead">' + t.reg_p + '</p><div class="demo" style="margin:16px 0 22px">' + t.acc_demo + '</div><div class="roles" role="group">' + roles + "</div>" +
       '<form class="form" id="regform" novalidate>' + f("r-name", clinic ? t.f_clinicname : t.f_fullname, "text", ' autocomplete="' + (clinic ? "organization" : "name") + '"') +
       '<div class="two">' + f("r-email", t.f_email, "email", ' autocomplete="email" inputmode="email"') + f("r-phone", t.f_phone2, "tel", ' autocomplete="tel" inputmode="tel" placeholder="+998"') + '</div><p class="fine" style="margin:-4px 0 14px">' + t.or_note + "</p>" +
       f("r-tg", t.f_tg, "text", ' autocomplete="off" placeholder="' + t.f_tg_ph + '"') +
@@ -685,7 +687,7 @@
     var t = L();
     return '<div class="wrap pad acc" style="max-width:520px"><h1>' + t.login_h + '</h1><div class="demo" style="margin:16px 0 22px">' + t.acc_demo + '</div><form class="form" id="loginform" novalidate>' +
       '<div class="fld"><label for="l-id">' + t.login_id + '</label><input id="l-id" autocomplete="username"></div><div class="fld"><label for="l-pw">' + t.f_pw + '</label><input id="l-pw" type="password" autocomplete="current-password"></div>' +
-      '<div class="err" id="l-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.login_btn + '</button><p class="muted" style="margin-top:14px;text-align:center">' + t.no_acc + ' <a href="#/register">' + t.go_reg + "</a></p></form></div>";
+      '<div class="err" id="l-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.login_btn + '</button><div class="authalt"><span>' + t.no_acc + '</span><a class="btn ghost block" href="#/register">' + t.go_reg + "</a></div></form></div>";
   }
 
   /* account editor keeps unsaved edits in ACC so adding a row does not lose what was typed */
@@ -982,6 +984,13 @@
   function phImg(id) { var t = L(); return '<button type="button" class="msgph" data-ph="' + esc(id) + '" aria-label="' + esc(t.ph_open) + '"><img data-phid="' + esc(id) + '" alt="' + esc(t.ph_alt) + '"></button>'; }
   /* fills in photo <img>s after a render; server photos load once and then come from memory */
   function hydratePhotos() {
+    /* voice messages load the same way as photos */
+    all("audio[data-auid]").forEach(function (au) {
+      var id = au.dataset.auid, u = photoSrc(id);
+      if (u) { au.src = u; return; }
+      if (!BE) { au.replaceWith(document.createTextNode("—")); return; }
+      BE.photo(id).then(function (url) { phUrls[id] = url; all('audio[data-auid="' + id + '"]').forEach(function (x) { x.src = url; }); }, function () {});
+    });
     all("img[data-phid]").forEach(function (im) {
       var id = im.dataset.phid, u = photoSrc(id);
       if (u) { im.src = u; return; }
@@ -1040,7 +1049,7 @@
       var dd0 = q.doc ? userById(q.doc) : null, smp0 = dd0 && dd0.sample;
       var ttl = dd0 && !smp0 ? t.ap_to(dd0.name) : c.asap ? (c.spec ? t.ap_spec(t.docsp[c.spec] || "") : t.asap_now[0]) : t.cs_h_short;
       return '<a class="apov" href="' + apClose() + '" aria-label="' + esc(t.ap_x) + '" tabindex="-1"></a><aside class="applypanel" role="dialog" aria-modal="true" aria-labelledby="ap-h"><div class="aphead"><div><small>' + t.nv_clinic + '</small><h2 id="ap-h">' + esc(ttl) + '</h2></div><a class="apx" href="' + apClose() + '" aria-label="' + esc(t.ap_x) + '">×</a></div><div class="apbody">' +
-        (q.s && !q.doc ? '<p class="note-box">' + (q.smp ? t.ap_smp : t.ap_spec_note) + "</p>" : "") + '<p class="demo">' + t.cs_demo + "</p>" +
+        (BE && !BE.userId() ? '<div class="authgate"><b>' + t.ag_h + "</b><p>" + t.ag_p + '</p><div class="btns"><a class="btn" href="#/register">' + t.go_reg + '</a><a class="btn ghost" href="#/login">' + t.go_login + "</a></div></div>" : "") + (q.s && !q.doc ? '<p class="note-box">' + (q.smp ? t.ap_smp : t.ap_spec_note) + "</p>" : "") + '<p class="demo">' + t.cs_demo + "</p>" +
         '<form class="form accform" id="csform" novalidate><fieldset class="accsec"><legend>' + t.cs_type + '</legend><div class="roles">' + types + "</div>" +
         '<details class="ocmini"><summary>' + t.oc_q + "</summary>" + ocLists(true) + "</details></fieldset>" +
         '<p class="emline">' + ic("phone") + "<span>" + t.em_line + ' <a href="tel:103">103</a></span></p>' + form + "</form></div></aside>";
@@ -1167,23 +1176,72 @@
     var details = '<dl class="kv">' + row(t.cs_type_lbl, t.cs_types[c.type][0]) + row(t.pay_price, c.price != null && c.status !== "new" ? '<span class="nums">' + esc(money(c.price)) + "</span>" : "") + row(t.cs_for_lbl, t.cs_for[c.who]) + row(t.cs_pname, esc(c.name)) + row(t.cs_age, esc(c.age)) + row(t.cs_sex, t.cs_sexes[c.sex]) + row(t.cs_phone, '<span class="nums">' + esc(isDoc || !c.userId || (u && u.id === c.userId) ? c.phone : maskPhone(c.phone)) + "</span>") + row(t.cs_area, esc(area)) + row(t.cs_since, t.cs_sinces[+c.since]) + "</dl>" +
       '<h3 style="margin:16px 0 6px">' + t.cs_complaint + '</h3><p class="pre">' + esc(c.complaint) + "</p>" +
       '<dl class="kv" style="margin-top:14px">' + row(t.cs_chronic, esc(c.chronic)) + row(t.cs_meds, esc(c.meds)) + row(t.cs_allergy, esc(c.allergy)) + row(t.cs_wanted, c.spec ? t.docsp[c.spec] : t.cs_spec_any) + row(t.cs_doctor, c.doctorId ? '<a href="#/doc/' + c.doctorId + '">' + esc(c.doctorName) + "</a>" : "") + "</dl>";
-    var msgs = c.msgs.map(function (m) { if (m.from === "s") return '<div class="sys">' + esc(m.text) + "</div>"; var mine = (isDoc && m.from === "d") || (!isDoc && m.from === "p"); return '<div class="' + (mine ? "me" : "them") + (m.file ? " hasph" : "") + '">' + (m.from === "d" && !mine ? "<b>" + esc(m.name) + "</b>" : "") + (m.file ? phImg(m.file) : "") + esc(m.text || "") + '<small>' + fmt(new Date(m.at), { day: "numeric", month: "short" }) + " " + pad(new Date(m.at).getHours()) + ":" + pad(new Date(m.at).getMinutes()) + "</small></div>"; }).join("");
+    var msgs = c.msgs.map(function (m) { if (m.from === "s") return '<div class="sys">' + esc(m.text) + "</div>"; var mine = (isDoc && m.from === "d") || (!isDoc && m.from === "p"); return '<div class="' + (mine ? "me" : "them") + (m.file ? " hasph" : "") + '">' + (m.from === "d" && !mine ? "<b>" + esc(m.name) + "</b>" : "") + (m.file ? (m.fk === "a" ? '<audio class="voice" controls preload="none" data-auid="' + esc(m.file) + '"></audio>' : phImg(m.file)) : "") + esc(m.text || "") + '<small>' + fmt(new Date(m.at), { day: "numeric", month: "short" }) + " " + pad(new Date(m.at).getHours()) + ":" + pad(new Date(m.at).getMinutes()) + "</small></div>"; }).join("");
     var canWrite = c.status !== "done" && c.status !== "referred" && (!isDoc || (mineDoc && !due));
     var actions = "";
     if (isDoc && c.status === "new") actions = '<button class="btn" type="button" data-cs="accept" data-id="' + c.id + '">' + ic("check") + t.cs_accept + "</button>" +
       /* instead of accepting: an in-person visit is needed, the application closes and nothing is charged */
       '<details class="finish"><summary>' + t.rf2_btn + '</summary><form id="csrefer" data-id="' + c.id + '" novalidate><div class="fld"><label for="cs-adv">' + t.rf2_label + '</label><textarea id="cs-adv" maxlength="1000" placeholder="' + esc(t.rf2_ph) + '"></textarea></div><div class="err" id="csr-err" aria-live="polite"></div><button class="btn" type="submit">' + t.rf2_send + '</button><p class="fine" style="margin-top:8px">' + t.rf2_note + "</p></form></details>";
-    if (mineDoc && c.status === "accepted") actions = (due ? '<div class="note-box">' + ic("tag") + " " + t.pay_wait_doc(esc(money(c.price))) + "</div>" : "") + (c.type !== "text" && !due ? '<button class="btn" type="button" data-cs="call" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "mic") + t.cs_call + "</button>" : "") +
+    if (mineDoc && c.status === "accepted") actions = (due ? '<div class="note-box">' + ic("tag") + " " + t.pay_wait_doc(esc(money(c.price))) + "</div>" : "") + (!due ? (c.callBy === "p" && ringNow(c) ? '<div class="ring" role="status"><span class="ring-ic">' + ic(c.type === "video" ? "video" : "mic") + "</span><div><b>" + t.cl_pat_ringing + "</b><span>" + esc(c.name) + "</span></div></div>" : "") + '<button class="btn" type="button" data-cs="call" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "mic") + (c.callBy === "p" && ringNow(c) ? t.cl_answer : c.type === "text" ? t.cl_call_audio : t.cs_call) + "</button>" : "") +
       '<details class="finish"><summary>' + t.cs_finish + '</summary><form id="csfinish" data-id="' + c.id + '" novalidate><div class="radio">' + t.on_out.map(function (o, i) { return '<label><input type="radio" name="csout" value="' + i + '">' + o + "</label>"; }).join("") + '</div><div class="fld"><label for="cs-sum">' + t.vs_note + '</label><textarea id="cs-sum" maxlength="600"></textarea></div><div class="err" id="csf-err"></div><button class="btn" type="submit">' + t.vs_save + "</button></form></details>";
-    if (!isDoc && c.status === "accepted" && c.call && !due) actions = '<button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "mic") + t.cs_join + "</button>";
-    var ringing = !isDoc && c.status === "accepted" && c.type !== "text" && ringNow(c) && !due && !(window.ShifokorCall && ShifokorCall.active());
+    if (!isDoc && c.status === "accepted" && !due && (u ? c.userId === u.id : !c.userId)) actions = (c.call && ringNow(c) && c.callBy !== "p" ? '<button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "mic") + t.cs_join + "</button>" : "") +
+      '<button class="btn' + (c.call && ringNow(c) && c.callBy !== "p" ? " ghost" : "") + '" type="button" data-cs="pcall" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "phone") + t.cl_call_doc(c.type === "video") + "</button>";
+    var ringing = !isDoc && c.status === "accepted" && c.callBy !== "p" && ringNow(c) && !due && !(window.ShifokorCall && ShifokorCall.active());
     return '<div class="wrap"><a class="back" href="' + (isDoc ? "#/account" : "#/visits") + '">‹ ' + (isDoc ? t.nav_account : t.nav_visits) + '</a><div class="sechead" style="padding-top:12px"><div><h1 style="font-size:clamp(1.6rem,1.3rem + 1.4vw,2.3rem)">' + t.cs_no(c.n) + "</h1><div class=\"badges\">" + csBadge(c.status) + payBadge(c) + (c.asap && c.status === "new" ? '<span class="badge warn">' + t.asap_badge + "</span>" : "") + (isDoc && c.followup ? '<span class="badge ' + (c.followup === "worse" ? "warn" : "ok") + '">' + t.fu_doc(t.fu_opts[c.followup]) + "</span>" : "") + '<span class="badge plain">' + t.cs_types[c.type][0] + "</span></div></div>" + (isDoc ? '<span class="sample">' + t.cs_doc_view + "</span>" : "") + "</div>" +
       (ringing ? '<div class="ring" role="status"><span class="ring-ic">' + ic(c.type === "video" ? "video" : "mic") + "</span><div><b>" + t.cl_ringing + "</b><span>" + esc(c.doctorName) + '</span></div><button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + t.cs_join + "</button></div>" : "") +
       '<div class="pf" style="padding-top:18px"><div>' + (!isDoc && due && (u ? c.userId === u.id : !c.userId) ? payCard(c) : "") + (!isDoc && (u ? c.userId === u.id : !c.userId) ? careCard(c) : "") + rxCard(c, mineDoc, !isDoc && (u ? c.userId === u.id : !c.userId)) + (!isDoc && c.status === "done" && c.doctorId && (u ? c.userId === u.id : !c.userId) ? rvCard("c", c.id, c.doctorName, false) : "") + '<div class="dcard"><h2>' + t.cs_details + "</h2>" + details + "</div>" + (isDoc && !mineDoc && c.status !== "new" ? "" : "") + '<p class="fine" style="margin-top:14px">' + t.cs_demo + "</p></div>" +
       '<aside class="dcard chatcard"><h2>' + t.cs_thread + '</h2><div class="room-log" id="cslog">' + (msgs || '<div class="sys">' + t.cs_sent + "</div>") + "</div>" +
-      (canWrite ? '<form class="room-send withph" id="csmsg" data-id="' + c.id + '" style="margin-top:10px">' + (PH && PH.cid === c.id ? '<div class="phpend"><img src="' + PH.url + '" alt="' + esc(t.ph_alt) + '"><span>' + t.ph_ready + '</span><button class="btn ghost sm" type="button" data-act="phdrop">' + t.ph_remove + "</button></div>" : "") +
-        '<label class="btn ghost phbtn" title="' + esc(t.ph_add) + '"><input type="file" accept="image/*" id="csmsg-ph" class="vh" aria-label="' + esc(t.ph_add) + '">' + ic("camera") + '</label><input id="csmsg-in" class="pinput" style="width:100%;text-align:left" placeholder="' + esc(t.cs_write) + '" aria-label="' + esc(t.cs_write) + '" autocomplete="off"><button class="btn" type="submit">' + t.cs_send_msg + '</button></form><p class="fine" style="margin-top:6px">' + t.ph_privacy + "</p>" : "") +
+      (canWrite ? voBar(c.id) + '<form class="room-send withph" id="csmsg" data-id="' + c.id + '" style="margin-top:10px">' + (PH && PH.cid === c.id ? '<div class="phpend"><img src="' + PH.url + '" alt="' + esc(t.ph_alt) + '"><span>' + t.ph_ready + '</span><button class="btn ghost sm" type="button" data-act="phdrop">' + t.ph_remove + "</button></div>" : "") +
+        '<label class="btn ghost phbtn" title="' + esc(t.ph_add) + '"><input type="file" accept="image/*" id="csmsg-ph" class="vh" aria-label="' + esc(t.ph_add) + '">' + ic("camera") + '</label><button class="btn ghost phbtn" type="button" data-vo="rec" data-id="' + c.id + '" title="' + esc(t.vo_btn) + '" aria-label="' + esc(t.vo_btn) + '">' + ic("mic") + '</button><input id="csmsg-in" class="pinput" style="width:100%;text-align:left" placeholder="' + esc(t.cs_write) + '" aria-label="' + esc(t.cs_write) + '" autocomplete="off"><button class="btn" type="submit">' + t.cs_send_msg + '</button></form><p class="fine" style="margin-top:6px">' + t.ph_privacy + "</p>" : "") +
       (actions ? '<div class="stack" style="margin-top:12px">' + actions + "</div>" : "") + (!isDoc && c.status === "new" ? "" : "") + '<p class="fine" style="margin-top:10px">' + t.cs_sms_note + "</p></aside></div></div>";
+  }
+  /* ---------------- voice messages in the consultation chat ---------------- */
+  /* { cid, state: "rec" | "ready", rec, stream, chunks, t0, timer, blob, url, sec } */
+  var VO = null, VO_MAX = 120;
+  var mmss = function (s) { return Math.floor(s / 60) + ":" + pad(s % 60); };
+  function voDrop() { if (!VO) return; clearInterval(VO.timer); if (VO.state === "rec") { VO.cancel = true; try { VO.rec.stop(); } catch (x) {} } if (VO.stream) VO.stream.getTracks().forEach(function (tr) { tr.stop(); }); if (VO.url) URL.revokeObjectURL(VO.url); VO = null; }
+  function voStart(cid) {
+    var t = L();
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) { toast(t.vo_unsup); return; }
+    voDrop();
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      var type = ["audio/webm;codecs=opus", "audio/ogg;codecs=opus", "audio/mp4", "audio/webm"].filter(function (x) { return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(x); })[0] || "";
+      var rec; try { rec = new MediaRecorder(stream, type ? { mimeType: type, audioBitsPerSecond: 32000 } : undefined); } catch (x) { stream.getTracks().forEach(function (tr) { tr.stop(); }); toast(t.vo_unsup); return; }
+      var v = VO = { cid: cid, state: "rec", rec: rec, stream: stream, chunks: [], t0: Date.now() };
+      rec.ondataavailable = function (e) { if (e.data && e.data.size) v.chunks.push(e.data); };
+      rec.onstop = function () {
+        stream.getTracks().forEach(function (tr) { tr.stop(); });
+        if (v.cancel || VO !== v) return;
+        v.blob = new Blob(v.chunks, { type: (rec.mimeType || type || "audio/webm").split(";")[0] }); v.url = URL.createObjectURL(v.blob); v.sec = Math.max(1, Math.round((Date.now() - v.t0) / 1000)); v.state = "ready"; render(true);
+      };
+      rec.start(1000);
+      v.timer = setInterval(function () { var sec = Math.floor((Date.now() - v.t0) / 1000), el = $("vo-t"); if (el) el.textContent = mmss(sec); if (sec >= VO_MAX) voStop(); }, 250);
+      render(true);
+    }, function () { toast(t.vo_denied); });
+  }
+  function voStop() { if (VO && VO.state === "rec") { clearInterval(VO.timer); VO.rec.stop(); } }
+  function voBar(cid) {
+    var t = L(); if (!VO || VO.cid !== cid) return "";
+    if (VO.state === "rec") return '<div class="vobar rec" role="status"><span class="recdot" aria-hidden="true"></span><b id="vo-t" class="nums">' + mmss(Math.floor((Date.now() - VO.t0) / 1000)) + "</b><span>" + t.vo_rec + '</span><button class="btn sm" type="button" data-vo="stop">' + t.vo_stop + '</button><button class="linkbtn" type="button" data-vo="drop">' + t.po_cancel + "</button></div>";
+    return '<div class="vobar"><audio controls src="' + VO.url + '"></audio><button class="btn sm" type="button" data-vo="send" data-id="' + cid + '">' + t.vo_send + '</button><button class="linkbtn" type="button" data-vo="drop">' + t.vo_del + "</button></div>";
+  }
+  function voSend(el) {
+    var t = L(), v = VO, cid = v.cid, u = me(), asDoc = !!(u && u.role === "doctor"), c = consultById(cid);
+    var fr = new FileReader();
+    fr.onload = function () {
+      var data = String(fr.result);
+      if (data.length > 2150000) { toast(t.vo_long); return; }
+      if (BE) {
+        el.disabled = true; el.textContent = t.ph_sending;
+        BE.addMessage(cid, asDoc ? "d" : "p", asDoc ? u.name : (c || {}).name, "", null, { data: data }).then(function () { voDrop(); render(true); var lg = $("cslog"); if (lg) lg.scrollTop = lg.scrollHeight; }, function (x) { el.disabled = false; el.textContent = t.vo_send; toast(beMsg(t, x)); });
+        return;
+      }
+      var fid = demoPhoto({ url: data }); if (!fid) { toast(t.ph_full); return; }
+      var cl = consults(), cc = cl.filter(function (x) { return x.id === cid; })[0];
+      cc.msgs.push({ from: asDoc ? "d" : "p", name: asDoc ? u.name : cc.name, text: "", file: fid, fk: "a", at: Date.now() }); saveConsults(cl); voDrop(); render(true);
+      var lg2 = $("cslog"); if (lg2) lg2.scrollTop = lg2.scrollHeight;
+    };
+    fr.readAsDataURL(v.blob);
   }
   /* ---------------- medicines after a consultation, and home delivery ---------------- */
   /* the doctor writes what to take; the patient can ask a partner pharmacy to deliver it (price by phone, paid on delivery) */
@@ -1392,6 +1450,7 @@
   /* header: account button, unread counts, admin link */
   function hdr() {
     var t = L(), ab = $("acctBtn"), mu = me(), n = unseen();
+    var rb = $("regBtn"); if (rb) rb.hidden = !!mu;
     if (ab) { ab.textContent = mu ? mu.name.split(" ")[0] : t.nav_login; ab.setAttribute("href", mu ? "#/account" : "#/login"); if (n.c) ab.setAttribute("data-n", n.c); else ab.removeAttribute("data-n"); }
     all('a[href="#/visits"]').forEach(function (a) { if (n.v) a.setAttribute("data-n", n.v); else a.removeAttribute("data-n"); });
     all(".admlink").forEach(function (al) { al.hidden = !(mu && mu.admin); });
@@ -1752,6 +1811,9 @@
     if (!keepScroll && $("ap-h")) { $("ap-h").setAttribute("tabindex", "-1"); $("ap-h").focus({ preventScroll: true }); }
     if (!keepScroll && path === "/about" && q.s && $("ab-" + q.s)) { $("ab-" + q.s).scrollIntoView(); setTimeout(function () { var el = $("ab-" + q.s); if (el) el.scrollIntoView(); }, 350); }
   }
+  /* after signing in or registering, go back to the page the visitor was on (an application they started, say) */
+  var NEXT_K = "shifokor-next";
+  function afterAuth() { var n = ""; try { n = sessionStorage.getItem(NEXT_K) || ""; sessionStorage.removeItem(NEXT_K); } catch (x) {} return /^#\/(?!login|register|claim)/.test(n) ? n : "#/account"; }
   function go(hash) { if (location.hash === hash) render(true); else location.hash = hash; }
   function rerender() { render(true); refreshModal(); }
 
@@ -1761,6 +1823,8 @@
 
   document.addEventListener("click", function (e) {
     if (!e.target.closest(".dd")) closeMenu();
+    var authA = e.target.closest('a[href="#/login"], a[href="#/register"]');
+    if (authA && current && current.path !== "/login" && current.path !== "/register") { try { sessionStorage.setItem(NEXT_K, location.hash || "#/"); } catch (x) {} }
     var db = e.target.closest(".ddbtn"); if (db) { var mn = db.nextElementSibling, was = mn.hidden; closeMenu(); mn.hidden = !was; db.setAttribute("aria-expanded", String(was)); return; }
     if (e.target.closest(".menu a")) { var ma = e.target.closest(".menu a"); if (ma.dataset.regroleLink) REGROLE = ma.dataset.regroleLink; closeMenu(); if (!ma.dataset.act) return; }
     var el = e.target.closest("button, a"); if (!el) return;
@@ -1839,6 +1903,13 @@
       if (oa === "delok") { ON = { mode: "due", urgent: false, ok: false, famUrl: "", del: false }; if (BE) { BE.pregDelete().then(done, fail); return; } savePregDemo(null); render(true); return; }
     }
     if (ds.csasap) { csCollect(); CS.asap = ds.csasap === "1"; if (CS.asap) CS.doc = ""; render(true); return; }
+    if (ds.vo) {
+      if (ds.vo === "rec") { voStart(ds.id); return; }
+      if (ds.vo === "stop") { voStop(); return; }
+      if (ds.vo === "drop") { voDrop(); render(true); return; }
+      if (ds.vo === "send" && VO && VO.blob) { voSend(el); return; }
+      return;
+    }
     if (ds.rx) {
       var rxc = consultById(ds.id || (RX && RX.cid) || (RXO && RXO.cid) || "");
       if (ds.rx === "edit" && rxc) { RX = { cid: rxc.id, rows: (rxc.rx && rxc.rx.length ? rxc.rx : [{ name: "", how: "", days: "" }]).map(function (m) { return { name: m.name, how: m.how || "", days: m.days || "" }; }) }; render(true); if ($("rx-n-0")) $("rx-n-0").focus(); return; }
@@ -1883,8 +1954,12 @@
       if (BE && ds.cs === "accept") { if (!du || du.role !== "doctor") { toast(t.cs_only_doc); return; } BE.updateConsult(cc.id, { status: "accepted", doctor_id: du.id, doctor_name: du.name }, t.cs_accepted(du.name)).then(function () { render(true); }, function () { toast(t.be_err); }); return; }
       if (BE && ds.cs === "call") { BE.updateConsult(cc.id, { call: true }, t.cs_call_msg(cc.type)).then(function () { render(true); }, function (x) { toast(beMsg(t, x)); }); openCall(cc, "d"); return; }
       if (ds.cs === "accept") { if (!du || du.role !== "doctor") { toast(t.cs_only_doc); return; } cc.status = "accepted"; cc.doctorId = du.id; cc.doctorName = du.name; cc.price = cpOf(du.profile)[cc.type]; cc.payStatus = cc.price > 0 ? "due" : "none"; cc.msgs.push({ from: "s", text: t.cs_accepted(du.name), at: Date.now() }); saveConsults(cl); render(true); return; }
-      if (ds.cs === "call") { if (!ringNow(cc)) cc.msgs.push({ from: "s", text: t.cs_call_msg(cc.type), at: Date.now() }); cc.call = true; cc.callAt = Date.now(); saveConsults(cl); render(true); openCall(cc, "d"); return; }
+      if (ds.cs === "call") { if (!ringNow(cc)) cc.msgs.push({ from: "s", text: t.cs_call_msg(cc.type), at: Date.now() }); cc.callBy = ringNow(cc) && cc.callBy === "p" ? "p" : "d"; cc.call = true; cc.callAt = Date.now(); saveConsults(cl); render(true); openCall(cc, "d"); return; }
       if (ds.cs === "join") { openCall(cc, "p"); return; }
+      if (ds.cs === "pcall") {
+        if (BE) { BE.updateConsult(cc.id, { call: true }, t.cl_pat_msg).then(function () { render(true); }, function (x) { toast(beMsg(t, x)); }); openCall(cc, "p"); return; }
+        if (!ringNow(cc)) cc.msgs.push({ from: "s", text: t.cl_pat_msg, at: Date.now() }); cc.call = true; cc.callAt = Date.now(); cc.callBy = "p"; saveConsults(cl); render(true); openCall(cc, "p"); return;
+      }
     }
     if (ds.pq) { go("#/prices?" + qs(prQuery({ q: ds.pq }))); return; }
     if (ds.apday || ds.appart || ds.apwho) { apCollect(); if (ds.apday) AP.day = ds.apday; if (ds.appart) AP.part = ds.appart; if (ds.apwho) { AP.who = ds.apwho; var mu7 = me(); AP.name = ds.apwho === "self" && mu7 && mu7.role === "patient" ? mu7.name : ""; } render(true); return; }
@@ -2140,7 +2215,7 @@
       if (BE) { BE.reviewReply(rpid, rtxt).then(rpdone, function (x) { toast(beMsg(t, x)); }); return; }
       var rl2 = store.get(KR, []); rl2.forEach(function (x) { if (x.id === rpid) x.reply = rtxt.slice(0, 400); }); store.set(KR, rl2); rpdone(); return;
     }
-    if (id === "hfform") { go("#/doctors?" + qs({ s: $("hf-s").value, r: $("hf-r").value })); return; }
+    if (id === "hfform") { go("#/doctors?" + qs({ s: $("hf-s").value, r: $("hf-r").value, q: $("hf-q").value.trim(), lg: $("hf-lg").value, on: $("hf-on").checked ? "1" : "", fem: $("hf-fem").checked ? "1" : "", sort: $("hf-rate").checked ? "rating" : "" })); return; }
     if (id === "prform") { go("#/prices?" + qs(prQuery())); return; }
     if (id === "docfilter") { go("#/doctors?" + qs(dfQuery())); return; }
     if (id === "docsearch") { go("#/doctors?" + qs({ s: $("hs-s").value, r: $("hs-r").value, q: $("hs-q").value.trim() })); return; }
@@ -2152,14 +2227,14 @@
         $("r-err").textContent = "";
         BE.signUp({ role: REGROLE, name: name, email: em, phone: ph ? digits(ph) : "", tg: tg ? "@" + tgName(tg) : "", password: pw }).then(function (r) {
           if (r.needsConfirm) { $("r-err").textContent = t.be_confirm; return; }
-          ACC = null; toast(t.welcome(name)); go("#/account");
+          ACC = null; toast(t.welcome(name)); go(afterAuth());
         }, function (x) { $("r-err").textContent = beMsg(t, x); });
         return;
       }
       var nid = "u" + Date.now().toString(36);
       hashPw(pw, nid).then(function (h) {
         var list = users(); list.push({ id: nid, role: REGROLE, name: name, email: em, phone: ph ? digits(ph) : "", tg: tg ? "@" + tgName(tg) : "", pw: h, created: iso(today0()), updated: iso(today0()), profile: REGROLE === "doctor" ? { spec: "gp", modes: ["in"], langs: ["uz"], work: [], svc: [] } : REGROLE === "clinic" ? { ctype: "clinic", own: "s", svc: [] } : {} });
-        saveUsers(list); store.set(KS, nid); ACC = null; toast(t.welcome(name)); go("#/account");
+        saveUsers(list); store.set(KS, nid); ACC = null; toast(t.welcome(name)); go(afterAuth());
       });
       return;
     }
@@ -2167,13 +2242,13 @@
       if (BE) {
         var lid7 = $("l-id").value.trim();
         if (!lid7) { $("l-err").textContent = t.e_login; return; }
-        BE.signIn(lid7, $("l-pw").value).then(function () { ACC = null; var mu7 = me(); toast(t.welcome(mu7 ? mu7.name : "")); go("#/account"); }, function (x) { $("l-err").textContent = beMsg(t, x); });
+        BE.signIn(lid7, $("l-pw").value).then(function () { ACC = null; var mu7 = me(); toast(t.welcome(mu7 ? mu7.name : "")); go(afterAuth()); }, function (x) { $("l-err").textContent = beMsg(t, x); });
         return;
       }
       var lid = $("l-id").value.trim(), lpw = $("l-pw").value, isMail = lid.indexOf("@") > 0 && lid.indexOf(".") > 0;
       var cand = users().filter(function (x) { return isMail ? x.email === lid.toLowerCase() : (x.phone && x.phone === digits(lid)); })[0];
       if (!cand) { $("l-err").textContent = t.e_login; return; }
-      hashPw(lpw, cand.id).then(function (h) { if (h !== cand.pw) { $("l-err").textContent = t.e_login; return; } store.set(KS, cand.id); ACC = null; toast(t.welcome(cand.name)); go("#/account"); });
+      hashPw(lpw, cand.id).then(function (h) { if (h !== cand.pw) { $("l-err").textContent = t.e_login; return; } store.set(KS, cand.id); ACC = null; toast(t.welcome(cand.name)); go(afterAuth()); });
       return;
     }
     if (id === "accform") {
@@ -2283,17 +2358,19 @@
   });
   /* another tab booked or changed something: refresh so a taken slot disappears here too */
   window.addEventListener("storage", function (e) { if (e.key && e.key.indexOf("shifokor-") === 0) rerender(); });
-  window.addEventListener("hashchange", function () { PH = null; cancelAsk = null; apAsk = null; APX = null; RR = null; PO.form = null; PO.del = ""; IM.del = ""; ON.urgent = ON.ok = ON.del = false; ON.famUrl = ""; render(false); });
+  window.addEventListener("hashchange", function () { voDrop(); PH = null; cancelAsk = null; apAsk = null; APX = null; RR = null; PO.form = null; PO.del = ""; IM.del = ""; ON.urgent = ON.ok = ON.del = false; ON.famUrl = ""; render(false); });
 
   render(false);
   /* a patient anywhere on the site hears about a doctor's call once per ring */
   var rung = {};
   function ringCheck() {
-    var u = me(); if (!u || u.role === "doctor" || (window.ShifokorCall && ShifokorCall.active())) return;
+    var u = me(); if (!u || (window.ShifokorCall && ShifokorCall.active())) return;
+    var doc = u.role === "doctor";
     consults().forEach(function (c) {
-      if (c.userId !== u.id || c.status !== "accepted" || c.type === "text" || !ringNow(c) || rung[c.id] === c.callAt) return;
+      /* the patient hears the doctor's calls, the doctor hears the patient's */
+      if ((doc ? c.doctorId !== u.id || c.callBy !== "p" : c.userId !== u.id || c.callBy === "p") || c.status !== "accepted" || !ringNow(c) || rung[c.id] === c.callAt) return;
       rung[c.id] = c.callAt;
-      if (current.path !== "/consult/" + c.id) toast(L().cl_ring_toast(c.n));
+      if (current.path !== "/consult/" + c.id) toast(doc ? L().cl_pat_toast(c.n) : L().cl_ring_toast(c.n));
       try { if (navigator.vibrate) navigator.vibrate([300, 150, 300]); } catch (x) {}
     });
   }

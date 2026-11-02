@@ -707,6 +707,7 @@
   }
   function viewAccount() {
     var t = L(), u = me(); if (!u) return viewLogin();
+    if (u.role === "doctor" && !PRO_FORM) return viewPro(current.q || {});
     if (!ACC || ACC.id !== u.id) accStart(u);
     var a = ACC, pr = a.pr, role = u.role;
     var fi = function (id, label, val, type, extra) { return '<div class="fld"><label for="' + id + '">' + label + '</label><input id="' + id + '" type="' + (type || "text") + '" value="' + esc(val || "") + '"' + (extra || "") + "></div>"; };
@@ -741,6 +742,8 @@
     }
     var del = ACC_DEL ? '<div class="confirm-row"><b>' + t.acc_del_q + '</b><button class="btn danger sm" type="button" data-act="accdel-yes">' + t.acc_del_yes + '</button><button class="btn ghost sm" type="button" data-act="accdel-no">' + t.v_keep + "</button></div>" : "";
     var pub = role === "doctor" ? "#/doc/" + u.id : role === "clinic" ? "#/c/" + u.id : "";
+    if (PRO_FORM) return '<div class="acc proform">' + trustCard(u) + notifyCard(u) + '<form class="form accform" id="accform" novalidate>' + contact + body + '<div class="err" id="a-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.acc_save + "</button></form>" +
+      '<p style="margin-top:20px"><button class="linkbtn" type="button" data-act="accdel">' + t.acc_del + "</button></p>" + del + "</div>";
     return '<div class="wrap pad acc"><div class="sechead"><div><div class="eyebrow">' + t.role[role] + "</div><h1>" + esc(u.name) + '</h1></div><div class="btns">' + (pub ? '<a class="btn ghost sm" href="' + pub + '">' + t.acc_view + "</a>" : "") + '<button class="btn ghost sm" type="button" data-act="logout">' + t.logout + '</button></div></div><div class="demo" style="margin:14px 0 20px">' + t.acc_demo + "</div>" +
       trustCard(u) + notifyCard(u) + (role === "doctor" ? liveCard(u) + mothersCard() + earnCard() + docInbox(u) : role === "clinic" ? clinicInbox(u) : "") + (role !== "patient" ? rvMine(u) : "") + '<form class="form accform" id="accform" novalidate>' + contact + body + '<div class="err" id="a-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.acc_save + "</button></form>" +
       '<p style="margin-top:20px"><button class="linkbtn" type="button" data-act="accdel">' + t.acc_del + "</button></p>" + del + "</div>";
@@ -1192,7 +1195,7 @@
     var slotBox = c.slotAt && (c.status === "new" || c.status === "accepted") ? '<div class="slotbox' + (c.slotAt - Date.now() < 3600e3 && c.slotAt > Date.now() - 3600e3 ? " soon" : "") + '">' + ic("cal") + "<div><small>" + t.sl_when + "</small><b>" + esc(slotTxt(c.slotAt)) + "</b><span>" + (c.slotAt > Date.now() ? t.sl_in(Math.round((c.slotAt - Date.now()) / 60e3)) : t.sl_now) + " · " + t.sl_tz + "</span></div></div>" : "";
     var talk = c.status === "accepted" && !due && (mineDoc || (!isDoc && (u ? c.userId === u.id : !c.userId))) ? '<div class="talkbar"><span>' + t.tk_h + '</span><a class="btn" href="#csmsg" data-scroll="csmsg">' + ic("chat") + t.tk_write + '</a><button class="btn ghost" type="button" data-cs="' + (mineDoc ? "call" : "pcall") + '" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "phone") + (c.type === "video" ? t.tk_video : t.tk_call) + "</button></div>" : "";
     var ringing = !isDoc && c.status === "accepted" && c.callBy !== "p" && ringNow(c) && !due && !(window.ShifokorCall && ShifokorCall.active());
-    return '<div class="wrap"><a class="back" href="' + (isDoc ? "#/account" : "#/visits") + '">‹ ' + (isDoc ? t.nav_account : t.nav_visits) + '</a><div class="sechead" style="padding-top:12px"><div><h1 style="font-size:clamp(1.6rem,1.3rem + 1.4vw,2.3rem)">' + t.cs_no(c.n) + "</h1><div class=\"badges\">" + csBadge(c.status) + payBadge(c) + (c.asap && c.status === "new" ? '<span class="badge warn">' + t.asap_badge + "</span>" : "") + (isDoc && c.followup ? '<span class="badge ' + (c.followup === "worse" ? "warn" : "ok") + '">' + t.fu_doc(t.fu_opts[c.followup]) + "</span>" : "") + '<span class="badge plain">' + t.cs_types[c.type][0] + "</span></div></div>" + (isDoc ? '<span class="sample">' + t.cs_doc_view + "</span>" : "") + "</div>" +
+    return '<div class="wrap"><a class="back" href="' + (isDoc ? "#/pro?tab=requests" : "#/visits") + '">‹ ' + (isDoc ? t.pro_t.requests : t.nav_visits) + '</a><div class="sechead" style="padding-top:12px"><div><h1 style="font-size:clamp(1.6rem,1.3rem + 1.4vw,2.3rem)">' + t.cs_no(c.n) + "</h1><div class=\"badges\">" + csBadge(c.status) + payBadge(c) + (c.asap && c.status === "new" ? '<span class="badge warn">' + t.asap_badge + "</span>" : "") + (isDoc && c.followup ? '<span class="badge ' + (c.followup === "worse" ? "warn" : "ok") + '">' + t.fu_doc(t.fu_opts[c.followup]) + "</span>" : "") + '<span class="badge plain">' + t.cs_types[c.type][0] + "</span></div></div>" + (isDoc ? '<span class="sample">' + t.cs_doc_view + "</span>" : "") + "</div>" +
       slotBox + talk + (ringing ? '<div class="ring" role="status"><span class="ring-ic">' + ic(c.type === "video" ? "video" : "mic") + "</span><div><b>" + t.cl_ringing + "</b><span>" + esc(c.doctorName) + '</span></div><button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + t.cs_join + "</button></div>" : "") +
       '<div class="pf" style="padding-top:18px"><div>' + (!isDoc && due && (u ? c.userId === u.id : !c.userId) ? payCard(c) : "") + (!isDoc && (u ? c.userId === u.id : !c.userId) ? careCard(c) : "") + rxCard(c, mineDoc, !isDoc && (u ? c.userId === u.id : !c.userId)) + (!isDoc && c.status === "done" && c.doctorId && (u ? c.userId === u.id : !c.userId) ? rvCard("c", c.id, c.doctorName, false) : "") + '<div class="dcard"><h2>' + t.cs_details + "</h2>" + details + "</div>" + (isDoc && !mineDoc && c.status !== "new" ? "" : "") + '<p class="fine" style="margin-top:14px">' + t.cs_demo + "</p></div>" +
       '<aside class="dcard chatcard"><h2>' + t.cs_thread + '</h2><div class="room-log" id="cslog">' + (msgs || '<div class="sys">' + t.cs_sent + "</div>") + "</div>" +
@@ -1442,6 +1445,81 @@
     var item = function (r) { return '<div class="rvitem"><div class="rvtop">' + starsTxt(r.stars) + " <b>" + esc(r.author || t.rv_anon_name) + '</b><span class="muted"> · ' + t.rv_kind[r.kind] + " · " + fmt(new Date(r.at), { day: "numeric", month: "short" }) + "</span></div>" + (r.body ? '<p class="pre">' + esc(r.body) + "</p>" : "") + (r.reply ? '<div class="rvreply"><b>' + t.rv_reply_h + ":</b> " + esc(r.reply) + "</div>" : "") + "</div>"; };
     return '<div class="sect" id="reviews"><h2>' + t.rv_h + " " + ratingLine(u.id) + "</h2>" + (l.length ? l.map(item).join("") : '<p class="muted">' + t.rv_none + "</p>") + '<p class="fine" style="margin-top:10px">' + (u.sample ? t.smp_rv : t.rv_only) + "</p></div>";
   }
+  /* ---------------- the doctor's panel: its own workspace, after Practo / Doctor Anywhere doctor apps ----------------
+     overview, request queue, week schedule, patients, earnings, reviews, and profile with prices and hours */
+  var PRO_TABS = [["home", "home"], ["requests", "chat"], ["schedule", "cal"], ["patients", "heart"], ["earnings", "card"], ["reviews", "star"], ["profile", "shield"]];
+  var PRO_FORM = false;   /* viewAccount() returns just the profile form, for the panel's profile tab */
+  function proMine(u) {   /* applications this doctor sees: theirs, and new ones they may accept */
+    var sp = (u.profile || {}).spec;
+    return consults().filter(function (c) { return c.doctorId === u.id || (c.status === "new" && (c.doc ? c.doc === u.id : !c.spec || c.spec === sp || (sp === "gp" && !c.spec))); });
+  }
+  var tkDayKey = function (ms) { return new Date(ms + TK).toISOString().slice(0, 10); };
+  var waitTxt = function (ms) { var t = L(), m = Math.max(1, Math.round((Date.now() - ms) / 60e3)); return m < 60 ? t.pro_ago_m(m) : m < 1440 ? t.pro_ago_h(Math.round(m / 60)) : t.pro_ago_d(Math.round(m / 1440)); };
+  function proCard(c, u) {   /* one application in the queue, with what a doctor needs to decide */
+    var t = L(), age = c.age !== "" && c.age != null ? t.pro_age(c.age) : "";
+    return '<article class="procard' + (c.status === "new" ? " isnew" : "") + '"><div class="pchead"><span class="pctype">' + ic(c.type === "text" ? "chat" : c.type === "audio" ? "mic" : "video") + '</span><div><b>' + esc(c.name) + '</b><small class="muted">' + [age, t.cs_sexes[c.sex] || "", t.cs_types[c.type][0]].filter(Boolean).join(" · ") + "</small></div>" + csBadge(c.status) + "</div>" +
+      (c.slotAt ? '<p class="pcslot">' + ic("cal") + " <b>" + esc(slotTxt(c.slotAt)) + "</b></p>" : c.asap && c.status === "new" ? '<p class="pcslot warn">' + ic("siren") + " " + t.asap_badge + "</p>" : "") +
+      '<p class="pccompl">' + esc(c.complaint.slice(0, 160)) + (c.complaint.length > 160 ? "…" : "") + "</p>" +
+      '<div class="pcfoot"><small class="muted">' + t.cs_no(c.n) + " · " + waitTxt(c.at) + (c.msgs && c.msgs.some(function (m) { return m.file; }) ? " · " + ic("camera") : "") + '</small><div class="btns">' +
+      (c.status === "new" ? '<button class="btn sm" type="button" data-cs="accept" data-id="' + c.id + '">' + ic("check") + t.cs_accept + "</button>" : "") + '<a class="btn ghost sm" href="#/consult/' + c.id + '">' + (c.status === "accepted" ? t.pro_open_chat : t.pro_open) + "</a></div></div></article>";
+  }
+  function proHome(u, mine) {
+    var t = L(), today = tkDayKey(Date.now()), r = ratingOf(u.id);
+    var fresh = mine.filter(function (c) { return c.status === "new"; }).sort(function (a, b) { return (a.slotAt || a.at) - (b.slotAt || b.at); });
+    var active = mine.filter(function (c) { return c.status === "accepted"; });
+    var todays = mine.filter(function (c) { return c.slotAt && tkDayKey(c.slotAt) === today && (c.status === "new" || c.status === "accepted"); }).sort(function (a, b) { return a.slotAt - b.slotAt; });
+    var e = BE && BE.earnings();
+    var stats = [[fresh.length, t.pro_st_new, "requests"], [todays.length, t.pro_st_today, "schedule"], [active.length, t.pro_st_active, "requests&f=active"], [r.n ? avgTxt(r.avg) + " ★" : "—", t.pro_st_rating(r.n), "reviews"]].concat(e ? [[num(e.balance), t.er_owed, "earnings"]] : []);
+    /* a complete profile gets more requests: what is still missing, as on Practo's and Doctolib's onboarding lists */
+    var pr = u.profile || {}, cp = cpOf(pr), todo = [[!!u.photoUrl, t.pro_do_photo], [!!pr.lic, t.pro_do_lic], [!!pr.bio, t.pro_do_bio], [["text", "audio", "video"].some(function (k) { return cp[k] != null; }), t.pro_do_price], [!!hoursOf(pr), t.pro_do_hours]].concat(BE && BE.notify().tg ? [[!!u.tgLinked, t.pro_do_tg]] : []);
+    var done = todo.filter(function (x) { return x[0]; }).length;
+    return '<div class="prohello"><div><h1>' + t.pro_hello(esc(u.name.split(" ")[0] === "Dr" ? u.name : u.name.split(" ")[0])) + '</h1><p class="muted">' + esc(fmt(tkDate(Date.now()), { weekday: "long", day: "numeric", month: "long" })) + " · " + esc(specName(pr)) + "</p></div></div>" +
+      liveCard(u) +
+      '<div class="prostats">' + stats.map(function (x) { return '<a class="prostat" href="#/pro?tab=' + x[2] + '"><b class="nums">' + x[0] + "</b><span>" + x[1] + "</span></a>"; }).join("") + "</div>" +
+      (done < todo.length ? '<div class="dcard protodo"><div class="sechead"><h2>' + t.pro_todo_h + '</h2><span class="muted nums">' + done + " / " + todo.length + '</span></div><div class="pbar2"><i style="width:' + Math.round(done / todo.length * 100) + '%"></i></div><ul>' + todo.map(function (x) { return '<li class="' + (x[0] ? "ok" : "") + '">' + ic(x[0] ? "check" : "plus") + "<span>" + x[1] + "</span></li>"; }).join("") + '</ul><a class="btn sm" href="#/pro?tab=profile">' + t.pro_todo_go + "</a></div>" : "") +
+      '<div class="progrid"><section><div class="sechead"><h2>' + t.pro_today_h + '</h2><a class="linkbtn" href="#/pro?tab=schedule">' + t.pro_all + "</a></div>" + (todays.length ? '<div class="protimeline">' + todays.map(function (c) { return '<a class="tlrow" href="#/consult/' + c.id + '"><b class="nums">' + hhmm(c.slotAt) + "</b><span>" + esc(c.name) + '<small class="muted"> · ' + t.cs_types[c.type][0] + "</small></span>" + csBadge(c.status) + "</a>"; }).join("") + "</div>" : '<p class="muted">' + t.pro_today_none + "</p>") + "</section>" +
+      '<section><div class="sechead"><h2>' + t.pro_new_h + '</h2><a class="linkbtn" href="#/pro?tab=requests">' + t.pro_all + "</a></div>" + (fresh.length ? fresh.slice(0, 4).map(function (c) { return proCard(c, u); }).join("") : '<p class="muted">' + t.pro_new_none + "</p>") + "</section></div>";
+  }
+  function proRequests(u, mine, f) {
+    var t = L(), groups = { "new": mine.filter(function (c) { return c.status === "new"; }), active: mine.filter(function (c) { return c.status === "accepted"; }), done: mine.filter(function (c) { return c.status === "done" || c.status === "referred"; }) };
+    f = groups[f] ? f : "new";
+    var list = groups[f].sort(function (a, b) { return f === "done" ? b.at - a.at : (a.slotAt || a.at) - (b.slotAt || b.at); });
+    return '<h1>' + t.pro_t.requests + '</h1><div class="seg proseg" role="group">' + ["new", "active", "done"].map(function (k) { return '<a href="#/pro?tab=requests&f=' + k + '" aria-current="' + (k === f ? "page" : "false") + '">' + t.pro_f[k] + ' <span class="cnt">' + groups[k].length + "</span></a>"; }).join("") + "</div>" +
+      (f === "new" ? '<p class="fine">' + t.pro_req_p + "</p>" : "") + (list.length ? '<div class="procards">' + list.map(function (c) { return proCard(c, u); }).join("") + "</div>" : '<div class="empty">' + t.pro_none[f] + "</div>");
+  }
+  function proSchedule(u, mine) {
+    var t = L(), h = hoursOf(u.profile);
+    if (!h) return "<h1>" + t.pro_t.schedule + '</h1><div class="empty">' + t.pro_sch_none + ' <p style="margin-top:12px"><a class="btn" href="#/pro?tab=profile">' + t.pro_sch_set + "</a></p></div>";
+    var booked = {}; mine.forEach(function (c) { if (c.slotAt && (c.status === "new" || c.status === "accepted")) booked[c.slotAt] = c; });
+    var t0 = new Date(Date.now() + TK), day0 = Date.UTC(t0.getUTCFullYear(), t0.getUTCMonth(), t0.getUTCDate()) - TK, days = [];
+    for (var i = 0; i < 7; i++) days.push(day0 + i * 864e5);
+    return "<h1>" + t.pro_t.schedule + '</h1><p class="muted">' + t.pro_sch_p(t.sl_min(h.len)) + ' <a href="#/pro?tab=profile">' + t.pro_sch_edit + "</a></p>" +
+      '<div class="week">' + days.map(function (d) {
+        var wd = new Date(d + TK).getUTCDay() || 7, open = h.days.indexOf(wd) > -1, dd = tkDate(d + 6 * 3600e3), cells = [];
+        if (open) for (var m = h.from; m + h.len <= h.to; m += h.len) { var ms = d + m * 60e3, c = booked[ms]; cells.push(c ? '<a class="wslot busy" href="#/consult/' + c.id + '"><b class="nums">' + hhmm(ms) + "</b><span>" + esc(c.name) + "</span></a>" : '<span class="wslot' + (ms < Date.now() ? " past" : "") + '"><b class="nums">' + hhmm(ms) + "</b><span>" + t.pro_free + "</span></span>"); }
+        return '<div class="wday' + (i === 0 ? " today" : "") + '"><div class="wdh"><small>' + esc(fmt(dd, { weekday: "short" })) + "</small><b>" + dd.getDate() + "</b></div>" + (open ? cells.join("") : '<p class="muted wclosed">' + t.pro_closed + "</p>") + "</div>";
+      }).join("") + "</div>";
+  }
+  function proPatients(u, mine) {
+    var t = L(), by = {};
+    mine.filter(function (c) { return c.doctorId === u.id; }).forEach(function (c) { var k = c.userId || c.phone || c.name; var p = by[k] = by[k] || { name: c.name, age: c.age, sex: c.sex, list: [] }; p.list.push(c); });
+    var ps = Object.keys(by).map(function (k) { var p = by[k]; p.list.sort(function (a, b) { return b.at - a.at; }); return p; }).sort(function (a, b) { return b.list[0].at - a.list[0].at; });
+    return "<h1>" + t.pro_t.patients + '</h1><p class="muted">' + t.pro_pat_p + "</p>" + mothersCard() + (ps.length ? '<div class="procards">' + ps.map(function (p) { var last = p.list[0]; return '<a class="procard patrow" href="#/consult/' + last.id + '"><span class="pav2" style="background:' + AVC[(p.name.length) % 4] + '">' + esc(initials(p.name)) + "</span><div><b>" + esc(p.name) + '</b><small class="muted">' + [p.age !== "" && p.age != null ? t.pro_age(p.age) : "", t.cs_sexes[p.sex] || "", t.pro_visits(p.list.length)].filter(Boolean).join(" · ") + '</small><p class="pccompl">' + esc(last.complaint.slice(0, 120)) + "</p></div><small class=\"muted\">" + esc(fmt(new Date(last.at), { day: "numeric", month: "short" })) + "</small></a>"; }).join("") + "</div>" : '<div class="empty">' + t.pro_pat_none + "</div>");
+  }
+  function proEarnings(u, mine) {
+    var t = L(), card = earnCard();
+    if (card) return "<h1>" + t.pro_t.earnings + "</h1>" + card;
+    var paid = mine.filter(function (c) { return c.doctorId === u.id && c.status === "done" && c.price > 0; }), sum = paid.reduce(function (a, c) { return a + c.price; }, 0);
+    return "<h1>" + t.pro_t.earnings + '</h1><div class="dcard"><div class="pobal big"><span>' + t.pro_earn_demo + '</span><b class="nums">' + esc(som(sum)) + '</b></div><p class="fine" style="margin-top:10px">' + t.pro_earn_note + "</p></div>";
+  }
+  function viewPro(q) {
+    var t = L(), u = me(); if (!u) return viewLogin(); if (u.role !== "doctor") return viewAccount();
+    var tab = PRO_TABS.some(function (x) { return x[0] === q.tab; }) ? q.tab : "home", mine = proMine(u), nNew = mine.filter(function (c) { return c.status === "new"; }).length;
+    var main = tab === "requests" ? proRequests(u, mine, q.f) : tab === "schedule" ? proSchedule(u, mine) : tab === "patients" ? proPatients(u, mine) : tab === "earnings" ? proEarnings(u, mine) : tab === "reviews" ? "<h1>" + t.pro_t.reviews + "</h1>" + rvMine(u) : tab === "profile" ? "<h1>" + t.pro_t.profile + "</h1>" + (function () { PRO_FORM = true; try { return viewAccount(); } finally { PRO_FORM = false; } })() : proHome(u, mine);
+    var nav = PRO_TABS.map(function (x) { return '<a href="#/pro?tab=' + x[0] + '"' + (x[0] === tab ? ' aria-current="page"' : "") + ">" + ic(x[1]) + "<span>" + t.pro_t[x[0]] + "</span>" + (x[0] === "requests" && nNew ? '<b class="pronum">' + nNew + "</b>" : "") + "</a>"; }).join("");
+    return '<div class="pro"><aside class="pronav"><div class="prome">' + avatarOf(u, "sm") + "<div><b>" + esc(u.name) + "</b><small>" + esc(specName(u.profile || {})) + (onlineNow(u) ? " · " + t.on_now : "") + '</small></div></div><nav aria-label="' + esc(t.pro_panel) + '">' + nav + '</nav><div class="profoot"><a href="#/doc/' + u.id + '">' + ic("search") + t.acc_view + '</a><button class="linkbtn" type="button" data-act="logout">' + t.logout + "</button></div></aside>" +
+      '<div class="promain">' + main + "</div></div>";
+  }
   /* account page: "I'm online now" and the profile photo patients see */
   function liveCard(u) {
     var t = L(), on = u.onlineUntil && u.onlineUntil > Date.now(), at = on ? new Date(u.onlineUntil) : null;
@@ -1502,7 +1580,9 @@
   function hdr() {
     var t = L(), ab = $("acctBtn"), mu = me(), n = unseen();
     var rb = $("regBtn"); if (rb) rb.hidden = !!mu;
-    if (ab) { ab.textContent = mu ? mu.name.split(" ")[0] : t.nav_login; ab.setAttribute("href", mu ? "#/account" : "#/login"); if (n.c) ab.setAttribute("data-n", n.c); else ab.removeAttribute("data-n"); }
+    var isD = !!(mu && mu.role === "doctor"), nNew = isD ? proMine(mu).filter(function (c) { return c.status === "new"; }).length : 0;
+    all(".navcta, .navcta-m").forEach(function (a) { a.textContent = isD ? t.pro_panel : t.nav_consult; a.setAttribute("href", isD ? "#/pro" : "#/consult?now=1"); if (nNew) a.setAttribute("data-n", nNew); else a.removeAttribute("data-n"); });
+    if (ab) { ab.textContent = mu ? mu.name.split(" ")[0] : t.nav_login; ab.setAttribute("href", mu ? (mu.role === "doctor" ? "#/pro?tab=profile" : "#/account") : "#/login"); if (n.c) ab.setAttribute("data-n", n.c); else ab.removeAttribute("data-n"); }
     all('a[href="#/visits"]').forEach(function (a) { if (n.v) a.setAttribute("data-n", n.v); else a.removeAttribute("data-n"); });
     all(".admlink").forEach(function (al) { al.hidden = !(mu && mu.admin); });
   }
@@ -1827,6 +1907,7 @@
     else if (path === "/register") { html = viewRegister(); route = "account"; }
     else if (path === "/login") { html = me() ? viewAccount() : viewLogin(); route = "account"; }
     else if (path === "/account") { html = viewAccount(); route = "account"; }
+    else if (path === "/pro") { html = viewPro(q); route = "account"; }
     else if (path === "/settings") { html = viewSettings(); route = "settings"; }
     else if (path === "/admin") { html = viewAdmin(q); route = "admin"; }
     else if (path === "/ona") { html = viewOna(); route = "ona"; }
@@ -2017,7 +2098,7 @@
     if (ds.pq) { go("#/prices?" + qs(prQuery({ q: ds.pq }))); return; }
     if (ds.apday || ds.appart || ds.apwho) { apCollect(); if (ds.apday) AP.day = ds.apday; if (ds.appart) AP.part = ds.appart; if (ds.apwho) { AP.who = ds.apwho; var mu7 = me(); AP.name = ds.apwho === "self" && mu7 && mu7.role === "patient" ? mu7.name : ""; } render(true); return; }
     if (ds.apx) {
-      if (current.path === "/account") accCollect();
+      if ((current.path === "/account" || current.path === "/pro")) accCollect();
       var ax = appts().filter(function (x) { return x.id === ds.id; })[0];
       APX = ds.apx === "back" || !ax ? null : { id: ax.id, mode: ds.apx, day: ax.day, time: ax.time || (ax.part === "am" ? "09:00" : "14:00"), note: ax.note || "" };
       render(true); if ($("apx-time")) $("apx-time").focus(); else if ($("apx-note")) $("apx-note").focus(); return;
@@ -2025,7 +2106,7 @@
     if (ds.rvstar) { rvCollect(); RV.stars = +ds.rvstar; render(true); return; }
     if (ds.act === "rvopen") { RV = { key: "v" + ds.id, stars: 0, body: "", anon: false }; render(true); return; }
     if (ds.sl) { var cur = slideAt(); slideTo(ds.sl === "prev" ? cur - 1 : ds.sl === "next" ? cur + 1 : +ds.sl); return; }
-    if (ds.rr) { if (current.path === "/account") accCollect(); var rr0 = reviews().filter(function (x) { return x.id === ds.rr; })[0]; RR = ds.rr === "close" || !rr0 ? null : { id: rr0.id, text: rr0.reply || "" }; render(true); if ($("rvreply-in")) $("rvreply-in").focus(); return; }
+    if (ds.rr) { if ((current.path === "/account" || current.path === "/pro")) accCollect(); var rr0 = reviews().filter(function (x) { return x.id === ds.rr; })[0]; RR = ds.rr === "close" || !rr0 ? null : { id: rr0.id, text: rr0.reply || "" }; render(true); if ($("rvreply-in")) $("rvreply-in").focus(); return; }
     if (ds.admtab) { go("#/admin" + (ds.admtab !== "chk" ? "?tab=" + ds.admtab : "")); return; }
     if (ds.imcopy) { var inp = el.parentNode.querySelector("input"); try { navigator.clipboard.writeText(ds.imcopy).then(function () { toast(t.im_copied); }, function () { if (inp) inp.select(); }); } catch (x) { if (inp) inp.select(); } return; }
     if (ds.im && BE) {
@@ -2075,7 +2156,7 @@
       if (BE) { el.disabled = true; BE.saveProfile({ role: gu.role, name: gu.name, email: gu.email || "", phone: gu.phone || "", tg: gu.tg || "", profile: gp }).then(function () { ACC = null; toast(t.off_done); render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
       var gl = users(); gl.forEach(function (x) { if (x.id === gu.id) x.profile = gp; }); saveUsers(gl); ACC = null; toast(t.off_done); render(true); return;
     }
-    if (ds.act === "tgunlink" && BE) { if (current.path === "/account") accCollect(); BE.tgUnlink().then(function () { NT_WAIT = false; render(true); }, function (x) { toast(beMsg(t, x)); }); return; }
+    if (ds.act === "tgunlink" && BE) { if ((current.path === "/account" || current.path === "/pro")) accCollect(); BE.tgUnlink().then(function () { NT_WAIT = false; render(true); }, function (x) { toast(beMsg(t, x)); }); return; }
     if (ds.adm && BE) { el.disabled = true; BE.adminVerify(ds.id, ds.adm === "ok").then(function () { toast(ds.adm === "ok" ? t.adm_ok_done : t.adm_no_done); ADM.list = null; BE.refresh().catch(function () {}); render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
     if (ds.act === "admtg" && BE) { BE.adminTgSetup().then(function (j) { toast(t.adm_tg_ok(j.bot)); }, function (x) { toast(beMsg(t, x)); }); return; }
     if (ds.act === "apcancel-no") { apAsk = null; render(true); return; }
@@ -2443,7 +2524,7 @@
     payCheck();
     var p = current.path;
     if (p === "/consult" || p === "/register" || p === "/login") { hdr(); return; }
-    if (p === "/account") accCollect();
+    if (p === "/account" || p === "/pro") accCollect();
     if ($("apform")) apCollect();
     if ($("apreply")) apxCollect();
     if ($("rvform")) rvCollect();

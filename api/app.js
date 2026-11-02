@@ -97,7 +97,7 @@ async function whoAmI(req) {
 }
 const need = (me) => { if (!me) throw new Fail(401, "auth"); return me; };
 const DEFAULT_PROFILE = {
-  doctor: { spec: "gp", modes: ["in"], langs: ["uz"], work: [], svc: [] },
+  doctor: { spec: "gp", modes: ["in", "on"], langs: ["uz"], work: [], svc: [] },   // online consultations are on from the start, so patients can apply at once
   clinic: { ctype: "clinic", own: "s", svc: [] },
   patient: {}
 };

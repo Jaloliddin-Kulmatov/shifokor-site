@@ -11,6 +11,8 @@
     sl_next: "Eng yaqin bo‘sh vaqt",
     sl_hours_h: "Onlayn qabul vaqtlari", sl_hours_p: "Bemorlar shu vaqtlar ichidan o‘zlariga qulay vaqtni band qiladi. Bir kun oldin Telegram eslatadi.",
     sl_wd: ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"], sl_from: "Boshlanishi", sl_to: "Tugashi", sl_len: "Bir qabul", sl_min: function (m) { return m + " daqiqa"; },
+    off_h: "Onlayn maslahat o‘chiq", off_p: "Hozir bemorlar sizga ariza yubora olmaydi. Yoqing: ro‘yxatda «Maslahat so‘rash» tugmasi chiqadi. Narx va qabul vaqtlarini quyida belgilashingiz mumkin.", off_btn: "Onlayn maslahatni yoqish", off_done: "Onlayn maslahat yoqildi.",
+    tk_h: "Ariza qabul qilindi:", tk_write: "Xabar yozish", tk_call: "Qo‘ng‘iroq qilish", tk_video: "Video qo‘ng‘iroq",
     vo_many: "Bu arizada ovozli xabarlar soni chegaraga yetdi.", vo_bad: "Ovozli xabarni yuborib bo‘lmadi. Qayta yozib ko‘ring.", rx_open: "Bu dorilar uchun so‘rov allaqachon yuborilgan."
   });
 
@@ -23,6 +25,8 @@
     sl_next: "Ближайшее свободное время",
     sl_hours_h: "Часы онлайн-приёма", sl_hours_p: "Пациенты бронируют удобное время в этих часах. За день до приёма придёт напоминание в Telegram.",
     sl_wd: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"], sl_from: "Начало", sl_to: "Конец", sl_len: "Один приём", sl_min: function (m) { return m + " мин"; },
+    off_h: "Онлайн-консультации выключены", off_p: "Сейчас пациенты не могут отправить вам заявку. Включите — в списке появится кнопка «Запросить консультацию». Цены и часы приёма можно указать ниже.", off_btn: "Включить онлайн-консультации", off_done: "Онлайн-консультации включены.",
+    tk_h: "Заявка принята:", tk_write: "Написать", tk_call: "Позвонить", tk_video: "Видеозвонок",
     vo_many: "В этой заявке достигнут предел голосовых сообщений.", vo_bad: "Не удалось отправить голосовое. Запишите ещё раз.", rx_open: "Заявка на эти лекарства уже отправлена."
   });
 
@@ -35,6 +39,8 @@
     sl_next: "Next free time",
     sl_hours_h: "Online consultation hours", sl_hours_p: "Patients book a time that suits them within these hours. Telegram reminds both of you a day before.",
     sl_wd: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], sl_from: "From", sl_to: "To", sl_len: "Each consultation", sl_min: function (m) { return m + " min"; },
+    off_h: "Online consultations are off", off_p: "Patients can’t send you requests right now. Turn them on and an “Ask for a consultation” button appears in the list. You can set prices and hours below.", off_btn: "Turn on online consultations", off_done: "Online consultations are on.",
+    tk_h: "Request accepted:", tk_write: "Write a message", tk_call: "Call", tk_video: "Video call",
     vo_many: "This application has reached the limit of voice messages.", vo_bad: "The voice message couldn’t be sent. Record it again.", rx_open: "A request for these medicines was already sent."
   });
 })(window.SHIFOKOR_T);

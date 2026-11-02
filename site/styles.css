@@ -1147,8 +1147,8 @@ img.pimg { object-fit: cover; padding: 0; }
 .menu { max-height: min(78vh, 640px); overflow-y: auto; }
 .menu .mh { display: block; padding: 12px 14px 4px; font: 700 0.74rem var(--font-body); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
 .menu .mh:first-child { padding-top: 6px; }
-@media (max-width: 940px) { .nav .desk { display: none !important; } .nav .dd.mob { display: block; } }
-@media (max-width: 940px) { .nav .dd.mob .menu { min-width: 260px; } }
+@media (max-width: 1040px) { .nav .desk { display: none !important; } .nav .dd.mob { display: block; } }
+@media (max-width: 1040px) { .nav .dd.mob .menu { min-width: 260px; } }
 
 /* the application panel over the doctors list */
 .aplock, .aplock body { overflow: hidden; }
@@ -1297,3 +1297,15 @@ audio.voice { display: block; width: 240px; max-width: 100%; height: 36px; margi
 .slotbox.soon { background: var(--ochre-soft); }
 .wdays { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .applypanel.still { animation: none; }
+
+/* "Onlayn maslahat" stays one click away in the top bar */
+.nav a.navcta { margin-left: 6px; background: var(--accent); color: var(--accent-ink); opacity: 1; font-weight: 600; border-radius: 999px; padding: 8px 16px; }
+.nav a.navcta:hover, .nav a.navcta[aria-current="page"] { background: var(--accent); color: var(--accent-ink); filter: brightness(1.08); }
+.menu a.navcta-m { margin: 2px 6px 8px; text-align: center; background: var(--accent); color: var(--accent-ink); font-weight: 700; border-radius: 999px; }
+.menu a.navcta-m:hover { background: var(--accent); color: var(--accent-ink); filter: brightness(1.08); }
+/* the top bar fills up: first the register button goes (the sign-in page offers it), then "my visits" moves into the first menu */
+@media (max-width: 1200px) { .top .regbtn { display: none; } }
+.offcard { border: 2px solid var(--ochre); background: var(--ochre-soft); }
+.talkbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px 0 0; padding: 12px 14px; border-radius: 16px; background: var(--surface); border: 1.5px solid var(--accent); }
+.talkbar > span { font-weight: 700; margin-right: auto; }
+@media (max-width: 520px) { .talkbar > span { width: 100%; } .talkbar .btn { flex: 1; } }

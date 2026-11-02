@@ -1190,9 +1190,10 @@
     if (!isDoc && c.status === "accepted" && !due && (u ? c.userId === u.id : !c.userId)) actions = (c.call && ringNow(c) && c.callBy !== "p" ? '<button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "mic") + t.cs_join + "</button>" : "") +
       '<button class="btn' + (c.call && ringNow(c) && c.callBy !== "p" ? " ghost" : "") + '" type="button" data-cs="pcall" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "phone") + t.cl_call_doc(c.type === "video") + "</button>";
     var slotBox = c.slotAt && (c.status === "new" || c.status === "accepted") ? '<div class="slotbox' + (c.slotAt - Date.now() < 3600e3 && c.slotAt > Date.now() - 3600e3 ? " soon" : "") + '">' + ic("cal") + "<div><small>" + t.sl_when + "</small><b>" + esc(slotTxt(c.slotAt)) + "</b><span>" + (c.slotAt > Date.now() ? t.sl_in(Math.round((c.slotAt - Date.now()) / 60e3)) : t.sl_now) + " · " + t.sl_tz + "</span></div></div>" : "";
+    var talk = c.status === "accepted" && !due && (mineDoc || (!isDoc && (u ? c.userId === u.id : !c.userId))) ? '<div class="talkbar"><span>' + t.tk_h + '</span><a class="btn" href="#csmsg" data-scroll="csmsg">' + ic("chat") + t.tk_write + '</a><button class="btn ghost" type="button" data-cs="' + (mineDoc ? "call" : "pcall") + '" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "phone") + (c.type === "video" ? t.tk_video : t.tk_call) + "</button></div>" : "";
     var ringing = !isDoc && c.status === "accepted" && c.callBy !== "p" && ringNow(c) && !due && !(window.ShifokorCall && ShifokorCall.active());
     return '<div class="wrap"><a class="back" href="' + (isDoc ? "#/account" : "#/visits") + '">‹ ' + (isDoc ? t.nav_account : t.nav_visits) + '</a><div class="sechead" style="padding-top:12px"><div><h1 style="font-size:clamp(1.6rem,1.3rem + 1.4vw,2.3rem)">' + t.cs_no(c.n) + "</h1><div class=\"badges\">" + csBadge(c.status) + payBadge(c) + (c.asap && c.status === "new" ? '<span class="badge warn">' + t.asap_badge + "</span>" : "") + (isDoc && c.followup ? '<span class="badge ' + (c.followup === "worse" ? "warn" : "ok") + '">' + t.fu_doc(t.fu_opts[c.followup]) + "</span>" : "") + '<span class="badge plain">' + t.cs_types[c.type][0] + "</span></div></div>" + (isDoc ? '<span class="sample">' + t.cs_doc_view + "</span>" : "") + "</div>" +
-      slotBox + (ringing ? '<div class="ring" role="status"><span class="ring-ic">' + ic(c.type === "video" ? "video" : "mic") + "</span><div><b>" + t.cl_ringing + "</b><span>" + esc(c.doctorName) + '</span></div><button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + t.cs_join + "</button></div>" : "") +
+      slotBox + talk + (ringing ? '<div class="ring" role="status"><span class="ring-ic">' + ic(c.type === "video" ? "video" : "mic") + "</span><div><b>" + t.cl_ringing + "</b><span>" + esc(c.doctorName) + '</span></div><button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + t.cs_join + "</button></div>" : "") +
       '<div class="pf" style="padding-top:18px"><div>' + (!isDoc && due && (u ? c.userId === u.id : !c.userId) ? payCard(c) : "") + (!isDoc && (u ? c.userId === u.id : !c.userId) ? careCard(c) : "") + rxCard(c, mineDoc, !isDoc && (u ? c.userId === u.id : !c.userId)) + (!isDoc && c.status === "done" && c.doctorId && (u ? c.userId === u.id : !c.userId) ? rvCard("c", c.id, c.doctorName, false) : "") + '<div class="dcard"><h2>' + t.cs_details + "</h2>" + details + "</div>" + (isDoc && !mineDoc && c.status !== "new" ? "" : "") + '<p class="fine" style="margin-top:14px">' + t.cs_demo + "</p></div>" +
       '<aside class="dcard chatcard"><h2>' + t.cs_thread + '</h2><div class="room-log" id="cslog">' + (msgs || '<div class="sys">' + t.cs_sent + "</div>") + "</div>" +
       (canWrite ? voBar(c.id) + '<form class="room-send withph" id="csmsg" data-id="' + c.id + '" style="margin-top:10px">' + (PH && PH.cid === c.id ? '<div class="phpend"><img src="' + PH.url + '" alt="' + esc(t.ph_alt) + '"><span>' + t.ph_ready + '</span><button class="btn ghost sm" type="button" data-act="phdrop">' + t.ph_remove + "</button></div>" : "") +
@@ -1444,6 +1445,8 @@
   /* account page: "I'm online now" and the profile photo patients see */
   function liveCard(u) {
     var t = L(), on = u.onlineUntil && u.onlineUntil > Date.now(), at = on ? new Date(u.onlineUntil) : null;
+    /* online consultations switched off: patients can't apply, so say so first, with a one-click fix */
+    if (!u.pending && ((u.profile || {}).modes || []).indexOf("on") < 0) return '<div class="dcard offcard" style="margin-bottom:22px"><h2>' + t.off_h + '</h2><p class="muted" style="margin:6px 0 12px">' + t.off_p + '</p><button class="btn" type="button" data-act="goonline">' + ic("video") + t.off_btn + "</button></div>";
     var waiting = consults().filter(function (c) { return c.status === "new" && c.asap; }).length;
     return '<div class="dcard livecard" style="margin-bottom:22px"><div class="livegrid"><div><h2>' + t.ol_h + " " + (on ? liveBadge() : "") + '</h2><p class="muted" style="margin:6px 0 12px">' + (on ? t.ol_on(pad(at.getHours()) + ":" + pad(at.getMinutes())) : t.ol_off) + "</p>" +
       '<div class="btns">' + [60, 120, 240].map(function (m) { return '<button class="btn sm' + (on ? " ghost" : "") + '" type="button" data-online="' + m + '">' + t.ol_opts[m] + "</button>"; }).join("") + (on ? '<button class="btn ghost sm" type="button" data-online="0">' + t.ol_stop + "</button>" : "") + "</div>" +
@@ -2067,6 +2070,11 @@
       BE.tgLink().then(function (url) { if (tw) tw.location.href = url; else location.href = url; NT_WAIT = true; render(true); }, function (x) { if (tw) tw.close(); toast(beMsg(t, x)); });
       return;
     }
+    if (ds.act === "goonline") {
+      var gu = me(); if (!gu) return; var gp = JSON.parse(JSON.stringify(gu.profile || {})); gp.modes = (gp.modes || ["in"]).filter(function (m) { return m !== "on"; }).concat(["on"]);
+      if (BE) { el.disabled = true; BE.saveProfile({ role: gu.role, name: gu.name, email: gu.email || "", phone: gu.phone || "", tg: gu.tg || "", profile: gp }).then(function () { ACC = null; toast(t.off_done); render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
+      var gl = users(); gl.forEach(function (x) { if (x.id === gu.id) x.profile = gp; }); saveUsers(gl); ACC = null; toast(t.off_done); render(true); return;
+    }
     if (ds.act === "tgunlink" && BE) { if (current.path === "/account") accCollect(); BE.tgUnlink().then(function () { NT_WAIT = false; render(true); }, function (x) { toast(beMsg(t, x)); }); return; }
     if (ds.adm && BE) { el.disabled = true; BE.adminVerify(ds.id, ds.adm === "ok").then(function () { toast(ds.adm === "ok" ? t.adm_ok_done : t.adm_no_done); ADM.list = null; BE.refresh().catch(function () {}); render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
     if (ds.act === "admtg" && BE) { BE.adminTgSetup().then(function (j) { toast(t.adm_tg_ok(j.bot)); }, function (x) { toast(beMsg(t, x)); }); return; }
@@ -2285,7 +2293,7 @@
       }
       var nid = "u" + Date.now().toString(36);
       hashPw(pw, nid).then(function (h) {
-        var list = users(); list.push({ id: nid, role: REGROLE, name: name, email: em, phone: ph ? digits(ph) : "", tg: tg ? "@" + tgName(tg) : "", pw: h, created: iso(today0()), updated: iso(today0()), profile: REGROLE === "doctor" ? { spec: "gp", modes: ["in"], langs: ["uz"], work: [], svc: [] } : REGROLE === "clinic" ? { ctype: "clinic", own: "s", svc: [] } : {} });
+        var list = users(); list.push({ id: nid, role: REGROLE, name: name, email: em, phone: ph ? digits(ph) : "", tg: tg ? "@" + tgName(tg) : "", pw: h, created: iso(today0()), updated: iso(today0()), profile: REGROLE === "doctor" ? { spec: "gp", modes: ["in", "on"], langs: ["uz"], work: [], svc: [] } : REGROLE === "clinic" ? { ctype: "clinic", own: "s", svc: [] } : {} });
         saveUsers(list); store.set(KS, nid); ACC = null; toast(t.welcome(name)); go(afterAuth());
       });
       return;

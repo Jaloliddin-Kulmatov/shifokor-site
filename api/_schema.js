@@ -262,6 +262,12 @@ end $$;
 -- who started the call: 'd' (the doctor) or 'p' (the patient)
 alter table app_consults add column if not exists call_by text check (call_by is null or call_by in ('d', 'p'));
 
+-- A time the patient booked from the doctor's weekly hours (Tashkent time); one patient per doctor per time
+-- while the application is open. slot_reminded: the Telegram reminder in the 24 hours before was sent.
+alter table app_consults add column if not exists slot_at timestamptz;
+alter table app_consults add column if not exists slot_reminded boolean not null default false;
+create unique index if not exists app_consults_slot_uq on app_consults (doc, slot_at) where slot_at is not null and status in ('new', 'accepted');
+
 -- Medicines after a consultation: the doctor's list (rx) and the patient's requests for home delivery by a partner
 -- pharmacy, which calls with the price and time; payment is on delivery.
 alter table app_consults add column if not exists rx jsonb;

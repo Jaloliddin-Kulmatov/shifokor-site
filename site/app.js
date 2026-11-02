@@ -69,7 +69,7 @@
   var bookings = function () { return store.get(K.bookings, []); };
   var saveBookings = function (l) { store.set(K.bookings, l); };
   var BE = window.SB || null;   /* server connection from backend.js, or null in demo mode */
-  function beMsg(t, x) { var c = (x && x.code) || ""; return { exists: t.e_exists, login: t.e_login, email: t.e_email, phone: t.e_phone, tg: t.e_tg, password: t.e_pw, name: t.e_name, contact: t.e_contact, date: t.e_ap_date, limit: t.e_ap_limit, dup: t.e_ap_dup, clinic: t.e_ap_clinic, time: t.e_ap_time, closed: t.e_ap_closed, unverified: t.e_ap_unv, no_tg: t.nt_off, forbidden: t.adm_forbidden, reviewed: t.e_reviewed, stars: t.e_stars, photos: t.e_photos, photo: t.ph_bad, slow: t.e_slow, unpaid: t.e_unpaid, paid: t.e_paid, invited: t.e_invited, invite: t.im_bad_link, advice: t.rf2_err, answered: t.e_answered }[c] || t.be_err; }
+  function beMsg(t, x) { var c = (x && x.code) || ""; return { exists: t.e_exists, login: t.e_login, email: t.e_email, phone: t.e_phone, tg: t.e_tg, password: t.e_pw, name: t.e_name, contact: t.e_contact, date: t.e_ap_date, limit: t.e_ap_limit, dup: t.e_ap_dup, clinic: t.e_ap_clinic, time: t.e_ap_time, closed: t.e_ap_closed, unverified: t.e_ap_unv, no_tg: t.nt_off, forbidden: t.adm_forbidden, reviewed: t.e_reviewed, stars: t.e_stars, photos: t.e_photos, photo: t.ph_bad, slow: t.e_slow, unpaid: t.e_unpaid, paid: t.e_paid, invited: t.e_invited, invite: t.im_bad_link, advice: t.rf2_err, answered: t.e_answered, slot_taken: t.sl_taken, slot: t.sl_bad, voices: t.vo_many, audio: t.vo_bad, open: t.rx_open, address: t.rx_err_fill, region: t.rx_err_fill }[c] || t.be_err; }
   if (BE) ["en", "uz", "ru"].forEach(function (l) { T[l].acc_demo = T[l].be_online; T[l].cs_demo = T[l].be_online; });
 
   /* ---------------- sample directory ---------------- */
@@ -700,6 +700,7 @@
     if ($("c-claim")) { var m = matchPlace(v("c-claim")); pr.fac = m && m.t === "f" ? m.key : ""; pr.claim = v("c-claim"); }
     if ($("d-cp-text")) { pr.cp = {}; ["text", "audio", "video"].forEach(function (k) { var x = v("d-cp-" + k); pr.cp[k] = x === "" ? "" : Math.max(0, Math.round(+x) || 0); }); }
     if ($("d-langs")) pr.langs = all("#d-langs input:checked").map(function (i) { return i.value; });
+    if ($("d-hdays")) pr.hours = { days: all("#d-hdays input:checked").map(function (i) { return +i.value; }), from: v("d-hfrom"), to: v("d-hto"), len: +v("d-hlen") };
     if ($("d-modes")) pr.modes = all("#d-modes input:checked").map(function (i) { return i.value; });
     if ($("wp-list")) pr.work = all("#wp-list input").map(function (i) { return matchPlace(i.value); }).filter(Boolean);
     if ($("svc-list")) pr.svc = all("#svc-list .svcrow").map(function (row) { var n = row.querySelector(".s-n").value.trim(), pz = row.querySelector(".s-p").value.trim(), on = row.querySelector(".s-o"); return { name: n, price: pz === "" ? "" : Math.max(0, Math.round(+pz) || 0), online: on ? on.checked : false }; });
@@ -726,6 +727,8 @@
         ta("d-bio", t.d_bio, pr.bio, t.d_bio_ph) + "</fieldset>" +
         '<fieldset class="accsec"><legend>' + t.sec_cprice + '</legend><p class="fine" style="margin:0 0 10px">' + t.cp_hint + '</p><div class="three">' + ["text", "audio", "video"].map(function (k) { var c = pr.cp || {}; return fi("d-cp-" + k, t.cp_types[k], c[k] === 0 ? "0" : c[k], "number", ' min="0" step="1000" inputmode="numeric" placeholder="' + unit() + '"'); }).join("") + "</div>" +
         '<div class="two"><div class="fld"><label for="d-reply">' + t.reply_l + '</label><select id="d-reply">' + ["", "1", "3", "24", "48"].map(function (h) { return '<option value="' + h + '"' + (String(pr.reply || "") === h ? " selected" : "") + ">" + t.replies[h] + "</option>"; }).join("") + "</select></div>" + fi("d-ohours", t.ohours_l, pr.ohours, "text", ' maxlength="80" placeholder="' + esc(t.ohours_ph) + '"') + "</div></fieldset>" +
+        (function () { var h = pr.hours || {}, on = h.days || []; return '<fieldset class="accsec"><legend>' + t.sl_hours_h + '</legend><p class="fine" style="margin:0 0 10px">' + t.sl_hours_p + '</p><div class="checks wdays" id="d-hdays">' + WD7.map(function (d) { return '<label class="mini"><input type="checkbox" value="' + d + '"' + (on.indexOf(d) > -1 ? " checked" : "") + "><span>" + t.sl_wd[d - 1] + "</span></label>"; }).join("") + "</div>" +
+          '<div class="three">' + fi("d-hfrom", t.sl_from, h.from || "09:00", "time", ' step="900"') + fi("d-hto", t.sl_to, h.to || "18:00", "time", ' step="900"') + '<div class="fld"><label for="d-hlen">' + t.sl_len + '</label><select id="d-hlen">' + [15, 20, 30, 60].map(function (m) { return '<option value="' + m + '"' + (+(h.len || 30) === m ? " selected" : "") + ">" + t.sl_min(m) + "</option>"; }).join("") + "</select></div></div></fieldset>"; })() +
         '<fieldset class="accsec"><legend>' + t.sec_bg + "</legend>" + ta("d-edu", t.d_edu, pr.edu, t.d_edu_ph) + "</fieldset>" +
         '<fieldset class="accsec"><legend>' + t.sec_work + "</legend>" + regionSel + '<datalist id="placelist">' + placeOptions(pr.region) + '</datalist><div id="wp-list">' + pr.work.map(function (w, i) { return '<div class="svcrow"><input list="placelist" aria-label="' + t.works_at + '" placeholder="' + esc(t.d_work_ph) + '" value="' + esc(w.t === "f" && facByKey[w.key] ? facLabel(facByKey[w.key]) : w.t === "c" ? wpLabel(w) + " — Shifokor" : w.label) + '"><button class="linkbtn" type="button" data-wpdel="' + i + '">' + t.svc_remove + "</button></div>"; }).join("") + '</div><p class="fine" style="margin:4px 0 10px">' + t.d_work_hint + '</p><button class="btn ghost sm" type="button" data-act="wpadd">' + ic("plus") + t.add_work + "</button></fieldset>" +
         '<fieldset class="accsec"><legend>' + t.sec_services + "</legend>" + svcRows(true) + "</fieldset>";
@@ -764,7 +767,7 @@
       (pr.edu ? '<div class="sect"><h2>' + t.sec_bg + '</h2><p class="pre">' + esc(pr.edu) + "</p></div>" : "") +
       '<div class="sect"><dl class="kv">' + (langs ? "<dt>" + t.p_langs + "</dt><dd>" + esc(langs) + "</dd>" : "") + (region ? "<dt>" + t.p_area + "</dt><dd>" + esc(region) + "</dd>" : "") + (pr.lic ? "<dt>" + t.d_lic + "</dt><dd>" + esc(pr.lic) + (u.verified ? "" : ' <span class="muted">· ' + t.verified_no + "</span>") + "</dd>" : "") + "</dl></div>" +
       '<p class="fine" style="margin-top:20px">' + t.acc_demo + (u.updated ? " · " + t.updated(fmt(fromIso(u.updated), { day: "numeric", month: "short" })) : "") + "</p></div>" +
-      '<aside class="stick"><h2>' + esc(u.name) + "</h2>" + (cpMin(u) != null ? '<p class="cpaside"><small>' + t.cp_h + "</small><b>" + (cpMin(u) === 0 ? t.free_c : esc(t.cp_from(num(cpMin(u)) + " " + unit()))) + "</b>" + (pr.reply ? '<span class="muted">' + t.reply_txt(pr.reply) + "</span>" : "") + "</p>" : "") + '<div class="stack">' + (isOnline(u) ? '<a class="btn" href="#/consult?' + qs({ doc: u.id }) + '">' + ic("chat") + t.cs_req_doc + "</a>" : "") + tgBtn(u) + "</div></aside></div></div>";
+      '<aside class="stick"><h2>' + esc(u.name) + "</h2>" + (function () { var f = !u.sample && isOnline(u) ? freeDays(u) : null, nx = f && f.days.length ? f.days[0].slots.filter(function (x) { return !x.busy; })[0] : null; return nx ? '<p class="cpaside"><small>' + t.sl_next + "</small><b>" + esc(slotTxt(nx.ms)) + "</b></p>" : ""; })() + (cpMin(u) != null ? '<p class="cpaside"><small>' + t.cp_h + "</small><b>" + (cpMin(u) === 0 ? t.free_c : esc(t.cp_from(num(cpMin(u)) + " " + unit()))) + "</b>" + (pr.reply ? '<span class="muted">' + t.reply_txt(pr.reply) + "</span>" : "") + "</p>" : "") + '<div class="stack">' + (isOnline(u) ? '<a class="btn" href="#/consult?' + qs({ doc: u.id }) + '">' + ic("chat") + t.cs_req_doc + "</a>" : "") + tgBtn(u) + "</div></aside></div></div>";
   }
   function cpBlock(u) {
     var t = L(), pr = u.profile || {}, c = cpOf(pr); if (!offersCp(u)) return "";
@@ -1043,7 +1046,7 @@
         var d = !c.asap && c.doc ? userById(c.doc) : null; if (!d) return "";
         var cp = cpOf(d.profile), p = cp[c.type], anyP = ["text", "audio", "video"].some(function (k) { return cp[k] != null; });
         return '<p class="cpnote">' + (p != null ? ic("tag") + " <b>" + esc(t.cp_price_note(t.cs_types[c.type][0], money(p))) + ".</b> " + (p > 0 && payOn() ? t.cp_pay_online : t.cp_pay) : anyP ? t.cp_not_offered : t.cp_none) + "</p>";
-      })() + "</fieldset>" +
+      })() + slotPicker(c) + "</fieldset>" +
       '<label class="chk"><input type="checkbox" id="cs-consent"' + (c.consent ? " checked" : "") + "><span>" + t.cs_consent + '</span></label><div class="err" id="cs-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.cs_send + "</button>";
     if (embed) {
       var dd0 = q.doc ? userById(q.doc) : null, smp0 = dd0 && dd0.sample;
@@ -1061,7 +1064,7 @@
       '<p class="emline">' + ic("phone") + "<span>" + t.em_line + ' <a href="tel:103">103</a></span></p>' + form + "</form></div>";
   }
   function csBadge(st) { var t = L(); return '<span class="badge ' + (st === "done" ? "ok" : st === "accepted" ? "" : st === "referred" ? "plain" : "warn") + '">' + t.cs_st[st] + "</span>"; }
-  function csRow(c) { var t = L(), mu = me(), rate = c.status === "done" && c.doctorId && !(mu && mu.role === "doctor") && !myReview("c", c.id); return '<a class="visit cs-row" href="#/consult/' + c.id + '"><div class="date"><span>' + fmt(new Date(c.at), { month: "short" }) + "</span><b>" + new Date(c.at).getDate() + '</b></div><div><h3>' + t.cs_no(c.n) + " " + csBadge(c.status) + (c.status === "accepted" && c.payStatus === "due" ? " " + payBadge(c) : "") + (c.asap && c.status === "new" ? ' <span class="badge warn">' + t.asap_badge + "</span>" : "") + (rate ? ' <span class="badge warn">★ ' + t.rv_rate_badge + "</span>" : "") + '</h3><div class="muted" style="font-size:.92rem">' + t.cs_types[c.type][0] + " · " + esc(c.name) + " · " + esc(c.complaint.slice(0, 80)) + (c.complaint.length > 80 ? "…" : "") + '</div></div><div class="acts">' + ic(c.type === "text" ? "chat" : c.type === "audio" ? "mic" : "video") + "</div></a>"; }
+  function csRow(c) { var t = L(), mu = me(), rate = c.status === "done" && c.doctorId && !(mu && mu.role === "doctor") && !myReview("c", c.id); return '<a class="visit cs-row" href="#/consult/' + c.id + '"><div class="date"><span>' + fmt(c.slotAt ? tkDate(c.slotAt) : new Date(c.at), { month: "short" }) + "</span><b>" + (c.slotAt ? tkDate(c.slotAt) : new Date(c.at)).getDate() + '</b></div><div><h3>' + t.cs_no(c.n) + " " + csBadge(c.status) + (c.slotAt ? ' <span class="badge plain nums">' + ic("cal") + hhmm(c.slotAt) + "</span>" : "") + (c.status === "accepted" && c.payStatus === "due" ? " " + payBadge(c) : "") + (c.asap && c.status === "new" ? ' <span class="badge warn">' + t.asap_badge + "</span>" : "") + (rate ? ' <span class="badge warn">★ ' + t.rv_rate_badge + "</span>" : "") + '</h3><div class="muted" style="font-size:.92rem">' + t.cs_types[c.type][0] + " · " + esc(c.name) + " · " + esc(c.complaint.slice(0, 80)) + (c.complaint.length > 80 ? "…" : "") + '</div></div><div class="acts">' + ic(c.type === "text" ? "chat" : c.type === "audio" ? "mic" : "video") + "</div></a>"; }
   function docInbox(u) {
     var t = L(), sp = (u.profile || {}).spec;
     var list = consults().filter(function (c) { return c.doctorId === u.id || (c.status === "new" && (c.doc ? c.doc === u.id : !c.spec || c.spec === sp || (sp === "gp" && !c.spec))); }).sort(function (a, b) { return b.at - a.at; });
@@ -1186,14 +1189,59 @@
       '<details class="finish"><summary>' + t.cs_finish + '</summary><form id="csfinish" data-id="' + c.id + '" novalidate><div class="radio">' + t.on_out.map(function (o, i) { return '<label><input type="radio" name="csout" value="' + i + '">' + o + "</label>"; }).join("") + '</div><div class="fld"><label for="cs-sum">' + t.vs_note + '</label><textarea id="cs-sum" maxlength="600"></textarea></div><div class="err" id="csf-err"></div><button class="btn" type="submit">' + t.vs_save + "</button></form></details>";
     if (!isDoc && c.status === "accepted" && !due && (u ? c.userId === u.id : !c.userId)) actions = (c.call && ringNow(c) && c.callBy !== "p" ? '<button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "mic") + t.cs_join + "</button>" : "") +
       '<button class="btn' + (c.call && ringNow(c) && c.callBy !== "p" ? " ghost" : "") + '" type="button" data-cs="pcall" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "phone") + t.cl_call_doc(c.type === "video") + "</button>";
+    var slotBox = c.slotAt && (c.status === "new" || c.status === "accepted") ? '<div class="slotbox' + (c.slotAt - Date.now() < 3600e3 && c.slotAt > Date.now() - 3600e3 ? " soon" : "") + '">' + ic("cal") + "<div><small>" + t.sl_when + "</small><b>" + esc(slotTxt(c.slotAt)) + "</b><span>" + (c.slotAt > Date.now() ? t.sl_in(Math.round((c.slotAt - Date.now()) / 60e3)) : t.sl_now) + " · " + t.sl_tz + "</span></div></div>" : "";
     var ringing = !isDoc && c.status === "accepted" && c.callBy !== "p" && ringNow(c) && !due && !(window.ShifokorCall && ShifokorCall.active());
     return '<div class="wrap"><a class="back" href="' + (isDoc ? "#/account" : "#/visits") + '">‹ ' + (isDoc ? t.nav_account : t.nav_visits) + '</a><div class="sechead" style="padding-top:12px"><div><h1 style="font-size:clamp(1.6rem,1.3rem + 1.4vw,2.3rem)">' + t.cs_no(c.n) + "</h1><div class=\"badges\">" + csBadge(c.status) + payBadge(c) + (c.asap && c.status === "new" ? '<span class="badge warn">' + t.asap_badge + "</span>" : "") + (isDoc && c.followup ? '<span class="badge ' + (c.followup === "worse" ? "warn" : "ok") + '">' + t.fu_doc(t.fu_opts[c.followup]) + "</span>" : "") + '<span class="badge plain">' + t.cs_types[c.type][0] + "</span></div></div>" + (isDoc ? '<span class="sample">' + t.cs_doc_view + "</span>" : "") + "</div>" +
-      (ringing ? '<div class="ring" role="status"><span class="ring-ic">' + ic(c.type === "video" ? "video" : "mic") + "</span><div><b>" + t.cl_ringing + "</b><span>" + esc(c.doctorName) + '</span></div><button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + t.cs_join + "</button></div>" : "") +
+      slotBox + (ringing ? '<div class="ring" role="status"><span class="ring-ic">' + ic(c.type === "video" ? "video" : "mic") + "</span><div><b>" + t.cl_ringing + "</b><span>" + esc(c.doctorName) + '</span></div><button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + t.cs_join + "</button></div>" : "") +
       '<div class="pf" style="padding-top:18px"><div>' + (!isDoc && due && (u ? c.userId === u.id : !c.userId) ? payCard(c) : "") + (!isDoc && (u ? c.userId === u.id : !c.userId) ? careCard(c) : "") + rxCard(c, mineDoc, !isDoc && (u ? c.userId === u.id : !c.userId)) + (!isDoc && c.status === "done" && c.doctorId && (u ? c.userId === u.id : !c.userId) ? rvCard("c", c.id, c.doctorName, false) : "") + '<div class="dcard"><h2>' + t.cs_details + "</h2>" + details + "</div>" + (isDoc && !mineDoc && c.status !== "new" ? "" : "") + '<p class="fine" style="margin-top:14px">' + t.cs_demo + "</p></div>" +
       '<aside class="dcard chatcard"><h2>' + t.cs_thread + '</h2><div class="room-log" id="cslog">' + (msgs || '<div class="sys">' + t.cs_sent + "</div>") + "</div>" +
       (canWrite ? voBar(c.id) + '<form class="room-send withph" id="csmsg" data-id="' + c.id + '" style="margin-top:10px">' + (PH && PH.cid === c.id ? '<div class="phpend"><img src="' + PH.url + '" alt="' + esc(t.ph_alt) + '"><span>' + t.ph_ready + '</span><button class="btn ghost sm" type="button" data-act="phdrop">' + t.ph_remove + "</button></div>" : "") +
         '<label class="btn ghost phbtn" title="' + esc(t.ph_add) + '"><input type="file" accept="image/*" id="csmsg-ph" class="vh" aria-label="' + esc(t.ph_add) + '">' + ic("camera") + '</label><button class="btn ghost phbtn" type="button" data-vo="rec" data-id="' + c.id + '" title="' + esc(t.vo_btn) + '" aria-label="' + esc(t.vo_btn) + '">' + ic("mic") + '</button><input id="csmsg-in" class="pinput" style="width:100%;text-align:left" placeholder="' + esc(t.cs_write) + '" aria-label="' + esc(t.cs_write) + '" autocomplete="off"><button class="btn" type="submit">' + t.cs_send_msg + '</button></form><p class="fine" style="margin-top:6px">' + t.ph_privacy + "</p>" : "") +
       (actions ? '<div class="stack" style="margin-top:12px">' + actions + "</div>" : "") + (!isDoc && c.status === "new" ? "" : "") + '<p class="fine" style="margin-top:10px">' + t.cs_sms_note + "</p></aside></div></div>";
+  }
+  /* ---------------- booked times: the patient picks one of the doctor's free slots (Tashkent time, UTC+5) ---------------- */
+  var TK = 5 * 3600e3, WD7 = [1, 2, 3, 4, 5, 6, 7];
+  /* the doctor's weekly hours: { days: [1..7, Monday = 1], from, to, len } in minutes, or null */
+  function hoursOf(pr) {
+    var h = pr && pr.hours; if (!h || !h.days || !h.days.length) return null;
+    var min = function (x) { return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(x || "")) ? +x.slice(0, 2) * 60 + +x.slice(3) : null; };
+    var from = min(h.from), to = min(h.to), len = [15, 20, 30, 60].indexOf(+h.len) > -1 ? +h.len : null;
+    return from != null && to != null && len && to - from >= len ? { days: h.days.map(Number), from: from, to: to, len: len } : null;
+  }
+  /* a Date whose local fields read as Tashkent time, for fmt() */
+  var tkDate = function (ms) { var d = new Date(ms + TK); return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes()); };
+  var hhmm = function (ms) { var d = new Date(ms + TK); return pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes()); };
+  function slotTxt(ms) { return fmt(tkDate(ms), { weekday: "long", day: "numeric", month: "long" }) + ", " + hhmm(ms); }
+  /* times others booked: from the server (no patient details), or from this browser in demo mode */
+  var TAKEN = {};
+  function takenFor(doc) {
+    if (!BE) return consults().filter(function (c) { return c.doc === doc && c.slotAt && (c.status === "new" || c.status === "accepted"); }).map(function (c) { return c.slotAt; });
+    var e = TAKEN[doc];
+    if (!e || Date.now() - e.at > 60e3) { TAKEN[doc] = { at: Date.now(), list: e ? e.list : null }; BE.slots(doc).then(function (j) { TAKEN[doc] = { at: Date.now(), list: j.taken || [] }; render(true); }, function () { TAKEN[doc].list = TAKEN[doc].list || []; }); }
+    return TAKEN[doc].list;
+  }
+  /* the next working days (up to 7, within 14 days) with their free start times, at least 30 minutes ahead */
+  function freeDays(u) {
+    var h = hoursOf(u.profile), taken = takenFor(u.id); if (!h) return null;
+    var out = [], now = Date.now(), t0 = new Date(now + TK), day0 = Date.UTC(t0.getUTCFullYear(), t0.getUTCMonth(), t0.getUTCDate()) - TK;
+    for (var i = 0; i < 14 && out.length < 7; i++) {
+      var start = day0 + i * 864e5, wd = new Date(start + TK).getUTCDay() || 7; if (h.days.indexOf(wd) < 0) continue;
+      var list = []; for (var m = h.from; m + h.len <= h.to; m += h.len) { var ms = start + m * 60e3; if (ms >= now + 30 * 60e3) list.push({ ms: ms, busy: !!taken && taken.indexOf(ms) > -1 }); }
+      if (list.some(function (x) { return !x.busy; })) out.push({ day: start, slots: list });
+    }
+    return { days: out, loading: taken === null };
+  }
+  function slotPicker(c) {
+    var t = L(), d = !c.asap && c.doc ? userById(c.doc) : null; if (!d || d.sample) return "";
+    var f = freeDays(d); if (!f) return '<p class="fine">' + t.sl_none_set + "</p>";
+    if (f.loading) return '<p class="muted">…</p>';
+    if (!f.days.length) return '<p class="note-box">' + t.sl_full + "</p>";
+    if (!c.slotDay || !f.days.some(function (x) { return x.day === c.slotDay; })) c.slotDay = f.days[0].day;
+    var cur = f.days.filter(function (x) { return x.day === c.slotDay; })[0];
+    if (c.slot && !cur.slots.some(function (x) { return x.ms === c.slot && !x.busy; }) && !f.days.some(function (x) { return x.slots.some(function (y) { return y.ms === c.slot && !y.busy; }); })) c.slot = 0;
+    return '<div class="slotpick"><b class="flabel">' + t.sl_pick + '</b><div class="sldays" role="group" aria-label="' + esc(t.sl_pick) + '">' + f.days.map(function (x) { var dd = tkDate(x.day + 6 * 3600e3); return '<button type="button" data-slday="' + x.day + '" aria-pressed="' + (x.day === c.slotDay) + '"><small>' + esc(fmt(dd, { weekday: "short" })) + "</small><b>" + dd.getDate() + "</b><small>" + esc(fmt(dd, { month: "short" })) + "</small></button>"; }).join("") + "</div>" +
+      '<div class="sltimes" role="group">' + cur.slots.map(function (x) { return '<button type="button" class="nums" data-slot="' + x.ms + '" aria-pressed="' + (c.slot === x.ms) + '"' + (x.busy ? " disabled" : "") + ">" + hhmm(x.ms) + "</button>"; }).join("") + "</div>" +
+      '<p class="fine">' + (c.slot ? ic("cal") + " <b>" + esc(slotTxt(c.slot)) + "</b> · " : "") + t.sl_tz + "</p></div>";
   }
   /* ---------------- voice messages in the consultation chat ---------------- */
   /* { cid, state: "rec" | "ready", rec, stream, chunks, t0, timer, blob, url, sec } */
@@ -1798,7 +1846,7 @@
     else if (path === "/assist") { html = viewAssist(); route = "assist"; }
     else html = viewHome();
     var y = window.scrollY, apb = document.querySelector(".apbody"), apy = apb ? apb.scrollTop : 0; destroyMap(); $("app").innerHTML = html; hydratePhotos();
-    document.documentElement.classList.toggle("aplock", !!$("ap-h")); if (keepScroll && apy && document.querySelector(".apbody")) document.querySelector(".apbody").scrollTop = apy;
+    document.documentElement.classList.toggle("aplock", !!$("ap-h")); if (keepScroll && $("ap-h")) document.querySelector(".applypanel").classList.add("still");   /* slide in once, not on every redraw */ if (keepScroll && apy && document.querySelector(".apbody")) document.querySelector(".apbody").scrollTop = apy;
     if (pendingMap) { var items = pendingMap; pendingMap = null; if (items.fac) initFacMap(items.fac, items.single); else initMap(items); }
     all("[data-t]").forEach(function (el) { var v = t[el.dataset.t]; if (typeof v === "string") el.innerHTML = v; });
     all("[data-r]").forEach(function (a) { if (a.dataset.r === route) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
@@ -1903,6 +1951,8 @@
       if (oa === "delok") { ON = { mode: "due", urgent: false, ok: false, famUrl: "", del: false }; if (BE) { BE.pregDelete().then(done, fail); return; } savePregDemo(null); render(true); return; }
     }
     if (ds.csasap) { csCollect(); CS.asap = ds.csasap === "1"; if (CS.asap) CS.doc = ""; render(true); return; }
+    if (ds.slday) { csCollect(); CS.slotDay = +ds.slday; CS.slot = 0; render(true); return; }
+    if (ds.slot) { csCollect(); CS.slot = +ds.slot; render(true); return; }
     if (ds.vo) {
       if (ds.vo === "rec") { voStart(ds.id); return; }
       if (ds.vo === "stop") { voStop(); return; }
@@ -2079,22 +2129,24 @@
       csCollect(); var C = CS, err = $("cs-err");
       if (!C.name || !(+C.age >= 0 && C.age !== "") || !okPhone(C.phone) || C.complaint.length < 10) { err.textContent = t.cs_err_fill; return; }
       if (!C.consent) { err.textContent = t.cs_err_consent; return; }
+      var sd = !C.asap && C.doc ? userById(C.doc) : null, sf = sd && !sd.sample ? freeDays(sd) : null;
+      if (sf && sf.days && sf.days.length && !C.slot) { err.textContent = t.sl_err; return; }
       if (BE) {
         if (!BE.userId()) { err.innerHTML = t.be_login_first + ' <a href="#/login">' + t.go_login + '</a> · <a href="#/register">' + t.go_reg + "</a>"; return; }
         var dsel2 = C.doc ? userById(C.doc) : null, notes = [t.cs_sent].concat(dsel2 ? [wantedNote(dsel2, C.type)] : []);
         var phs = CSPH.slice(), csb = e.target.querySelector('button[type="submit"]');
         err.textContent = ""; if (csb) csb.disabled = true;
-        BE.createConsult(C, notes).then(function (cid) {
+        BE.createConsult(Object.assign({}, C, { slot: C.slot && !C.asap ? new Date(C.slot).toISOString() : "" }), notes).then(function (cid) {
           if (phs.length) err.textContent = t.ph_sending;
           /* photos go up one by one after the application; one that fails can be sent again in the chat */
           return phs.reduce(function (p, ph) { return p.then(function (ok) { return BE.addMessage(cid, "p", C.name, "", ph).then(function () { return ok; }, function () { return false; }); }); }, Promise.resolve(true)).then(function (ok) {
             CS = null; CSPH = []; toast(ok ? t.cs_sent : t.ph_some_failed); go("#/consult/" + cid);
           });
-        }, function (x) { if (csb) csb.disabled = false; err.textContent = beMsg(t, x); });
+        }, function (x) { if (csb) csb.disabled = false; if (x && x.code === "slot_taken" && C.doc) { delete TAKEN[C.doc]; CS.slot = 0; render(true); var e2 = $("cs-err"); if (e2) e2.textContent = beMsg(t, x); return; } err.textContent = beMsg(t, x); });
         return;
       }
       var cl2 = consults(), cu3 = me(), dsel = C.doc ? userById(C.doc) : null;
-      var rec = { id: "c" + Date.now().toString(36), n: 1000 + cl2.length + 1, at: Date.now(), userId: cu3 && cu3.role === "patient" ? cu3.id : "", type: C.type, who: C.who, name: C.name, age: C.age, sex: C.sex, phone: C.phone, region: C.region, district: C.district, complaint: C.complaint, since: C.since, chronic: C.chronic, meds: C.meds, allergy: C.allergy, spec: C.spec, doc: C.asap ? "" : C.doc, asap: !!C.asap, status: "new", doctorId: "", doctorName: "", msgs: [{ from: "s", text: t.cs_sent, at: Date.now() }] };
+      var rec = { id: "c" + Date.now().toString(36), n: 1000 + cl2.length + 1, at: Date.now(), userId: cu3 && cu3.role === "patient" ? cu3.id : "", type: C.type, who: C.who, name: C.name, age: C.age, sex: C.sex, phone: C.phone, region: C.region, district: C.district, complaint: C.complaint, since: C.since, chronic: C.chronic, meds: C.meds, allergy: C.allergy, spec: C.spec, doc: C.asap ? "" : C.doc, asap: !!C.asap, slotAt: C.asap ? 0 : C.slot || 0, status: "new", doctorId: "", doctorName: "", msgs: [{ from: "s", text: t.cs_sent, at: Date.now() }] };
       if (dsel) rec.msgs.push({ from: "s", text: wantedNote(dsel, C.type), at: Date.now() });
       var full2 = false; CSPH.forEach(function (ph) { var fid = demoPhoto(ph); if (fid) rec.msgs.push({ from: "p", name: C.name, text: "", file: fid, at: Date.now() }); else full2 = true; });
       cl2.push(rec); saveConsults(cl2); CS = null; CSPH = []; toast(full2 ? t.ph_full : t.cs_sent); go("#/consult/" + rec.id); return;
@@ -2325,7 +2377,7 @@
     if (id === "cs-spec") { csCollect(); CS.doc = ""; render(true); return; }
     if (id.indexOf("df-") === 0) { go("#/doctors?" + qs(dfQuery())); return; }
     if (id.indexOf("pr-") === 0 && id !== "pr-q") { go("#/prices?" + qs(prQuery())); return; }
-    if (id === "cs-doc") { csCollect(); render(true); return; }
+    if (id === "cs-doc") { csCollect(); CS.slot = 0; CS.slotDay = 0; render(true); return; }
     if (id === "doc-photo") {
       var pf0 = e.target.files && e.target.files[0]; e.target.value = ""; if (!pf0) return;
       shrinkPhoto(pf0, 480).then(function (ph) {

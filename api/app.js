@@ -114,6 +114,32 @@ const notifyUser = async (id, text) => { const r = (await q("select tg_chat from
 const P = require("./_pay")({ q, notifyUser, site: () => SITE });
 const O = require("./_ona")({ q, N, sha, crypto, site: () => SITE, today: () => today(), Fail, bad, need, UUID, str });
 const M = require("./_meds")({ q, notifyUser, site: () => SITE, Fail, bad, need, UUID, str, isAdmin, phoneOf });
+// ---------- booked times: Tashkent time (UTC+5, no daylight saving) ----------
+const TK = 5 * 3600e3;
+// a doctor's weekly hours for online consultations, from their profile: { days: [1..7, Monday = 1], from: "09:00", to: "18:00", len: 15 | 20 | 30 | 60 }
+function hoursOf(p) {
+  const h = p && p.hours;
+  if (!h || !Array.isArray(h.days)) return null;
+  const min = (x) => (/^([01]\d|2[0-3]):[0-5]\d$/.test(String(x || "")) ? Number(x.slice(0, 2)) * 60 + Number(x.slice(3)) : null);
+  const days = h.days.map(Number).filter((d) => d >= 1 && d <= 7), from = min(h.from), to = min(h.to), len = [15, 20, 30, 60].includes(Number(h.len)) ? Number(h.len) : null;
+  if (!days.length || from == null || to == null || !len || to - from < len) return null;
+  return { days, from, to, len };
+}
+// a start time that is one of the doctor's slots: on a working day, inside the hours, on the slot grid
+function onGrid(h, ms) {
+  const d = new Date(ms + TK), wd = d.getUTCDay() || 7, m = d.getUTCHours() * 60 + d.getUTCMinutes();
+  return d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0 && h.days.includes(wd) && m >= h.from && m + h.len <= h.to && (m - h.from) % h.len === 0;
+}
+const slotUz = (at) => { const d = new Date(new Date(at).getTime() + TK); return N.dayUz(d.toISOString().slice(0, 10)) + ", soat " + d.toISOString().slice(11, 16); };
+async function sendSlotReminders() {
+  const r = await q("update app_consults set slot_reminded = true where status in ('new', 'accepted') and not slot_reminded and slot_at > now() and slot_at < now() + interval '24 hours' returning id, n, slot_at, patient_id, coalesce(doctor_id, doc) as doctor_id");
+  for (const c of r.rows) {
+    const when = slotUz(c.slot_at);
+    await notifyUser(c.patient_id, "Shifokor eslatmasi: onlayn maslahat " + when + " da (ariza №" + c.n + "). Telefoningiz yoniq va internet bor bo‘lsin. " + SITE + "/#/consult/" + c.id);
+    if (c.doctor_id) await notifyUser(c.doctor_id, "Shifokor eslatmasi: " + when + " da onlayn maslahat (ariza №" + c.n + "). " + SITE + "/#/consult/" + c.id);
+  }
+  return r.rows.length;
+}
 async function consultFor(me, id) {
   if (!UUID.test(String(id || ""))) bad("id");
   const r = await q("select * from app_consults where id = $1", [id]);
@@ -360,19 +386,39 @@ const ACTIONS = {
     // an imported doctor who hasn't claimed their profile yet can't answer, so the application goes to any doctor
     if (doc && !(await q("select 1 from app_users where id = $1 and role = 'doctor' and (imported_at is null or claimed_at is not null)", [doc])).rows[0]) doc = null;
     const asap = !doc && c.asap === true;   // "first available doctor": doctors online now are alerted, the first to accept takes it
-    const r = await q(
-      "insert into app_consults (patient_id, type, who, name, age, sex, phone, region, district, complaint, since, chronic, meds, allergy, spec, doc, asap) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) returning id, n",
-      [me.id, type, who, name, age, sex, phone, opt(c.region, 20), opt(c.district, 20), complaint, since, opt(c.chronic, 500), opt(c.meds, 500), opt(c.allergy, 500), opt(c.spec, 20), doc, asap]
-    );
+    // a booked time must be one of the chosen doctor's free slots, from 30 minutes to 14 days ahead
+    let slot = null;
+    if (c.slot && doc) {
+      const ms = Date.parse(String(c.slot)), h = hoursOf(((await q("select profile from app_users where id = $1", [doc])).rows[0] || {}).profile);
+      if (!h || isNaN(ms) || ms < Date.now() + 30 * 60e3 || ms > Date.now() + 14 * 864e5 || !onGrid(h, ms)) bad("slot");
+      slot = new Date(ms).toISOString();
+    }
+    let r;
+    try {
+      r = await q(
+        "insert into app_consults (patient_id, type, who, name, age, sex, phone, region, district, complaint, since, chronic, meds, allergy, spec, doc, asap, slot_at) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) returning id, n",
+        [me.id, type, who, name, age, sex, phone, opt(c.region, 20), opt(c.district, 20), complaint, since, opt(c.chronic, 500), opt(c.meds, 500), opt(c.allergy, 500), opt(c.spec, 20), doc, asap, slot]
+      );
+    } catch (e) {
+      if (e.code === "23505") throw new Fail(409, "slot_taken");   // someone booked the same time a moment earlier
+      throw e;
+    }
     const id = r.rows[0].id;
     for (const note of (Array.isArray(b.notes) ? b.notes : []).slice(0, 3)) await sysNote(id, note);
-    if (doc) await notifyUser(doc, "Shifokor: sizga yangi onlayn maslahat arizasi. " + SITE + "/#/consult/" + id);
+    if (doc) await notifyUser(doc, "Shifokor: sizga yangi onlayn maslahat arizasi" + (slot ? " — " + slotUz(slot) : "") + ". " + SITE + "/#/consult/" + id);
     if (asap) {
       const on = await q("select tg_chat from app_users where role = 'doctor' and online_until > now() and tg_chat is not null and (imported_at is null or claimed_at is not null) and ($1::text is null or profile->>'spec' = $1 or profile->>'spec' = 'gp') limit 50", [opt(c.spec, 20)]);
       const text = "Shifokor: hozir maslahat kerak (ariza №" + r.rows[0].n + "). Birinchi qabul qilgan shifokor oladi. " + SITE + "/#/consult/" + id;
       await Promise.all(on.rows.map((d) => N.tgSend(d.tg_chat, text)));
     }
     return { id };
+  },
+
+  // the taken times of a doctor's slots in the next 14 days, so the booking form can grey them out
+  async slots(b) {
+    if (!UUID.test(String(b.doc || ""))) bad("id");
+    const r = await q("select slot_at from app_consults where doc = $1 and slot_at > now() and slot_at < now() + interval '15 days' and status in ('new', 'accepted')", [b.doc]);
+    return { taken: r.rows.map((x) => new Date(x.slot_at).getTime()) };
   },
 
   async message(b, me) {
@@ -864,7 +910,7 @@ module.exports = async function handler(req, res) {
     if (/[?&]cron=daily\b/.test(req.url || "") && CONN) {
       const secret = (process.env.CRON_SECRET || "").trim();
       if (secret && req.headers.authorization !== "Bearer " + secret) return send(res, 401, { error: "auth" });
-      try { await migrate(); return send(res, 200, { ok: true, followups: await sendFollowups(), ona: await O.daily() }); }
+      try { await migrate(); return send(res, 200, { ok: true, followups: await sendFollowups(), reminders: await sendSlotReminders(), ona: await O.daily() }); }
       catch (e) { console.error("cron", e && e.message); return send(res, 500, { error: "server" }); }
     }
     if (!CONN) return send(res, 200, { ok: true, database: false });

@@ -268,6 +268,14 @@ alter table app_consults add column if not exists slot_at timestamptz;
 alter table app_consults add column if not exists slot_reminded boolean not null default false;
 create unique index if not exists app_consults_slot_uq on app_consults (doc, slot_at) where slot_at is not null and status in ('new', 'accepted');
 
+-- the patient can cancel an application before a doctor accepts it
+do $$ begin
+  if exists (select 1 from pg_constraint where conname = 'app_consults_status_check' and pg_get_constraintdef(oid) not like '%cancelled%') then
+    alter table app_consults drop constraint app_consults_status_check;
+    alter table app_consults add constraint app_consults_status_check check (status in ('new', 'accepted', 'done', 'referred', 'cancelled'));
+  end if;
+end $$;
+
 -- Medicines after a consultation: the doctor's list (rx) and the patient's requests for home delivery by a partner
 -- pharmacy, which calls with the price and time; payment is on delivery.
 alter table app_consults add column if not exists rx jsonb;

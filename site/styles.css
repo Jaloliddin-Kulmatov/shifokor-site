@@ -1393,3 +1393,18 @@ audio.voice { display: block; width: 240px; max-width: 100%; height: 36px; margi
   .week { grid-template-columns: repeat(7, 140px); }
 }
 .nav a.navcta[data-n]::after, .menu a.navcta-m[data-n]::after { content: attr(data-n); display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-left: 6px; padding: 0 5px; border-radius: 99px; background: #fff; color: var(--risk); font-size: 0.75rem; font-weight: 800; }
+
+/* next free times on a doctor's card (book in one tap) */
+.nxchips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+.nxchips small { color: var(--muted); font-weight: 600; margin-right: 2px; }
+.nxchip { padding: 6px 10px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 0.86rem; text-decoration: none; border: 1.5px solid transparent; }
+.nxchip:hover { border-color: var(--accent); }
+/* moving or cancelling a booking */
+.manage { margin-top: 10px; align-items: center; }
+.rsbox { margin-top: 12px; }
+.rsbox .slotpick { margin-top: 8px; }
+.symhint { display: flex; gap: 8px; align-items: center; margin: 14px 0 0; padding: 10px 14px; border-radius: 12px; background: var(--accent-soft); font-weight: 600; }
+/* the online clinic: on phones, and whenever a search is on, results come first */
+@media (max-width: 640px) { .ochero .ocsteps, .ochero .sub, .ochero .eyebrow { display: none; } .ochero .bhead { padding-block: 18px 22px; } .ochero h1 { font-size: 1.6rem; } }
+.ochero.searching .ocsteps, .ochero.searching .sub { display: none; }
+.ochero.searching .bhead { padding-block: 20px 24px; }

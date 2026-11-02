@@ -816,13 +816,22 @@
       return (b.verified ? 1 : 0) - (a.verified ? 1 : 0) || rankScore(b.id) - rankScore(a.id) || (cm(a) === Infinity ? 1 : 0) - (cm(b) === Infinity ? 1 : 0) || yrs(b) - yrs(a);
     });
   }
+  /* "Bugun 15:30", "Ertaga 09:00", or "Chor 4-noy 10:00" */
+  function slotShort(ms) { var t = L(), k = tkDayKey(ms), now = Date.now(); return (k === tkDayKey(now) ? t.nx_today : k === tkDayKey(now + 864e5) ? t.nx_tomorrow : fmt(tkDate(ms), { weekday: "short", day: "numeric", month: "short" })) + " " + hhmm(ms); }
+  function nextChips(u) {
+    if (u.sample || !isOnline(u) || !hoursOf(u.profile)) return "";
+    var t = L(), f = freeDays(u); if (!f || f.loading) return "";
+    var free = []; f.days.forEach(function (d) { d.slots.forEach(function (x) { if (!x.busy && free.length < 4) free.push(x.ms); }); });
+    if (!free.length) return "";
+    return '<div class="nxchips"><small>' + t.nx_h + "</small>" + free.map(function (ms) { return '<a class="nxchip nums" href="#/consult?' + qs(Object.assign({}, dfKeep(), { doc: u.id, slot: String(ms) })) + '">' + esc(slotShort(ms)) + "</a>"; }).join("") + "</div>";
+  }
   function docCard(u) {
     var t = L(), pr = u.profile || {}, w = (pr.work || [])[0], m = cpMin(u), on = isOnline(u);
     var region = pr.district && disByCode[pr.district] ? nmL(disByCode[pr.district]) : pr.region && regByCode[pr.region] ? nmL(regByCode[pr.region]) : "";
     var meta2 = [region, (pr.langs || []).map(langName).join(", ")].filter(Boolean).join(" · ");
     return '<article class="fcard doccard">' + avatarOf(u, "sm") + '<div class="fmain"><h3><a href="#/doc/' + u.id + '">' + esc(u.name) + '</a></h3><div class="spec">' + esc(specName(pr)) + (pr.years ? " · " + t.exp(pr.years) : "") + "</div>" +
       '<div class="badges">' + (onlineNow(u) ? liveBadge() : "") + (ratingOf(u.id).n ? ratingLine(u.id) : "") + (u.verified ? vBadge(u) : "") + (u.sample ? smpBadge() : "") + (on ? '<span class="badge plain">' + ic("video") + t.online_b + "</span>" : "") + "</div>" +
-      (w ? '<div class="meta">' + ic("hosp") + esc(wpLabel(w)) + "</div>" : "") + (meta2 ? '<div class="meta">' + ic("pin") + esc(meta2) + "</div>" : "") + "</div>" +
+      (w ? '<div class="meta">' + ic("hosp") + esc(wpLabel(w)) + "</div>" : "") + (meta2 ? '<div class="meta">' + ic("pin") + esc(meta2) + "</div>" : "") + nextChips(u) + "</div>" +
       '<div class="facts">' + (m != null ? '<div class="cpfrom"><small>' + t.cp_h + '</small><b class="nums">' + (m === 0 ? t.free_c : esc(t.cp_from(num(m) + " " + unit()))) + "</b></div>" : "") +
       (on ? '<a class="btn sm" href="#/consult?' + qs(Object.assign({}, dfKeep(), { doc: u.id })) + '">' + ic("chat") + t.pr_consult + "</a>" : u.sample && offersCp(u) ? '<a class="btn sm" href="#/consult?' + qs(Object.assign({}, dfKeep(), { s: (u.profile || {}).spec, smp: "1" })) + '">' + ic("chat") + t.pr_consult + "</a>" : "") + '<a class="btn ghost sm" href="#/doc/' + u.id + '">' + t.view + "</a></div></article>";
   }
@@ -876,14 +885,33 @@
     }).join("") + '</div><p class="note-box" style="margin-top:24px">' + t.wl_note + "</p></div>";
   }
   /* the doctors-list filters to keep when the application panel opens over it */
-  var dfKeep = function () { var q = current && (current.path === "/doctors" || current.path === "/consult") ? Object.assign({}, current.q) : {}; delete q.doc; delete q.now; delete q.smp; if (current && current.path === "/consult") delete q.s; return q; };
+  var dfKeep = function () { var q = current && (current.path === "/doctors" || current.path === "/consult") ? Object.assign({}, current.q) : {}; delete q.doc; delete q.now; delete q.smp; delete q.slot; if (current && current.path === "/consult") delete q.s; return q; };
   function dfQuery() { var v = function (id) { var el = $(id); return el ? el.value.trim() : ""; }; return { s: v("df-s"), r: v("df-r"), q: v("df-q"), lg: v("df-lg"), on: $("df-on") && $("df-on").checked ? "1" : "", fem: $("df-fem") && $("df-fem").checked ? "1" : "", sort: v("df-sort") }; }
+  /* everyday complaints in Uzbek, Russian and English, and who sees them */
+  var SYMS = [
+    [["isitma", "harorat", "shamolla", "yo'tal", "tumov", "gripp", "temperatur", "кашел", "простуд", "насморк", "грипп", "температур", "fever", "cough", "cold", "flu"], ["gp", "therapist", "pediatrics"]],
+    [["bola", "chaqaloq", "go'dak", "ребен", "ребён", "малыш", "child", "baby", "kid"], ["pediatrics"]],
+    [["homilador", "hayz", "tug'ruq", "беремен", "месячн", "роды", "pregnan", "period"], ["gyn"]],
+    [["bosim", "yurak", "давлен", "сердц", "blood pressure", "heart", "hypertens"], ["cardio", "therapist"]],
+    [["bosh og'ri", "bosh aylan", "bel og'ri", "uvish", "головн", "мигрен", "спин", "головокруж", "headache", "migraine", "back pain", "dizz"], ["neuro"]],
+    [["tish", "milk", "зуб", "десн", "tooth", "teeth", "gum"], ["dental"]],
+    [["quloq", "tomoq", "burun", "angina", "sinusit", "ухо", "горл", "нос ", "ангин", "ear", "throat", "sinus", "tonsil"], ["ent"]],
+    [["ko'z", "ko'rish", "глаз", "зрени", "eye", "vision"], ["eye"]],
+    [["toshma", "teri", "husnbuzar", "qichi", "soch", "сып", "кож", "акне", "зуд", "rash", "skin", "acne", "itch", "hair"], ["derm"]],
+    [["qand", "diabet", "qalqonsimon", "сахар", "диабет", "щитовид", "diabetes", "sugar", "thyroid"], ["endo"]],
+    [["buyrak", "siydik", "почк", "моч", "kidney", "urine", "bladder"], ["uro"]],
+    [["stress", "xavotir", "uyqu", "tushkun", "qo'rquv", "тревог", "стресс", "бессон", "депресс", "anxiety", "sleep", "depress", "panic"], ["psych"]],
+    [["oshqozon", "ichak", "jigar", "ich ketish", "qayt", "желуд", "кишеч", "печен", "понос", "рвот", "stomach", "diarr", "vomit", "liver"], ["therapist", "gp"]],
+    [["churra", "jarohat", "operatsiya", "грыж", "рана", "операц", "hernia", "wound", "surgery"], ["surgery"]]
+  ];
+  function symSpecs(qq) { var out = []; if (!qq || qq.length < 3) return out; SYMS.forEach(function (x) { if (x[0].some(function (w) { return qq.indexOf(norm(w)) > -1; })) x[1].forEach(function (k) { if (out.indexOf(k) < 0) out.push(k); }); }); return out; }
   function viewDoctors(q) {
     var t = L(), qq = norm(q.q);
+    var ss = symSpecs(qq);   /* a complaint ("isitma", "tish og'rig'i") finds the right specialists, not only a name */
     var match = function (q) { return withSamples().filter(function (u) {
       var pr = u.profile || {}; if (u.role !== "doctor") return false;
       if ((q.s && pr.spec !== q.s) || (q.r && pr.region !== q.r) || (q.on && !isOnline(u)) || (q.fem && pr.sex !== "f") || (q.lg && (pr.langs || []).indexOf(q.lg) < 0)) return false;
-      return !qq || norm([u.name, specName(pr)].concat((pr.work || []).map(wpLabel), (pr.svc || []).map(function (x) { return x.name; })).join(" ")).indexOf(qq) > -1;
+      return !qq || ss.indexOf(pr.spec) > -1 || norm([u.name, specName(pr)].concat((pr.work || []).map(wpLabel), (pr.svc || []).map(function (x) { return x.name; })).join(" ")).indexOf(qq) > -1;
     }); };
     var list = realFirst(match(q), q.sort || "best");
     /* nothing matched: drop the language, then the region, and show the closest doctors */
@@ -900,8 +928,8 @@
       '<label class="sel chkf"><input type="checkbox" id="df-on"' + (q.on ? " checked" : "") + "> " + t.df_online + "</label>" +
       '<label class="sel chkf"><input type="checkbox" id="df-fem"' + (q.fem ? " checked" : "") + "> " + t.df_fem + '</label><div class="dfgo"><button class="btn" type="submit">' + ic("search") + t.df_go + "</button>" + (any ? '<a class="btn ghost" href="#/doctors">' + t.df_clear + "</a>" : "") + "</div></form>";
     /* one page for choosing a doctor and applying: the first free doctor, or any card's button, opens the application over this list */
-    return '<div class="band deep"><div class="wrap bhead"><div class="eyebrow">' + t.nv_clinic + "</div><h1>" + t.oc_page_h + '</h1><p class="sub">' + t.oc_page_p + '</p><ol class="ocsteps">' + t.oc_page_steps.map(function (x, i) { return "<li><b>" + (i + 1) + "</b><span>" + x + "</span></li>"; }).join("") + '</ol><p style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap"><a class="btn light big" href="#/consult?' + qs(Object.assign({}, dfKeep(), { now: "1" })) + '">' + ic("video") + t.asap_now[0] + '</a><a class="btn ghost" style="color:var(--deep-ink);border-color:var(--deep-line)" href="#/register" data-regrole-link="doctor">' + t.reg_doc_cta + "</a></p></div></div>" +
-      hcCards() + '<div class="wrap pad" style="padding-top:8px"><h2 class="subh">' + t.nv_panel + "</h2>" + filters + (list.some(function (u) { return u.sample; }) ? '<p class="note-box" style="margin:16px 0 0">' + t.smp_dir + "</p>" : "") + '<div class="results" style="padding:14px 0 0">' + (list.length ? '<p class="dfcount">' + t.df_found(list.length) + "</p>" + list.map(docCard).join("") : any ? '<div class="empty">' + t.df_none + ' <a href="#/doctors">' + t.df_clear + "</a></div>" + (near.length ? '<h2 class="subh" style="margin:22px 0 4px">' + t.df_near + "</h2>" + near.map(docCard).join("") : "") : '<div class="empty">' + t.no_doctors + "</div>") + "</div>" +
+    return '<div class="band deep ochero' + (any ? " searching" : "") + '"><div class="wrap bhead"><div class="eyebrow">' + t.nv_clinic + "</div><h1>" + t.oc_page_h + '</h1><p class="sub">' + t.oc_page_p + '</p><ol class="ocsteps">' + t.oc_page_steps.map(function (x, i) { return "<li><b>" + (i + 1) + "</b><span>" + x + "</span></li>"; }).join("") + '</ol><p style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap"><a class="btn light big" href="#/consult?' + qs(Object.assign({}, dfKeep(), { now: "1" })) + '">' + ic("video") + t.asap_now[0] + '</a><a class="btn ghost" style="color:var(--deep-ink);border-color:var(--deep-line)" href="#/register" data-regrole-link="doctor">' + t.reg_doc_cta + "</a></p></div></div>" +
+      (any ? "" : hcCards()) + '<div class="wrap pad" style="padding-top:8px"><h2 class="subh">' + t.nv_panel + "</h2>" + filters + (ss.length ? '<p class="symhint">' + ic("search") + " " + t.sym_hint(esc(q.q), ss.map(function (k) { return t.docsp[k]; }).join(", ")) + "</p>" : "") + (list.some(function (u) { return u.sample; }) ? '<p class="note-box" style="margin:16px 0 0">' + t.smp_dir + "</p>" : "") + '<div class="results" style="padding:14px 0 0">' + (list.length ? '<p class="dfcount">' + t.df_found(list.length) + "</p>" + list.map(docCard).join("") : any ? '<div class="empty">' + t.df_none + ' <a href="#/doctors">' + t.df_clear + "</a></div>" + (near.length ? '<h2 class="subh" style="margin:22px 0 4px">' + t.df_near + "</h2>" + near.map(docCard).join("") : "") : '<div class="empty">' + t.no_doctors + "</div>") + "</div>" +
       '<h2 style="margin:40px 0 14px;font-size:1.4rem">' + t.clinics_reg_h + '</h2><div class="results" style="padding:0">' + (clinics.length ? clinics.map(function (c) { var pr = c.profile || {}; return '<article class="fcard"><div class="ficon c-' + (pr.ctype || "clinic") + '">' + ic(CAT_IC[pr.ctype || "clinic"]) + '</div><div class="fmain"><h3><a href="#/c/' + c.id + '">' + esc(c.name) + '</a></h3><div class="spec">' + t.cat[pr.ctype || "clinic"] + '</div><div class="badges">' + (c.verified ? vBadge(c) : "") + "</div>" + (pr.district && disByCode[pr.district] ? '<div class="meta">' + ic("pin") + esc(nmL(disByCode[pr.district]) + ", " + nmL(REG[disByCode[pr.district].r])) + "</div>" : "") + '</div><div class="facts"><a class="btn ghost sm" href="#/c/' + c.id + '">' + t.view + "</a></div></article>"; }).join("") : '<div class="empty">' + t.no_clinics_reg + "</div>") + "</div></div>";
   }
 
@@ -1015,7 +1043,7 @@
     var u = me(), pr = (u && u.profile) || {};
     CSPH = [];
     CS = { docQ: csKey(q), asap: (q.now === "1" || !!q.s) && !q.doc, type: "text", who: "self", name: u && u.role === "patient" ? u.name : "", age: "", sex: "f", phone: u && u.phone ? fmtPhone(u.phone) : "", region: pr.region || "", district: pr.district || "", complaint: "", since: "1", chronic: "", meds: "", allergy: "", spec: "", doc: q.doc || "", consent: false };
-    var d = q.doc ? userById(q.doc) : null; if (d) CS.spec = (d.profile || {}).spec || ""; if (d && d.sample) CS.doc = ""; if (!d && q.s) CS.spec = q.s;
+    var d = q.doc ? userById(q.doc) : null; if (d) CS.spec = (d.profile || {}).spec || ""; if (d && d.sample) CS.doc = ""; if (!d && q.s) CS.spec = q.s; if (d && q.slot && +q.slot > Date.now()) { CS.slot = +q.slot; CS.slotDay = Date.UTC(new Date(+q.slot + TK).getUTCFullYear(), new Date(+q.slot + TK).getUTCMonth(), new Date(+q.slot + TK).getUTCDate()) - TK; }
   }
   function csCollect() {
     if (!CS) return;
@@ -1024,9 +1052,9 @@
     var c = $("cs-consent"); if (c) CS.consent = c.checked;
   }
   var onlineDoctors = function (spec) { return users().filter(function (u) { var pr = u.profile || {}; return u.role === "doctor" && isOnline(u) && (!spec || pr.spec === spec); }); };
-  var csKey = function (q) { return (q.doc || "") + (q.s ? "|" + q.s : ""); };
+  var csKey = function (q) { return (q.doc || "") + (q.s ? "|" + q.s : "") + (q.slot ? "@" + q.slot : ""); };
   /* where the apply panel's close button goes: the same doctors list, without the application */
-  var apClose = function () { var q = Object.assign({}, current.q); delete q.doc; delete q.now; delete q.smp; return "#/doctors" + (qs(q) ? "?" + qs(q) : ""); };
+  var apClose = function () { var q = Object.assign({}, current.q); delete q.doc; delete q.now; delete q.smp; delete q.slot; return "#/doctors" + (qs(q) ? "?" + qs(q) : ""); };
   /* the application form; embed = a panel over the doctors list (#/consult), so choosing a doctor and applying is one page */
   function viewConsult(q, embed) {
     var t = L(); if (!CS || CS.docQ !== csKey(q) || (q.now === "1" && !CS.asap && !CS.complaint)) csStart(q);
@@ -1066,7 +1094,7 @@
         '<details class="ocmini"><summary>' + t.oc_q + "</summary>" + ocLists(true) + "</details></fieldset>" +
       '<p class="emline">' + ic("phone") + "<span>" + t.em_line + ' <a href="tel:103">103</a></span></p>' + form + "</form></div>";
   }
-  function csBadge(st) { var t = L(); return '<span class="badge ' + (st === "done" ? "ok" : st === "accepted" ? "" : st === "referred" ? "plain" : "warn") + '">' + t.cs_st[st] + "</span>"; }
+  function csBadge(st) { var t = L(); return '<span class="badge ' + (st === "done" ? "ok" : st === "accepted" ? "" : st === "referred" || st === "cancelled" ? "plain" : "warn") + '">' + t.cs_st[st] + "</span>"; }
   function csRow(c) { var t = L(), mu = me(), rate = c.status === "done" && c.doctorId && !(mu && mu.role === "doctor") && !myReview("c", c.id); return '<a class="visit cs-row" href="#/consult/' + c.id + '"><div class="date"><span>' + fmt(c.slotAt ? tkDate(c.slotAt) : new Date(c.at), { month: "short" }) + "</span><b>" + (c.slotAt ? tkDate(c.slotAt) : new Date(c.at)).getDate() + '</b></div><div><h3>' + t.cs_no(c.n) + " " + csBadge(c.status) + (c.slotAt ? ' <span class="badge plain nums">' + ic("cal") + hhmm(c.slotAt) + "</span>" : "") + (c.status === "accepted" && c.payStatus === "due" ? " " + payBadge(c) : "") + (c.asap && c.status === "new" ? ' <span class="badge warn">' + t.asap_badge + "</span>" : "") + (rate ? ' <span class="badge warn">★ ' + t.rv_rate_badge + "</span>" : "") + '</h3><div class="muted" style="font-size:.92rem">' + t.cs_types[c.type][0] + " · " + esc(c.name) + " · " + esc(c.complaint.slice(0, 80)) + (c.complaint.length > 80 ? "…" : "") + '</div></div><div class="acts">' + ic(c.type === "text" ? "chat" : c.type === "audio" ? "mic" : "video") + "</div></a>"; }
   function docInbox(u) {
     var t = L(), sp = (u.profile || {}).spec;
@@ -1183,7 +1211,7 @@
       '<h3 style="margin:16px 0 6px">' + t.cs_complaint + '</h3><p class="pre">' + esc(c.complaint) + "</p>" +
       '<dl class="kv" style="margin-top:14px">' + row(t.cs_chronic, esc(c.chronic)) + row(t.cs_meds, esc(c.meds)) + row(t.cs_allergy, esc(c.allergy)) + row(t.cs_wanted, c.spec ? t.docsp[c.spec] : t.cs_spec_any) + row(t.cs_doctor, c.doctorId ? '<a href="#/doc/' + c.doctorId + '">' + esc(c.doctorName) + "</a>" : "") + "</dl>";
     var msgs = c.msgs.map(function (m) { if (m.from === "s") return '<div class="sys">' + esc(m.text) + "</div>"; var mine = (isDoc && m.from === "d") || (!isDoc && m.from === "p"); return '<div class="' + (mine ? "me" : "them") + (m.file ? " hasph" : "") + '">' + (m.from === "d" && !mine ? "<b>" + esc(m.name) + "</b>" : "") + (m.file ? (m.fk === "a" ? '<audio class="voice" controls preload="none" data-auid="' + esc(m.file) + '"></audio>' : phImg(m.file)) : "") + esc(m.text || "") + '<small>' + fmt(new Date(m.at), { day: "numeric", month: "short" }) + " " + pad(new Date(m.at).getHours()) + ":" + pad(new Date(m.at).getMinutes()) + "</small></div>"; }).join("");
-    var canWrite = c.status !== "done" && c.status !== "referred" && (!isDoc || (mineDoc && !due));
+    var canWrite = c.status !== "done" && c.status !== "referred" && c.status !== "cancelled" && (!isDoc || (mineDoc && !due));
     var actions = "";
     if (isDoc && c.status === "new") actions = '<button class="btn" type="button" data-cs="accept" data-id="' + c.id + '">' + ic("check") + t.cs_accept + "</button>" +
       /* instead of accepting: an in-person visit is needed, the application closes and nothing is charged */
@@ -1193,10 +1221,15 @@
     if (!isDoc && c.status === "accepted" && !due && (u ? c.userId === u.id : !c.userId)) actions = (c.call && ringNow(c) && c.callBy !== "p" ? '<button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "mic") + t.cs_join + "</button>" : "") +
       '<button class="btn' + (c.call && ringNow(c) && c.callBy !== "p" ? " ghost" : "") + '" type="button" data-cs="pcall" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "phone") + t.cl_call_doc(c.type === "video") + "</button>";
     var slotBox = c.slotAt && (c.status === "new" || c.status === "accepted") ? '<div class="slotbox' + (c.slotAt - Date.now() < 3600e3 && c.slotAt > Date.now() - 3600e3 ? " soon" : "") + '">' + ic("cal") + "<div><small>" + t.sl_when + "</small><b>" + esc(slotTxt(c.slotAt)) + "</b><span>" + (c.slotAt > Date.now() ? t.sl_in(Math.round((c.slotAt - Date.now()) / 60e3)) : t.sl_now) + " · " + t.sl_tz + "</span></div></div>" : "";
+    var own = !isDoc && (u ? c.userId === u.id : !c.userId), dWho = c.doc ? userById(c.doc) : c.doctorId ? userById(c.doctorId) : null;
+    var canMove = own && c.slotAt && (c.status === "new" || c.status === "accepted") && dWho && hoursOf(dWho.profile);
+    var manage = own && (c.status === "new" || canMove) ? (RS && RS.cid === c.id ? '<div class="dcard rsbox"><h2>' + t.rs_h + "</h2>" + slotPicker(RS) + '<div class="err" id="rs-err" aria-live="polite"></div><div class="btns"><button class="btn" type="button" data-rs="save"' + (RS.slot ? "" : " disabled") + ">" + t.rs_save + '</button><button class="btn ghost" type="button" data-rs="close">' + t.po_cancel + "</button></div></div>"
+      : CX === c.id ? '<div class="confirm-row"><b>' + t.cx_q + '</b><button class="btn danger sm" type="button" data-cx="yes" data-id="' + c.id + '">' + t.cx_yes + '</button><button class="btn ghost sm" type="button" data-cx="no">' + t.v_keep + "</button></div>"
+      : '<div class="btns manage">' + (canMove ? '<button class="btn ghost sm" type="button" data-rs="open" data-id="' + c.id + '">' + ic("cal") + t.rs_btn + "</button>" : "") + (c.status === "new" ? '<button class="linkbtn" type="button" data-cx="ask" data-id="' + c.id + '">' + t.cx_btn + "</button>" : "") + "</div>") : "";
     var talk = c.status === "accepted" && !due && (mineDoc || (!isDoc && (u ? c.userId === u.id : !c.userId))) ? '<div class="talkbar"><span>' + t.tk_h + '</span><a class="btn" href="#csmsg" data-scroll="csmsg">' + ic("chat") + t.tk_write + '</a><button class="btn ghost" type="button" data-cs="' + (mineDoc ? "call" : "pcall") + '" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "phone") + (c.type === "video" ? t.tk_video : t.tk_call) + "</button></div>" : "";
     var ringing = !isDoc && c.status === "accepted" && c.callBy !== "p" && ringNow(c) && !due && !(window.ShifokorCall && ShifokorCall.active());
     return '<div class="wrap"><a class="back" href="' + (isDoc ? "#/pro?tab=requests" : "#/visits") + '">‹ ' + (isDoc ? t.pro_t.requests : t.nav_visits) + '</a><div class="sechead" style="padding-top:12px"><div><h1 style="font-size:clamp(1.6rem,1.3rem + 1.4vw,2.3rem)">' + t.cs_no(c.n) + "</h1><div class=\"badges\">" + csBadge(c.status) + payBadge(c) + (c.asap && c.status === "new" ? '<span class="badge warn">' + t.asap_badge + "</span>" : "") + (isDoc && c.followup ? '<span class="badge ' + (c.followup === "worse" ? "warn" : "ok") + '">' + t.fu_doc(t.fu_opts[c.followup]) + "</span>" : "") + '<span class="badge plain">' + t.cs_types[c.type][0] + "</span></div></div>" + (isDoc ? '<span class="sample">' + t.cs_doc_view + "</span>" : "") + "</div>" +
-      slotBox + talk + (ringing ? '<div class="ring" role="status"><span class="ring-ic">' + ic(c.type === "video" ? "video" : "mic") + "</span><div><b>" + t.cl_ringing + "</b><span>" + esc(c.doctorName) + '</span></div><button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + t.cs_join + "</button></div>" : "") +
+      slotBox + manage + talk + (ringing ? '<div class="ring" role="status"><span class="ring-ic">' + ic(c.type === "video" ? "video" : "mic") + "</span><div><b>" + t.cl_ringing + "</b><span>" + esc(c.doctorName) + '</span></div><button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + t.cs_join + "</button></div>" : "") +
       '<div class="pf" style="padding-top:18px"><div>' + (!isDoc && due && (u ? c.userId === u.id : !c.userId) ? payCard(c) : "") + (!isDoc && (u ? c.userId === u.id : !c.userId) ? careCard(c) : "") + rxCard(c, mineDoc, !isDoc && (u ? c.userId === u.id : !c.userId)) + (!isDoc && c.status === "done" && c.doctorId && (u ? c.userId === u.id : !c.userId) ? rvCard("c", c.id, c.doctorName, false) : "") + '<div class="dcard"><h2>' + t.cs_details + "</h2>" + details + "</div>" + (isDoc && !mineDoc && c.status !== "new" ? "" : "") + '<p class="fine" style="margin-top:14px">' + t.cs_demo + "</p></div>" +
       '<aside class="dcard chatcard"><h2>' + t.cs_thread + '</h2><div class="room-log" id="cslog">' + (msgs || '<div class="sys">' + t.cs_sent + "</div>") + "</div>" +
       (canWrite ? voBar(c.id) + '<form class="room-send withph" id="csmsg" data-id="' + c.id + '" style="margin-top:10px">' + (PH && PH.cid === c.id ? '<div class="phpend"><img src="' + PH.url + '" alt="' + esc(t.ph_alt) + '"><span>' + t.ph_ready + '</span><button class="btn ghost sm" type="button" data-act="phdrop">' + t.ph_remove + "</button></div>" : "") +
@@ -1250,6 +1283,7 @@
   /* ---------------- voice messages in the consultation chat ---------------- */
   /* { cid, state: "rec" | "ready", rec, stream, chunks, t0, timer, blob, url, sec } */
   var VO = null, VO_MAX = 120;
+  var RS = null, CX = null;   /* the patient moving a booked time { cid, doc, slot, slotDay }; the application they are about to cancel */
   var mmss = function (s) { return Math.floor(s / 60) + ":" + pad(s % 60); };
   function voDrop() { if (!VO) return; clearInterval(VO.timer); if (VO.state === "rec") { VO.cancel = true; try { VO.rec.stop(); } catch (x) {} } if (VO.stream) VO.stream.getTracks().forEach(function (tr) { tr.stop(); }); if (VO.url) URL.revokeObjectURL(VO.url); VO = null; }
   function voStart(cid) {
@@ -1481,7 +1515,7 @@
       '<section><div class="sechead"><h2>' + t.pro_new_h + '</h2><a class="linkbtn" href="#/pro?tab=requests">' + t.pro_all + "</a></div>" + (fresh.length ? fresh.slice(0, 4).map(function (c) { return proCard(c, u); }).join("") : '<p class="muted">' + t.pro_new_none + "</p>") + "</section></div>";
   }
   function proRequests(u, mine, f) {
-    var t = L(), groups = { "new": mine.filter(function (c) { return c.status === "new"; }), active: mine.filter(function (c) { return c.status === "accepted"; }), done: mine.filter(function (c) { return c.status === "done" || c.status === "referred"; }) };
+    var t = L(), groups = { "new": mine.filter(function (c) { return c.status === "new"; }), active: mine.filter(function (c) { return c.status === "accepted"; }), done: mine.filter(function (c) { return c.status === "done" || c.status === "referred" || c.status === "cancelled"; }) };
     f = groups[f] ? f : "new";
     var list = groups[f].sort(function (a, b) { return f === "done" ? b.at - a.at : (a.slotAt || a.at) - (b.slotAt || b.at); });
     return '<h1>' + t.pro_t.requests + '</h1><div class="seg proseg" role="group">' + ["new", "active", "done"].map(function (k) { return '<a href="#/pro?tab=requests&f=' + k + '" aria-current="' + (k === f ? "page" : "false") + '">' + t.pro_f[k] + ' <span class="cnt">' + groups[k].length + "</span></a>"; }).join("") + "</div>" +
@@ -2035,8 +2069,27 @@
       if (oa === "delok") { ON = { mode: "due", urgent: false, ok: false, famUrl: "", del: false }; if (BE) { BE.pregDelete().then(done, fail); return; } savePregDemo(null); render(true); return; }
     }
     if (ds.csasap) { csCollect(); CS.asap = ds.csasap === "1"; if (CS.asap) CS.doc = ""; render(true); return; }
-    if (ds.slday) { csCollect(); CS.slotDay = +ds.slday; CS.slot = 0; render(true); return; }
-    if (ds.slot) { csCollect(); CS.slot = +ds.slot; render(true); return; }
+    if (ds.slday) { if (RS && el.closest(".rsbox")) { RS.slotDay = +ds.slday; RS.slot = 0; render(true); return; } csCollect(); CS.slotDay = +ds.slday; CS.slot = 0; render(true); return; }
+    if (ds.slot) { if (RS && el.closest(".rsbox")) { RS.slot = +ds.slot; render(true); return; } csCollect(); CS.slot = +ds.slot; render(true); return; }
+    if (ds.rs) {
+      if (ds.rs === "open") { var rc0 = consultById(ds.id); RS = { cid: rc0.id, doc: rc0.doc || rc0.doctorId, asap: false, slot: 0, slotDay: 0 }; CX = null; render(true); return; }
+      if (ds.rs === "close") { RS = null; render(true); return; }
+      if (ds.rs === "save" && RS && RS.slot) {
+        var rsc = RS, note = t.rs_note(slotTxt(rsc.slot));
+        if (BE) { el.disabled = true; BE.reschedule(rsc.cid, new Date(rsc.slot).toISOString(), note).then(function () { RS = null; toast(t.rs_done); render(true); }, function (x) { el.disabled = false; if (x && x.code === "slot_taken") delete TAKEN[rsc.doc]; $("rs-err").textContent = beMsg(t, x); render(true); }); return; }
+        var rcl = consults(); rcl.forEach(function (c) { if (c.id === rsc.cid) { c.slotAt = rsc.slot; c.msgs.push({ from: "s", text: note, at: Date.now() }); } }); saveConsults(rcl); RS = null; toast(t.rs_done); render(true); return;
+      }
+      return;
+    }
+    if (ds.cx) {
+      if (ds.cx === "ask") { CX = ds.id; RS = null; render(true); return; }
+      if (ds.cx === "no") { CX = null; render(true); return; }
+      if (ds.cx === "yes") {
+        var xid = ds.id;
+        if (BE) { el.disabled = true; BE.cancelConsult(xid, t.cx_note).then(function () { CX = null; toast(t.cx_done); render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
+        var xcl = consults(); xcl.forEach(function (c) { if (c.id === xid && c.status === "new") { c.status = "cancelled"; c.closedAt = Date.now(); c.msgs.push({ from: "s", text: t.cx_note, at: Date.now() }); } }); saveConsults(xcl); CX = null; toast(t.cx_done); render(true); return;
+      }
+    }
     if (ds.vo) {
       if (ds.vo === "rec") { voStart(ds.id); return; }
       if (ds.vo === "stop") { voStop(); return; }
@@ -2499,7 +2552,7 @@
   });
   /* another tab booked or changed something: refresh so a taken slot disappears here too */
   window.addEventListener("storage", function (e) { if (e.key && e.key.indexOf("shifokor-") === 0) rerender(); });
-  window.addEventListener("hashchange", function () { voDrop(); PH = null; cancelAsk = null; apAsk = null; APX = null; RR = null; PO.form = null; PO.del = ""; IM.del = ""; ON.urgent = ON.ok = ON.del = false; ON.famUrl = ""; render(false); });
+  window.addEventListener("hashchange", function () { voDrop(); RS = null; CX = null; PH = null; cancelAsk = null; apAsk = null; APX = null; RR = null; PO.form = null; PO.del = ""; IM.del = ""; ON.urgent = ON.ok = ON.del = false; ON.famUrl = ""; render(false); });
 
   render(false);
   /* a patient anywhere on the site hears about a doctor's call once per ring */

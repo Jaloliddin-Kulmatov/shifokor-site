@@ -145,6 +145,8 @@
     earnings: function () { return earn; },
     adminPayouts: function () { return call("admin_payouts"); },
     slots: function (doc) { return call("slots", { doc: doc }); },
+    cancelConsult: async function (cid, note) { await call("cancel_consult", { id: cid, note: note }); await refresh(); },
+    reschedule: async function (cid, slot, note) { await call("reschedule", { id: cid, slot: slot, note: note }); await refresh(); },
     consultRx: async function (cid, rx) { await call("consult_rx", { id: cid, rx: rx }); await refresh(); },
     medOrder: async function (o) { var j = await call("med_order", o); await refresh(); return j; },
     medOrderCancel: async function (id) { await call("med_order_cancel", { id: id }); await refresh(); },

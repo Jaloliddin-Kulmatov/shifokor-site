@@ -125,6 +125,12 @@ function hoursOf(p) {
   if (!days.length || from == null || to == null || !len || to - from < len) return null;
   return { days, from, to, len };
 }
+// a time the patient may book: one of the doctor's slots, from 30 minutes to 14 days ahead
+async function slotFor(doc, v) {
+  const ms = Date.parse(String(v || "")), h = hoursOf(((await q("select profile from app_users where id = $1", [doc])).rows[0] || {}).profile);
+  if (!h || isNaN(ms) || ms < Date.now() + 30 * 60e3 || ms > Date.now() + 14 * 864e5 || !onGrid(h, ms)) bad("slot");
+  return new Date(ms).toISOString();
+}
 // a start time that is one of the doctor's slots: on a working day, inside the hours, on the slot grid
 function onGrid(h, ms) {
   const d = new Date(ms + TK), wd = d.getUTCDay() || 7, m = d.getUTCHours() * 60 + d.getUTCMinutes();
@@ -387,12 +393,7 @@ const ACTIONS = {
     if (doc && !(await q("select 1 from app_users where id = $1 and role = 'doctor' and (imported_at is null or claimed_at is not null)", [doc])).rows[0]) doc = null;
     const asap = !doc && c.asap === true;   // "first available doctor": doctors online now are alerted, the first to accept takes it
     // a booked time must be one of the chosen doctor's free slots, from 30 minutes to 14 days ahead
-    let slot = null;
-    if (c.slot && doc) {
-      const ms = Date.parse(String(c.slot)), h = hoursOf(((await q("select profile from app_users where id = $1", [doc])).rows[0] || {}).profile);
-      if (!h || isNaN(ms) || ms < Date.now() + 30 * 60e3 || ms > Date.now() + 14 * 864e5 || !onGrid(h, ms)) bad("slot");
-      slot = new Date(ms).toISOString();
-    }
+    const slot = c.slot && doc ? await slotFor(doc, c.slot) : null;
     let r;
     try {
       r = await q(
@@ -414,6 +415,33 @@ const ACTIONS = {
     return { id };
   },
 
+  // the patient cancels an application no doctor has accepted yet; its booked time frees up
+  async cancel_consult(b, me) {
+    need(me);
+    const c = await consultFor(me, b.id);
+    if (c.patient_id !== me.id) throw new Fail(403, "forbidden");
+    const r = await q("update app_consults set status = 'cancelled', closed_at = now() where id = $1 and status = 'new' returning n, doc", [c.id]);
+    if (!r.rows[0]) throw new Fail(409, "closed");
+    await sysNote(c.id, b.note);
+    if (r.rows[0].doc) await notifyUser(r.rows[0].doc, "Shifokor: bemor ariza №" + r.rows[0].n + " ni bekor qildi.");
+    return { ok: true };
+  },
+  // the patient moves their booked time to another free one of the same doctor: { id, slot }
+  async reschedule(b, me) {
+    need(me);
+    const c = await consultFor(me, b.id);
+    if (c.patient_id !== me.id) throw new Fail(403, "forbidden");
+    if (c.status !== "new" && c.status !== "accepted") throw new Fail(409, "closed");
+    const doc = c.doc || c.doctor_id;
+    if (!doc) bad("slot");
+    const slot = await slotFor(doc, b.slot);
+    try { await q("update app_consults set slot_at = $2, slot_reminded = false where id = $1", [c.id, slot]); }
+    catch (e) { if (e.code === "23505") throw new Fail(409, "slot_taken"); throw e; }
+    await sysNote(c.id, b.note);
+    await notifyUser(doc, "Shifokor: bemor ariza №" + c.n + " vaqtini o‘zgartirdi — " + slotUz(slot) + ". " + SITE + "/#/consult/" + c.id);
+    return { ok: true };
+  },
+
   // the taken times of a doctor's slots in the next 14 days, so the booking form can grey them out
   async slots(b) {
     if (!UUID.test(String(b.doc || ""))) bad("id");
@@ -424,7 +452,7 @@ const ACTIONS = {
   async message(b, me) {
     need(me);
     const c = await consultFor(me, b.id);
-    if (c.status === "done" || c.status === "referred") throw new Fail(409, "closed");
+    if (c.status === "done" || c.status === "referred" || c.status === "cancelled") throw new Fail(409, "closed");
     let kind, name;
     if (c.patient_id === me.id) { kind = "p"; name = c.name; }
     else if (c.doctor_id === me.id) { kind = "d"; name = me.name; }

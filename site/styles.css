@@ -1039,7 +1039,7 @@ img.pimg { object-fit: cover; padding: 0; }
 .pmsgs { display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .pb { max-width: 85%; padding: 6px 8px; border-radius: 10px 10px 10px 2px; background: #fff; box-shadow: 0 2px 6px -4px rgba(0, 0, 0, 0.3); }
 .pb.me { align-self: flex-end; background: #0A7F83; color: #fff; border-radius: 10px 10px 2px 10px; }
-.pimg { align-self: flex-end; width: 60%; height: 54px; border-radius: 10px; background: linear-gradient(135deg, #F3C9B5, #E7A98E); display: grid; place-items: center; color: #fff; }
+.pmsgph { align-self: flex-end; width: 60%; height: 54px; border-radius: 10px; background: linear-gradient(135deg, #F3C9B5, #E7A98E); display: grid; place-items: center; color: #fff; }
 .pin2 { display: flex; justify-content: space-between; align-items: center; background: #fff; border: 1px solid #D3E0E1; border-radius: 99px; padding: 5px 8px; color: #5B6F73; }
 .phn.pcall .scr { padding: 0; background: #0F2E30; }
 .pphoto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 30% 50%; }
@@ -1408,3 +1408,75 @@ audio.voice { display: block; width: 240px; max-width: 100%; height: 36px; margi
 @media (max-width: 640px) { .ochero .ocsteps, .ochero .sub, .ochero .eyebrow { display: none; } .ochero .bhead { padding-block: 18px 22px; } .ochero h1 { font-size: 1.6rem; } }
 .ochero.searching .ocsteps, .ochero.searching .sub { display: none; }
 .ochero.searching .bhead { padding-block: 20px 24px; }
+
+/* ================= design pass, Nov 2026: one system for cards, headings, search, tiles, chat and footer ================= */
+:root { --sh-sm: 0 1px 2px rgba(16, 40, 44, 0.06), 0 4px 14px -8px rgba(16, 40, 44, 0.18); --sh-md: 0 2px 4px rgba(16, 40, 44, 0.06), 0 14px 30px -14px rgba(16, 40, 44, 0.32); --r-card: 20px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --sh-sm: 0 1px 2px rgba(0, 0, 0, 0.4); --sh-md: 0 14px 30px -14px rgba(0, 0, 0, 0.7); } }
+:root[data-theme="dark"] { --sh-sm: 0 1px 2px rgba(0, 0, 0, 0.4); --sh-md: 0 14px 30px -14px rgba(0, 0, 0, 0.7); }
+/* headings: one size per level across the site */
+.wrap.pad > h2, .sechead h2, .sliderwrap h2 { font-size: clamp(1.55rem, 1.15rem + 1.5vw, 2.3rem); letter-spacing: -0.02em; line-height: 1.15; }
+.lead { max-width: 64ch; }
+/* cards: same corners and depth; the ones you can tap lift a little */
+.dcard, .doccard, .fcard, .hccard, .specbox, .tcard, .wlcard, .spcard, .procard, .prostat { border-radius: var(--r-card); box-shadow: var(--sh-sm); }
+.doccard, .hccard, .specbox, .prostat, .dtile { transition: box-shadow 0.18s, transform 0.18s, border-color 0.18s; }
+.doccard:hover, .hccard:hover, .specbox:hover, .prostat:hover, .dtile:hover { box-shadow: var(--sh-md); transform: translateY(-2px); }
+@media (prefers-reduced-motion: reduce) { .doccard:hover, .hccard:hover, .specbox:hover, .prostat:hover, .dtile:hover { transform: none; } }
+/* top bar: one filled button (register), the consultation shortcut tinted */
+.nav a.navcta { background: var(--accent-soft); color: var(--accent); }
+.nav a.navcta:hover, .nav a.navcta[aria-current="page"] { background: var(--accent); color: var(--accent-ink); filter: none; }
+
+/* hero search: complaint or name, region, Search; more filters fold away */
+.hfmain { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr) auto; gap: 12px; align-items: end; }
+.hfmain label, .hfrow2 label { display: block; font: 600 0.85rem var(--font-body); margin-bottom: 6px; color: var(--muted); }
+.hfmain select { width: 100%; }
+.inico { position: relative; }
+.inico .ic { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.inico .pinput { width: 100%; text-align: left; padding-left: 42px; min-height: 48px; font-size: 1rem; }
+.hfmain .btn.big { min-height: 48px; }
+.hfmorefil { margin-top: 12px; }
+.hfmorefil summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 0.92rem; list-style: none; display: inline-flex; align-items: center; gap: 6px; }
+.hfmorefil summary::-webkit-details-marker { display: none; }
+.hfmorefil .hfrow2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.hfquick { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; margin-top: 12px; font-size: 0.9rem; }
+.hfquick a { padding: 4px 10px; border-radius: 99px; background: var(--bg); border: 1px solid var(--line); color: var(--ink); text-decoration: none; }
+.hfquick a:hover { border-color: var(--accent); color: var(--accent); }
+@media (max-width: 760px) { .hfmain { grid-template-columns: minmax(0, 1fr); } .hfmorefil .hfrow2 { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) { .hfform { display: block; } }
+
+/* doctor tiles (home) */
+.dtgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+.dtile { display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: var(--r-card); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--sh-sm); }
+.dtile > .pav, .dtile > .pimg { width: 64px; height: 64px; }
+.dtile h3 { margin: 0; font-size: 1.12rem; }
+.dtile h3 a { color: var(--ink); text-decoration: none; }
+.dtile h3 a:hover { color: var(--accent); }
+.dtile .spec { margin: 2px 0 0; color: var(--muted); font-size: 0.93rem; }
+.dtbody { flex: 1; display: grid; gap: 6px; align-content: start; }
+.dtmeta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.dtreg, .dtnext { margin: 0; display: flex; gap: 6px; align-items: center; font-size: 0.9rem; }
+.dtnext { color: var(--accent); font-weight: 700; }
+.dtfoot { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding-top: 12px; border-top: 1px solid var(--line); }
+.dtfoot b { color: var(--accent); }
+@media (max-width: 960px) { .dtgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .dtgrid { grid-template-columns: minmax(0, 1fr); } }
+
+/* chat composer like a messenger: camera, microphone, text, send in one row */
+.room-send.withph { grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; }
+.room-send.withph .phbtn { width: 44px; height: 44px; padding: 0; display: grid; place-items: center; border-radius: 50%; }
+.room-send.withph .pinput { min-height: 44px; border-radius: 999px; padding-left: 16px; }
+@media (max-width: 520px) { .room-send.withph { gap: 6px; } .room-send.withph button[type="submit"] { padding-inline: 14px; } }
+
+/* footer: brand and five clear columns */
+.foot-grid { grid-template-columns: minmax(0, 1.6fr) repeat(4, minmax(0, 1fr)); gap: 28px; }
+.foot-grid b { font-family: var(--font-display); font-size: 1.02rem; margin-bottom: 2px; }
+.foot-brand .brand { display: inline-flex; align-items: center; gap: 10px; }
+.foot-brand .logo { width: 32px; height: 32px; }
+.foot .foot-cta { justify-self: start; margin-top: 6px; background: var(--deep-ink); color: var(--deep); border-color: var(--deep-ink); opacity: 1; }
+.foot .foot-cta:hover { text-decoration: none; filter: brightness(0.95); }
+@media (max-width: 960px) { .foot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .foot-brand { grid-column: 1 / -1; } }
+@media (max-width: 480px) { .foot-grid { grid-template-columns: minmax(0, 1fr); } }
+/* the hero column is narrow next to the phones: complaint on its own row, then region and Search */
+.hfmain { grid-template-columns: minmax(0, 1fr) auto; }
+.hfmain .hfq { grid-column: 1 / -1; }
+@media (max-width: 760px) { .hfmain { grid-template-columns: minmax(0, 1fr); } }
+.dtile > .pav, .dtile > .pimg { align-self: flex-start; margin: 0; flex: none; }

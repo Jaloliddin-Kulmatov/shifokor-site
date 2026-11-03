@@ -63,3 +63,14 @@ Last updated 3 November 2026.
 - Every internal link opens a real page.
 - Server rules tested with a stand-in database: who may see, accept, call, cancel and move.
 - Dark mode and keyboard use (focus visible, Escape closes menus and panels).
+
+## Design system (November 2026)
+- **One search box first** (Zocdoc): complaint or doctor's name, region, Search. Specialty, language, woman doctor and "online now" fold under "Ko‘proq filtrlar". Example complaints sit under the box.
+- **Home page order:** search → "Siz uchun tibbiy yordam" → when online help works (slider) → top-rated doctors as tiles → see a doctor online + promises → how to use → reviews → specialties → when online is not enough → why we exist → call to action → DMED → regions → questions. Nothing is said twice.
+- **Cards:** 20 px corners, a soft shadow; cards you can tap lift slightly on hover (not with reduced motion).
+- **Headings:** one size per level on every page.
+- **Top bar:** one filled button (register); "Onlayn maslahat" is tinted so the two don't compete.
+- **Doctor tiles:** face, name, specialty and years, rating, region, next free time, price and one button.
+- **Chat:** camera, microphone, text and send in one row, like a messenger.
+- **Footer:** brand with a consultation button, then patients, wellness, about, doctors and clinics.
+- Every change is checked in Uzbek, Russian and English, light and dark, at 375 px and 1280 px.

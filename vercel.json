@@ -6,7 +6,9 @@
   "headers": [
     { "source": "/", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
     { "source": "/index.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
-    { "source": "/config.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+    { "source": "/config.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    { "source": "/panel/", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    { "source": "/panel/index.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
   ],
   "crons": [{ "path": "/api/daily", "schedule": "0 5 * * *" }]
 }

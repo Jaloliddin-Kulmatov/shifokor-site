@@ -197,7 +197,7 @@
   var ART = '<defs><clipPath id="cpChapan"><path d="M62 352C60 286 70 226 100 214C130 226 140 286 138 352Z"/></clipPath><clipPath id="cpDress"><path d="M296 352C296 290 304 232 332 220C360 232 368 290 368 352Z"/></clipPath></defs><path d="M58 300C18 220 62 112 170 82C280 52 402 102 410 212C420 322 322 372 220 368C132 366 88 352 58 300Z" fill="rgba(255,255,255,0.08)"/><circle cx="338" cy="104" r="44" fill="#3CC4C0" opacity=".28"/><circle cx="84" cy="120" r="10" fill="#FFFFFF" opacity=".16"/><circle cx="380" cy="250" r="6" fill="#FFFFFF" opacity=".2"/><ellipse cx="226" cy="370" rx="180" ry="11" fill="rgba(0,0,0,0.2)"/><g><rect x="82" y="338" width="12" height="26" rx="4" fill="#4A4A52"/><rect x="106" y="338" width="12" height="26" rx="4" fill="#4A4A52"/><ellipse cx="88" cy="366" rx="12" ry="5" fill="#3A2A22"/><ellipse cx="112" cy="366" rx="12" ry="5" fill="#3A2A22"/><path d="M74 238C66 262 68 282 72 300" stroke="#1F5F8B" stroke-width="14" stroke-linecap="round" fill="none"/><path d="M62 352C60 286 70 226 100 214C130 226 140 286 138 352Z" fill="#1F5F8B"/><g clip-path="url(#cpChapan)" opacity=".9"><path d="M78 220L72 352M92 214L89 352M108 214L111 352M122 220L128 352" stroke="#F2C14E" stroke-width="3"/><rect x="58" y="282" width="84" height="8" fill="#7A3B2E"/></g><path d="M96 214L100 236L104 214Z" fill="#E8E4DE"/><circle cx="72" cy="304" r="6" fill="#C98B6B"/><path d="M126 238C138 262 140 280 146 296" stroke="#1F5F8B" stroke-width="14" stroke-linecap="round" fill="none"/><path d="M150 298L158 366" stroke="#6B4A2E" stroke-width="5" stroke-linecap="round"/><path d="M141 293Q149 284 155 296" stroke="#6B4A2E" stroke-width="5" fill="none" stroke-linecap="round"/><circle cx="148" cy="300" r="6" fill="#C98B6B"/><rect x="93" y="200" width="14" height="16" fill="#C98B6B"/><circle cx="100" cy="188" r="22" fill="#C98B6B"/><path d="M79 192C81 214 92 224 100 224C108 224 119 214 121 192C112 203 88 203 79 192Z" fill="#ECE8E2"/><path d="M92 200Q100 196 108 200" stroke="#ECE8E2" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M77 181C77 162 88 153 100 153C112 153 123 162 123 181Z" fill="#161616"/><ellipse cx="88" cy="170" rx="5" ry="2.4" fill="#F4F1EA" transform="rotate(-30 88 170)"/><ellipse cx="100" cy="165" rx="5" ry="2.4" fill="#F4F1EA"/><ellipse cx="112" cy="170" rx="5" ry="2.4" fill="#F4F1EA" transform="rotate(30 112 170)"/><path d="M89 187Q92.5 184 96 187M104 187Q107.5 184 111 187" stroke="#2B2120" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M95 206Q100 209.5 105 206" stroke="#8A4B37" stroke-width="2" fill="none" stroke-linecap="round"/></g><g><rect x="200" y="298" width="16" height="66" rx="6" fill="#1F3A44"/><rect x="224" y="298" width="16" height="66" rx="6" fill="#1F3A44"/><ellipse cx="207" cy="366" rx="12" ry="5" fill="#10242A"/><ellipse cx="233" cy="366" rx="12" ry="5" fill="#10242A"/><path d="M178 302C176 240 186 196 220 186C254 196 264 240 262 302L250 312H190Z" fill="#FFFFFF"/><path d="M206 190L220 224L234 190Z" fill="#0A7F83"/><path d="M206 190L214 252M234 190L226 252" stroke="#D3E0E1" stroke-width="2"/><rect x="238" y="232" width="14" height="10" rx="2" fill="#E6F2F2"/><path d="M243 226V238" stroke="#0A7F83" stroke-width="2.4" stroke-linecap="round"/><path d="M254 212C262 240 262 262 256 284" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" fill="none"/><circle cx="256" cy="289" r="7" fill="#E0A98A"/><path d="M210 196C204 226 214 240 222 244C232 240 238 226 232 196" stroke="#2B3A40" stroke-width="3" fill="none"/><circle cx="222" cy="249" r="5" fill="#9FB3B8" stroke="#2B3A40" stroke-width="2"/><path d="M186 214C176 240 180 262 202 268" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" fill="none"/><g transform="rotate(-10 214 264)"><rect x="192" y="238" width="42" height="54" rx="7" fill="#0D4245"/><rect x="197" y="244" width="32" height="36" rx="3" fill="#3CC4C0"/><path d="M202 252H222M202 260H216M202 268H220" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"/></g><circle cx="204" cy="268" r="7" fill="#E0A98A"/><rect x="213" y="174" width="14" height="16" fill="#E0A98A"/><circle cx="226" cy="114" r="12" fill="#2B2120"/><circle cx="220" cy="156" r="26" fill="#E0A98A"/><path d="M194 158C191 128 209 118 222 118C241 118 251 133 246 154C238 140 222 136 205 146C200 150 197 154 194 158Z" fill="#2B2120"/><circle cx="211" cy="159" r="2.6" fill="#2B2120"/><circle cx="229" cy="159" r="2.6" fill="#2B2120"/><circle cx="205" cy="167" r="4" fill="#F29C8A" opacity=".45"/><circle cx="235" cy="167" r="4" fill="#F29C8A" opacity=".45"/><path d="M212 169Q220 176 228 169" stroke="#8A4B37" stroke-width="2.4" fill="none" stroke-linecap="round"/></g><g><ellipse cx="318" cy="366" rx="11" ry="5" fill="#3A2A22"/><ellipse cx="346" cy="366" rx="11" ry="5" fill="#3A2A22"/><path d="M302 240C294 262 294 282 300 298" stroke="#E07A5F" stroke-width="13" stroke-linecap="round" fill="none"/><path d="M296 352C296 290 304 232 332 220C360 232 368 290 368 352Z" fill="#E07A5F"/><g clip-path="url(#cpDress)"><path d="M292 296l9-9 9 9 9-9 9 9 9-9 9 9 9-9 9 9 9-9" stroke="#FFE0A3" stroke-width="3.2" fill="none"/><path d="M292 322l9-9 9 9 9-9 9 9 9-9 9 9 9-9 9 9 9-9" stroke="#5B3E8E" stroke-width="3.2" fill="none"/></g><circle cx="300" cy="302" r="6" fill="#F1C7A5"/><path d="M362 240C372 262 376 280 384 296" stroke="#E07A5F" stroke-width="13" stroke-linecap="round" fill="none"/><path d="M305 202C303 168 318 159 332 159C348 159 361 169 359 202C357 216 350 224 344 228H320C312 222 307 214 305 202Z" fill="#5B3E8E"/><circle cx="309" cy="208" r="2" fill="#FFFFFF" opacity=".7"/><circle cx="355" cy="208" r="2" fill="#FFFFFF" opacity=".7"/><circle cx="316" cy="221" r="2" fill="#FFFFFF" opacity=".7"/><circle cx="348" cy="221" r="2" fill="#FFFFFF" opacity=".7"/><circle cx="332" cy="196" r="21" fill="#F1C7A5"/><path d="M311 189C313 171 323 167 332 167C342 167 352 172 353 189C344 180 321 180 311 189Z" fill="#5B3E8E"/><circle cx="325" cy="198" r="2.3" fill="#2B2120"/><circle cx="339" cy="198" r="2.3" fill="#2B2120"/><circle cx="320" cy="205" r="3.4" fill="#F29C8A" opacity=".45"/><circle cx="344" cy="205" r="3.4" fill="#F29C8A" opacity=".45"/><path d="M326 206Q332 211 338 206" stroke="#8A4B37" stroke-width="2.2" fill="none" stroke-linecap="round"/></g><g><rect x="384" y="344" width="9" height="20" rx="3" fill="#2F4F6F"/><rect x="396" y="344" width="9" height="20" rx="3" fill="#2F4F6F"/><ellipse cx="388" cy="366" rx="7" ry="4" fill="#3A2A22"/><ellipse cx="401" cy="366" rx="7" ry="4" fill="#3A2A22"/><path d="M378 350C378 322 384 306 394 302C404 306 410 322 410 350Z" fill="#3CC4C0"/><path d="M383 314C381 306 383 301 386 299" stroke="#3CC4C0" stroke-width="8" stroke-linecap="round" fill="none"/><circle cx="386" cy="300" r="5.5" fill="#F1C7A5"/><circle cx="394" cy="287" r="14" fill="#E0A98A"/><path d="M380 286C380 272 388 268 394 268C402 268 409 274 408 286C402 279 388 279 380 286Z" fill="#2B2120"/><circle cx="390" cy="289" r="1.7" fill="#2B2120"/><circle cx="398" cy="289" r="1.7" fill="#2B2120"/><path d="M390 295Q394 298.5 398 295" stroke="#8A4B37" stroke-width="1.8" fill="none" stroke-linecap="round"/></g>';
   /* a photo from site/img in two widths (Unsplash, free licence); lazy unless it's at the top of the page */
   function photo(name, alt, sizes, cls, eager) {
-    return '<img class="' + (cls || "") + '" src="img/' + name + '-1200.jpg" srcset="img/' + name + "-640.jpg 640w, img/" + name + '-1200.jpg 1200w" sizes="' + sizes + '" alt="' + esc(alt) + '"' + (eager ? ' fetchpriority="high"' : ' loading="lazy"') + ' decoding="async">';
+    var b = PANEL ? "../img/" : "img/"; return '<img class="' + (cls || "") + '" src="' + b + name + '-1200.jpg" srcset="' + b + name + "-640.jpg 640w, " + b + name + '-1200.jpg 1200w" sizes="' + sizes + '" alt="' + esc(alt) + '"' + (eager ? ' fetchpriority="high"' : ' loading="lazy"') + ' decoding="async">';
   }
   /* phone pictures of the app (after Doctor Anywhere): drawn in HTML, so they follow the language and the doctors on the site */
   var AVC = ["#0A7F83", "#C2613F", "#5B6CC9", "#A34F8C"];
@@ -1486,10 +1486,104 @@
     var item = function (r) { return '<div class="rvitem"><div class="rvtop">' + starsTxt(r.stars) + " <b>" + esc(r.author || t.rv_anon_name) + '</b><span class="muted"> · ' + t.rv_kind[r.kind] + " · " + fmt(new Date(r.at), { day: "numeric", month: "short" }) + "</span></div>" + (r.body ? '<p class="pre">' + esc(r.body) + "</p>" : "") + (r.reply ? '<div class="rvreply"><b>' + t.rv_reply_h + ":</b> " + esc(r.reply) + "</div>" : "") + "</div>"; };
     return '<div class="sect" id="reviews"><h2>' + t.rv_h + " " + ratingLine(u.id) + "</h2>" + (l.length ? l.map(item).join("") : '<p class="muted">' + t.rv_none + "</p>") + '<p class="fine" style="margin-top:10px">' + (u.sample ? t.smp_rv : t.rv_only) + "</p></div>";
   }
+  /* ================= the panel app (/panel/): one workspace per role, after SuperFlow's CRM panel =================
+     The public site (/) shows doctors and takes applications; everything behind a sign-in lives here, with its own
+     sidebar, top bar and pages: patients, doctors, clinics, and admins on top of their role. Same API, same session. */
+  var PANEL = window.SHIFOKOR_SHELL === "panel";
+  var PRO_FORM = false;   /* viewAccount() returns just the profile form, for the panel's settings page */
+  var PNAV = {
+    patient: [["/", "home", "home"], ["/consults", "chat", "consults"], ["/visits", "cal", "visits"], ["/meds", "flask", "meds"], ["/ona", "heart", "ona"], ["/settings", "shield", "settings"]],
+    doctor: [["/", "home", "home"], ["/requests", "chat", "requests"], ["/schedule", "cal", "schedule"], ["/patients", "heart", "patients"], ["/earnings", "card", "earnings"], ["/reviews", "star", "reviews"], ["/settings", "shield", "settings"]],
+    clinic: [["/", "home", "home"], ["/requests", "cal", "crequests"], ["/team", "heart", "cdoctors"], ["/reviews", "star", "reviews"], ["/settings", "shield", "settings"]],
+    admin: [["/admin", "shield", "a_chk"], ["/admin?tab=pay", "card", "a_pay"], ["/admin?tab=import", "plus", "a_import"], ["/admin?tab=meds", "flask", "a_meds"]]
+  };
+  var siteUrl = function (hash) { return "/" + (hash || "#/"); };
+  function pHead(title, desc, actions) { return '<div class="phead"><div><h1>' + title + "</h1>" + (desc ? "<p>" + desc + "</p>" : "") + "</div>" + (actions ? '<div class="btns">' + actions + "</div>" : "") + "</div>"; }
+  function pStat(icon, label, value, hint, href) { return '<' + (href ? 'a href="' + href + '"' : "div") + ' class="pstat"><span class="psi">' + ic(icon) + '</span><div><small>' + label + '</small><b class="nums">' + value + "</b>" + (hint ? '<span class="muted">' + hint + "</span>" : "") + "</div></" + (href ? "a" : "div") + ">"; }
+  function pEmpty(icon, title, text, act) { return '<div class="pempty"><span>' + ic(icon) + "</span><h3>" + title + "</h3>" + (text ? "<p>" + text + "</p>" : "") + (act || "") + "</div>"; }
+  function pCard(title, body, extra) { return '<section class="pcard">' + (title ? '<div class="pcardh"><h2>' + title + "</h2>" + (extra || "") + "</div>" : "") + body + "</section>"; }
+  /* patient pages */
+  function pPatientHome(u) {
+    var t = L(), mine = consults().filter(function (c) { return c.userId === u.id; }), now = Date.now();
+    var open = mine.filter(function (c) { return c.status === "new" || c.status === "accepted"; }), next = open.filter(function (c) { return c.slotAt && c.slotAt > now - 3600e3; }).sort(function (a, b) { return a.slotAt - b.slotAt; })[0];
+    var orders = medOrders().filter(function (o) { return o.status !== "delivered" && o.status !== "cancelled" && mine.some(function (c) { return c.id === o.consultId; }); });
+    var aps = appts().filter(function (a) { return a.userId === u.id && a.status !== "cancelled" && a.status !== "declined"; });
+    return pHead(t.pro_hello(esc(u.name.split(" ")[0])), t.pn_pat_p, '<a class="btn" href="' + siteUrl("#/consult?now=1") + '">' + ic("video") + t.asap_now[0] + '</a><a class="btn ghost" href="' + siteUrl("#/doctors") + '">' + ic("search") + t.hf_go + "</a>") +
+      '<div class="pstats">' + pStat("chat", t.pn_st_open, open.length, "", "#/consults") + pStat("cal", t.pn_st_next, next ? esc(slotShort(next.slotAt)) : "—", next ? esc(next.doctorName || "") : "", next ? "#/consult/" + next.id : "") + pStat("flask", t.pn_st_meds, orders.length, "", "#/meds") + pStat("hosp", t.pn_st_visits, aps.length, "", "#/visits") + "</div>" +
+      pCard(t.pn_open_h, open.length ? '<div class="visits">' + open.sort(function (a, b) { return (a.slotAt || a.at) - (b.slotAt || b.at); }).map(csRow).join("") + "</div>" : pEmpty("chat", t.pn_open_none, t.pn_open_none_p, '<a class="btn" href="' + siteUrl("#/doctors") + '">' + t.hf_go + "</a>"), '<a class="linkbtn" href="#/consults">' + t.pro_all + "</a>");
+  }
+  function pPatientConsults(u) {
+    var t = L(), mine = consults().filter(function (c) { return c.userId === u.id; }).sort(function (a, b) { return b.at - a.at; });
+    var open = mine.filter(function (c) { return c.status === "new" || c.status === "accepted"; }), closed = mine.filter(function (c) { return open.indexOf(c) < 0; });
+    return pHead(t.pn_t.consults, t.pn_consults_p, '<a class="btn" href="' + siteUrl("#/doctors") + '">' + ic("plus") + t.cs_new_btn + "</a>") +
+      (mine.length ? pCard(t.pro_f.active + " · " + open.length, open.length ? '<div class="visits">' + open.map(csRow).join("") + "</div>" : '<p class="muted">' + t.pro_none.active + "</p>") + (closed.length ? pCard(t.pro_f.done + " · " + closed.length, '<div class="visits">' + closed.map(csRow).join("") + "</div>") : "")
+        : pCard("", pEmpty("chat", t.pn_open_none, t.pn_open_none_p, '<a class="btn" href="' + siteUrl("#/doctors") + '">' + t.hf_go + "</a>")));
+  }
+  function pPatientVisits(u) {
+    var t = L(), aps = apSort(appts().filter(function (a) { return a.userId === u.id; }));
+    markSeen(aps.map(function (a) { return [a.id, apKey(a)]; }));
+    return pHead(t.pn_t.visits, t.ap_visits_p, '<a class="btn ghost" href="' + siteUrl("#/find") + '">' + ic("hosp") + t.ap_find + "</a>") +
+      pCard("", aps.length ? '<div class="visits">' + aps.map(function (a) { return apRow(a, false); }).join("") + "</div>" : pEmpty("cal", t.ap_none, "", '<a class="btn" href="' + siteUrl("#/find") + '">' + t.ap_find + "</a>"));
+  }
+  function pPatientMeds(u) {
+    var t = L(), mine = consults().filter(function (c) { return c.userId === u.id && c.rx && c.rx.length; }).sort(function (a, b) { return b.at - a.at; });
+    return pHead(t.pn_t.meds, t.pn_meds_p) + (mine.length ? mine.map(function (c) { var o = medOrders().filter(function (x) { return x.consultId === c.id && x.status !== "cancelled"; })[0];
+      return pCard(esc(c.doctorName || "") + ' <small class="muted">' + t.cs_no(c.n) + "</small>", rxList(c.rx) + '<p class="muted">' + (o ? ic("home") + " " + t.rx_st[o.status] : t.rx_offer) + '</p><a class="btn ghost sm" href="#/consult/' + c.id + '">' + (o ? t.pro_open : t.rx_order) + "</a>"); }).join("") : pCard("", pEmpty("flask", t.pn_meds_none, t.pn_meds_none_p)));
+  }
+  /* clinic pages */
+  function pClinicHome(u) {
+    var t = L(), list = appts().filter(function (a) { return a.clinicId === u.id; }), fresh = list.filter(function (a) { return a.status === "new" && apOpen(a); }), today = iso(today0());
+    var todays = list.filter(function (a) { return a.day === today && a.status === "confirmed"; }), docs = doctorsAt(u), r = ratingOf(u.id);
+    return pHead(esc(u.name), t.pn_cli_p, '<a class="btn ghost" href="' + siteUrl("#/c/" + u.id) + '">' + ic("search") + t.acc_view + "</a>") + trustCard(u) +
+      '<div class="pstats">' + pStat("cal", t.pn_st_cnew, fresh.length, "", "#/requests") + pStat("check", t.pn_st_ctoday, todays.length, "", "#/requests") + pStat("heart", t.pn_st_cdocs, docs.length, "", "#/team") + pStat("star", t.pro_st_rating(r.n), r.n ? avgTxt(r.avg) + " ★" : "—", "", "#/reviews") + "</div>" + clinicInbox(u);
+  }
+  function pClinicDoctors(u) {
+    var t = L(), docs = doctorsAt(u);
+    return pHead(t.pn_t.cdoctors, t.pn_cdocs_p) + (docs.length ? '<div class="dtgrid">' + docs.map(docTile).join("") + "</div>" : pCard("", pEmpty("heart", t.c_no_docs, t.pn_cdocs_none)));
+  }
+  /* the shell: sidebar with the role's pages (and admin pages for admins), top bar with the page name, language and the way back to the site */
+  function panelPage(path0, q) {
+    var path = path0;
+    var t = L(), u = me(), role = u ? u.role : "";
+    if (u && (path === "/login" || path === "/register")) return { redirect: "#/" };
+    if (path === "/login") return { body: '<div class="pauth">' + viewLogin() + "</div>", bare: true };
+    if (path === "/register") { if (q.role && ["patient", "doctor", "clinic"].indexOf(q.role) > -1) REGROLE = q.role; return { body: '<div class="pauth">' + viewRegister() + "</div>", bare: true }; }
+    if (path.indexOf("/claim/") === 0) return { body: '<div class="pauth">' + viewClaim(path.slice(7)) + "</div>", bare: true };
+    if (!u) return { redirect: "#/login" };
+    /* links written for the old one-page site, and public pages opened from the panel */
+    if (path === "/pro") path = q.tab === "profile" ? "/settings" : "/" + (q.tab && q.tab !== "home" ? q.tab : "");
+    if (path === "/account") path = "/";
+    if (path === "/visits" && role !== "patient") path = "/";
+    var mineR = role === "doctor" ? ["/", "/requests", "/schedule", "/patients", "/earnings", "/reviews"] : role === "clinic" ? ["/", "/requests", "/team", "/reviews"] : ["/", "/consults", "/visits", "/meds", "/ona"];
+    /* another role's page: this account's overview instead */
+    if (mineR.indexOf(path) < 0 && ["/consults", "/visits", "/meds", "/requests", "/schedule", "/patients", "/earnings", "/reviews", "/team"].indexOf(path) > -1) return { redirect: "#/" };
+    if (mineR.indexOf(path) < 0 && path !== "/settings" && path !== "/admin" && path.indexOf("/consult/") !== 0) { var qx = Object.assign({}, q); return { external: "/#" + path + (qs(qx) ? "?" + qs(qx) : "") }; }
+    if (path.indexOf("/consult/") === 0) return { body: viewConsultThread(path.slice(9)), key: role === "doctor" ? "requests" : role === "clinic" ? "requests" : "consults" };
+    if (path === "/admin") return { body: viewAdmin(q), key: "a_" + (q.tab === "pay" ? "pay" : q.tab === "import" ? "import" : q.tab === "meds" ? "meds" : "chk") };
+    if (path === "/settings") { PRO_FORM = true; try { return { body: pHead(t.pro_t.profile, t.pn_set_p, role !== "patient" ? '<a class="btn ghost" href="' + siteUrl(role === "doctor" ? "#/doc/" + u.id : "#/c/" + u.id) + '">' + t.acc_view + "</a>" : "") + (role === "doctor" ? liveCard(u) : "") + viewAccount(), key: "settings" }; } finally { PRO_FORM = false; } }
+    var page = path.slice(1) || "home";
+    if (role === "doctor") {
+      var mine = proMine(u);
+      var b = page === "requests" ? proRequests(u, mine, q.f) : page === "schedule" ? proSchedule(u, mine) : page === "patients" ? proPatients(u, mine) : page === "earnings" ? proEarnings(u, mine) : page === "reviews" ? "<h1>" + t.pro_t.reviews + "</h1>" + rvMine(u) : proHome(u, mine);
+      return { body: b, key: ["requests", "schedule", "patients", "earnings", "reviews"].indexOf(page) > -1 ? page : "home" };
+    }
+    if (role === "clinic") return { body: page === "requests" ? pHead(t.pn_t.crequests, t.ap_inbox_p) + clinicInbox(u) : page === "team" ? pClinicDoctors(u) : page === "reviews" ? pHead(t.pro_t.reviews, "") + rvMine(u) : pClinicHome(u), key: ["requests", "team", "reviews"].indexOf(page) > -1 ? (page === "requests" ? "crequests" : page === "team" ? "cdoctors" : page) : "home" };
+    return { body: page === "consults" ? pPatientConsults(u) : page === "visits" ? pPatientVisits(u) : page === "meds" ? pPatientMeds(u) : page === "ona" ? viewOna() : pPatientHome(u), key: ["consults", "visits", "meds", "ona"].indexOf(page) > -1 ? page : "home" };
+  }
+  function panelShell(pg) {
+    var t = L(), u = me(), role = u.role, items = PNAV[role] || PNAV.patient, nNew = role === "doctor" ? proMine(u).filter(function (c) { return c.status === "new"; }).length : role === "clinic" ? appts().filter(function (a) { return a.clinicId === u.id && a.status === "new" && apOpen(a); }).length : 0;
+    var link = function (x) { var on = x[2] === pg.key; return '<a href="#' + x[0] + '"' + (on ? ' aria-current="page"' : "") + ">" + ic(x[1]) + "<span>" + t.pn_t[x[2]] + "</span>" + ((x[2] === "requests" || x[2] === "crequests") && nNew ? '<b class="pronum">' + nNew + "</b>" : "") + "</a>"; };
+    var title = (items.concat(PNAV.admin).filter(function (x) { return x[2] === pg.key; })[0] || [])[2];
+    return '<div class="pshell"><aside class="pside" id="pside"><a class="pbrand" href="#/"><img src="../icon.svg" alt="" width="36" height="36"><span><b>Shifokor</b><small>' + t.pn_role[role] + "</small></span></a>" +
+      '<nav aria-label="' + esc(t.pro_panel) + '">' + items.map(link).join("") + (u.admin ? '<p class="pgroup">' + t.pn_admin + "</p>" + PNAV.admin.map(link).join("") : "") + "</nav>" +
+      '<div class="puser">' + avatarOf(u, "sm") + '<div><b>' + esc(u.name) + "</b><small>" + esc(role === "doctor" ? specName(u.profile || {}) : u.email || fmtPhone(u.phone || "")) + '</small></div><button class="pico" type="button" data-act="logout" title="' + esc(t.logout) + '" aria-label="' + esc(t.logout) + '"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg></button></div></aside>' +
+      '<div class="pmain"><header class="ptop"><button class="pico pmenu" type="button" data-act="pnav" aria-label="' + esc(t.nav_menu) + '" aria-controls="pside"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><b class="ptitle">' + (title ? t.pn_t[title] : "") + '</b><span class="spacer"></span>' +
+      '<div class="lang" id="lang" role="group" aria-label="Language">' + ["uz", "ru", "en"].map(function (l) { return '<button type="button" data-l="' + l + '" aria-pressed="' + (lang === l) + '">' + l.toUpperCase() + "</button>"; }).join("") + "</div>" +
+      '<a class="btn ghost sm" href="' + siteUrl("#/") + '">' + t.pn_site + "</a></header>" + '<div class="pcontent">' + pg.body + "</div></div></div>";
+  }
   /* ---------------- the doctor's panel: its own workspace, after Practo / Doctor Anywhere doctor apps ----------------
      overview, request queue, week schedule, patients, earnings, reviews, and profile with prices and hours */
   var PRO_TABS = [["home", "home"], ["requests", "chat"], ["schedule", "cal"], ["patients", "heart"], ["earnings", "card"], ["reviews", "star"], ["profile", "shield"]];
-  var PRO_FORM = false;   /* viewAccount() returns just the profile form, for the panel's profile tab */
   function proMine(u) {   /* applications this doctor sees: theirs, and new ones they may accept */
     var sp = (u.profile || {}).spec;
     return consults().filter(function (c) { return c.doctorId === u.id || (c.status === "new" && (c.doc ? c.doc === u.id : !c.spec || c.spec === sp || (sp === "gp" && !c.spec))); });
@@ -1620,10 +1714,10 @@
   /* header: account button, unread counts, admin link */
   function hdr() {
     var t = L(), ab = $("acctBtn"), mu = me(), n = unseen();
-    var rb = $("regBtn"); if (rb) rb.hidden = !!mu;
+    var rb = $("regBtn"); if (rb) { rb.hidden = !!mu; rb.setAttribute("href", "/panel/#/register"); }
     var isD = !!(mu && mu.role === "doctor"), nNew = isD ? proMine(mu).filter(function (c) { return c.status === "new"; }).length : 0;
-    all(".navcta, .navcta-m").forEach(function (a) { a.textContent = isD ? t.pro_panel : t.nav_consult; a.setAttribute("href", isD ? "#/pro" : "#/consult?now=1"); if (nNew) a.setAttribute("data-n", nNew); else a.removeAttribute("data-n"); });
-    if (ab) { ab.textContent = mu ? mu.name.split(" ")[0] : t.nav_login; ab.setAttribute("href", mu ? (mu.role === "doctor" ? "#/pro?tab=profile" : "#/account") : "#/login"); if (n.c) ab.setAttribute("data-n", n.c); else ab.removeAttribute("data-n"); }
+    all(".navcta, .navcta-m").forEach(function (a) { a.textContent = isD ? t.pro_panel : t.nav_consult; a.setAttribute("href", isD ? "/panel/#/" : "#/consult?now=1"); if (nNew) a.setAttribute("data-n", nNew); else a.removeAttribute("data-n"); });
+    if (ab) { ab.textContent = mu ? mu.name.split(" ")[0] : t.nav_login; ab.setAttribute("href", mu ? "/panel/#/" : "/panel/#/login"); if (n.c) ab.setAttribute("data-n", n.c); else ab.removeAttribute("data-n"); }
     all('a[href="#/visits"]').forEach(function (a) { if (n.v) a.setAttribute("data-n", n.v); else a.removeAttribute("data-n"); });
     all(".admlink").forEach(function (al) { al.hidden = !(mu && mu.admin); });
   }
@@ -1942,7 +2036,22 @@
   function render(keepScroll) {
     var t = L(), h = parseHash(), path = h.path, q = h.q, html, route = "home";
     current = h; document.documentElement.lang = lang === "uz" ? "uz-Latn" : lang;
-    if (path === "/search") html = viewSearch(q);
+    /* the panel app: its own pages and shell; signed-out visitors go to the sign-in page */
+    if (PANEL) {
+      var pg = panelPage(path, q);
+      if (pg.redirect) { location.replace(location.pathname + pg.redirect); return; }
+      if (pg.external) { location.href = pg.external; return; }
+      html = pg.bare ? '<div class="pbare"><a class="pbrand" href="/"><img src="../icon.svg" alt="" width="36" height="36"><span><b>Shifokor</b></span></a>' + pg.body + "</div>" : panelShell(pg); route = "account";
+    }
+    /* the public site: pages behind a sign-in live in the panel app */
+    else if (["/login", "/register", "/account", "/pro", "/visits", "/admin"].indexOf(path) > -1 || path.indexOf("/consult/") === 0 || path.indexOf("/claim/") === 0) {
+      var pq = Object.assign({}, q), pp = path;
+      if (path === "/account") pp = "/"; else if (path === "/visits") pp = "/consults";
+      else if (path === "/pro") { pp = q.tab === "profile" ? "/settings" : q.tab && q.tab !== "home" ? "/" + q.tab : "/"; delete pq.tab; }
+      else if (path === "/register" && !pq.role) pq.role = REGROLE;
+      location.replace("/panel/#" + pp + (qs(pq) ? "?" + qs(pq) : "")); return;
+    }
+    else if (path === "/search") html = viewSearch(q);
     else if (path.indexOf("/p/") === 0) html = viewProfile(path.slice(3), q);
     else if (path === "/find") { html = viewFind(q); route = "find"; }
     else if (path === "/register") { html = viewRegister(); route = "account"; }
@@ -1986,7 +2095,12 @@
   }
   /* after signing in or registering, go back to the page the visitor was on (an application they started, say) */
   var NEXT_K = "shifokor-next";
-  function afterAuth() { var n = ""; try { n = sessionStorage.getItem(NEXT_K) || ""; sessionStorage.removeItem(NEXT_K); } catch (x) {} return /^#\/(?!login|register|claim)/.test(n) ? n : "#/account"; }
+  function afterAuth() {
+    var n = ""; try { n = sessionStorage.getItem(NEXT_K) || ""; sessionStorage.removeItem(NEXT_K); } catch (x) {}
+    /* a page of the public site (an application the visitor started there): go back to it */
+    if (n.indexOf("pub:") === 0) { if (PANEL) { location.href = "/" + n.slice(4); return location.hash; } n = n.slice(4); }
+    return /^#\/(?!login|register|claim)/.test(n) ? n : PANEL ? "#/" : "#/account";
+  }
   function go(hash) { if (location.hash === hash) render(true); else location.hash = hash; }
   function rerender() { render(true); refreshModal(); }
 
@@ -1996,8 +2110,8 @@
 
   document.addEventListener("click", function (e) {
     if (!e.target.closest(".dd")) closeMenu();
-    var authA = e.target.closest('a[href="#/login"], a[href="#/register"]');
-    if (authA && current && current.path !== "/login" && current.path !== "/register") { try { sessionStorage.setItem(NEXT_K, location.hash || "#/"); } catch (x) {} }
+    var authA = e.target.closest('a[href="#/login"], a[href="#/register"], a[href^="/panel/#/login"], a[href^="/panel/#/register"]');
+    if (authA && current && current.path !== "/login" && current.path !== "/register") { try { sessionStorage.setItem(NEXT_K, (PANEL ? "" : "pub:") + (location.hash || "#/")); } catch (x) {} if (!PANEL && authA.dataset.regroleLink && authA.getAttribute("href").indexOf("/panel/") !== 0) REGROLE = authA.dataset.regroleLink; }
     var db = e.target.closest(".ddbtn"); if (db) { var mn = db.nextElementSibling, was = mn.hidden; closeMenu(); mn.hidden = !was; db.setAttribute("aria-expanded", String(was)); return; }
     if (e.target.closest(".menu a")) { var ma = e.target.closest(".menu a"); if (ma.dataset.regroleLink) REGROLE = ma.dataset.regroleLink; closeMenu(); if (!ma.dataset.act) return; }
     var el = e.target.closest("button, a"); if (!el) return;
@@ -2231,9 +2345,10 @@
     if (ds.svcdel != null) { accCollect(); ACC.pr.svc.splice(+ds.svcdel, 1); render(true); return; }
     if (ds.act === "wpadd") { accCollect(); ACC.pr.work.push({ t: "x", label: "" }); render(true); var ws = all("#wp-list input"); if (ws.length) ws[ws.length - 1].focus(); return; }
     if (ds.wpdel != null) { accCollect(); ACC.pr.work.splice(+ds.wpdel, 1); render(true); return; }
-    if (ds.act === "logout" && BE) { BE.signOut().then(function () { ACC = null; toast(t.logged_out); go("#/"); }); return; }
+    if (ds.act === "pnav") { var sh = document.querySelector(".pshell"); if (sh) sh.classList.toggle("navopen"); return; }
+    if (ds.act === "logout" && BE) { BE.signOut().then(function () { ACC = null; toast(t.logged_out); if (PANEL) location.href = "/"; else go("#/"); }); return; }
     if (ds.act === "accdel-yes" && BE) { BE.deleteAccount().then(function () { ACC = null; ACC_DEL = false; toast(t.acc_deleted); go("#/"); }, function () { toast(t.be_err); }); return; }
-    if (ds.act === "logout") { store.set(KS, null); ACC = null; toast(t.logged_out); go("#/"); return; }
+    if (ds.act === "logout") { store.set(KS, null); ACC = null; toast(t.logged_out); if (PANEL) location.href = "/"; else go("#/"); return; }
     if (ds.act === "accdel") { ACC_DEL = true; render(true); return; }
     if (ds.act === "accdel-no") { ACC_DEL = false; render(true); return; }
     if (ds.act === "accdel-yes") { var cu = me(); saveUsers(users().filter(function (x) { return x.id !== cu.id; })); store.set(KS, null); ACC = null; ACC_DEL = false; toast(t.acc_deleted); go("#/"); return; }

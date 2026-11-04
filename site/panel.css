@@ -162,3 +162,12 @@ body.panelapp .top, body.panelapp .foot, body.panelapp .skip { display: none; }
 .evbanner > div { flex: 1; min-width: 0; }
 .evbanner p { margin: 2px 0 0; overflow-wrap: anywhere; }
 @media (max-width: 600px) { .pcard.evbanner { flex-wrap: wrap; } .evbanner .btn { width: 100%; } }
+
+/* panel top bar: account menu */
+.pacct { position: relative; }
+.pacctbtn { display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 600 0.92rem var(--font-body); cursor: pointer; }
+.pacctbtn:hover, .pacctbtn[aria-expanded="true"] { border-color: var(--accent); }
+.pacctbtn .pav.sm { width: 30px; height: 30px; font-size: 0.75rem; }
+.pacctbtn .ic { width: 16px; height: 16px; }
+.pacct .menu { min-width: 240px; z-index: 60; }
+@media (max-width: 600px) { .pacctname { display: none; } .pacctbtn { padding-right: 6px; } }

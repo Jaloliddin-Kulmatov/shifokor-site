@@ -1,6 +1,9 @@
 /* Copy for the simpler header (find a doctor, clinics, more) and the shorter home page (November 2026). */
 (function (T) {
   var add = function (lang, o) { Object.keys(o).forEach(function (k) { T[lang][k] = o[k]; }); };
+  /* the panel's sidebar: "Profil" for the account details, "Sozlamalar" for language, text size and look */
+  var nav = { uz: { settings: "Profil", prefs: "Sozlamalar" }, ru: { settings: "Профиль", prefs: "Настройки" }, en: { settings: "Profile", prefs: "Settings" } };
+  Object.keys(nav).forEach(function (l) { Object.keys(nav[l]).forEach(function (k) { T[l].pn_t[k] = nav[l][k]; }); });
 
   add("uz", {
     nv_find: "Shifokor topish", nv_clinics: "Klinikalar", nv_more: "Ko‘proq", nv_pros: "Shifokor va klinikalar uchun",

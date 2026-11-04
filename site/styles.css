@@ -1551,3 +1551,18 @@ audio.voice { display: block; width: 240px; max-width: 100%; height: 36px; margi
   .hccard b { font-size: 1rem; }
   .hccard small { font-size: 0.82rem; }
 }
+
+/* account menu in the header (signed in) */
+.acctdd { margin-left: 8px; }
+.acctdd[hidden] { display: none; }
+.acctdd .ddbtn.acct { margin-left: 0; display: inline-flex; align-items: center; gap: 4px; }
+.menu.menu-r { left: auto; right: 0; }
+.menu a .ic, .menu a svg { width: 18px; height: 18px; flex: none; }
+.acctdd .menu a, .pacct .menu a { display: flex; align-items: center; gap: 10px; }
+.menu .acctout { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 10px 14px; border-radius: 10px; font: 500 0.95rem var(--font-body); color: var(--risk); cursor: pointer; }
+.menu .acctout:hover { background: var(--risk-soft); }
+.menu .acctout.sep, .menu a.sep { margin-top: 6px; border-top: 1px solid var(--line); border-radius: 0 0 10px 10px; padding-top: 12px; }
+.acctdd .menu .mh, .pacct .menu .mh { text-transform: none; letter-spacing: 0; font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px; }
+.top .acct[hidden] { display: none !important; }
+.acctdd .menu a, .pacct .menu a { text-decoration: none; color: var(--ink); }
+.acctdd .menu a:hover, .pacct .menu a:hover { color: var(--accent); }

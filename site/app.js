@@ -19,6 +19,7 @@
     nav: '<path d="M3 11l18-8-8 18-2-8z"/>',
     copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 00-1-1H5a1 1 0 00-1 1v10a1 1 0 001 1h3"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/>',
     book: '<path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 21V5M8 7h7"/>',
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/>',
     mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
@@ -1586,9 +1587,9 @@
   var acc = function (p) { return "#/account" + (p && p !== "/" ? p : ""); };
   var PRO_FORM = false;   /* viewAccount() returns just the profile form, for the panel's settings page */
   var PNAV = {
-    patient: [["/", "home", "home"], ["/consults", "chat", "consults"], ["/visits", "cal", "visits"], ["/meds", "flask", "meds"], ["/ona", "heart", "ona"], ["/settings", "shield", "settings"]],
-    doctor: [["/", "home", "home"], ["/requests", "chat", "requests"], ["/schedule", "cal", "schedule"], ["/patients", "heart", "patients"], ["/earnings", "card", "earnings"], ["/reviews", "star", "reviews"], ["/settings", "shield", "settings"]],
-    clinic: [["/", "home", "home"], ["/requests", "bell", "crequests"], ["/calendar", "cal", "ccalendar"], ["/team", "heart", "cdoctors"], ["/branches", "pin", "cbranches"], ["/reviews", "star", "reviews"], ["/settings", "shield", "settings"]],
+    patient: [["/", "home", "home"], ["/consults", "chat", "consults"], ["/visits", "cal", "visits"], ["/meds", "flask", "meds"], ["/ona", "heart", "ona"], ["/settings", "user", "settings"], ["/prefs", "gear", "prefs"]],
+    doctor: [["/", "home", "home"], ["/requests", "chat", "requests"], ["/schedule", "cal", "schedule"], ["/patients", "heart", "patients"], ["/earnings", "card", "earnings"], ["/reviews", "star", "reviews"], ["/settings", "user", "settings"], ["/prefs", "gear", "prefs"]],
+    clinic: [["/", "home", "home"], ["/requests", "bell", "crequests"], ["/calendar", "cal", "ccalendar"], ["/team", "heart", "cdoctors"], ["/branches", "pin", "cbranches"], ["/reviews", "star", "reviews"], ["/settings", "user", "settings"], ["/prefs", "gear", "prefs"]],
     admin: [["/admin", "shield", "a_chk"], ["/admin?tab=pay", "card", "a_pay"], ["/admin?tab=import", "plus", "a_import"], ["/admin?tab=meds", "flask", "a_meds"]]
   };
   var siteUrl = function (hash) { return hash || "#/"; };
@@ -1728,7 +1729,8 @@
     if (path === "/verify") return { body: pVerify(u), key: "verify" };
     var mineR = role === "doctor" ? ["/", "/requests", "/schedule", "/patients", "/earnings", "/reviews"] : role === "clinic" ? ["/", "/requests", "/calendar", "/team", "/branches", "/reviews"] : ["/", "/consults", "/visits", "/meds", "/ona"];
     /* another role's page, or one that doesn't exist: this account's overview */
-    if (mineR.indexOf(path) < 0 && path !== "/settings" && path !== "/admin" && path.indexOf("/consult/") !== 0) return { redirect: acc("/") };
+    if (mineR.indexOf(path) < 0 && path !== "/settings" && path !== "/prefs" && path !== "/admin" && path.indexOf("/consult/") !== 0) return { redirect: acc("/") };
+    if (path === "/prefs") return { body: pHead(t.pn_t.prefs, t.set_p) + '<div class="acc">' + settingsCard(true) + "</div>", key: "prefs" };
     if (path.indexOf("/consult/") === 0) return { body: viewConsultThread(path.slice(9)), key: role === "doctor" ? "requests" : role === "clinic" ? "requests" : "consults" };
     if (path === "/admin") return { body: viewAdmin(q), key: "a_" + (q.tab === "pay" ? "pay" : q.tab === "import" ? "import" : q.tab === "meds" ? "meds" : "chk") };
     if (path === "/settings") { PRO_FORM = true; try { return { body: pHead(t.pro_t.profile, t.pn_set_p, role !== "patient" ? '<a class="btn ghost" href="' + siteUrl(role === "doctor" ? "#/doc/" + u.id : "#/c/" + u.id) + '">' + t.acc_view + "</a>" : "") + (role === "doctor" ? liveCard(u) + myClinicsCard(u) : "") + viewAccount(), key: "settings" }; } finally { PRO_FORM = false; } }
@@ -1748,11 +1750,26 @@
     var title = (items.concat(PNAV.admin).filter(function (x) { return x[2] === pg.key; })[0] || [])[2];
     return '<div class="pshell"><aside class="pside" id="pside"><div class="pbrandrow"><a class="pbrand" href="' + acc("/") + '"><img src="icon.svg" alt="" width="36" height="36"><span><b>Shifokor</b><small>' + t.pn_role[role] + '</small></span></a><button class="pico pclose" type="button" data-act="pnav" aria-label="' + esc(t.ap_x) + '"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
       '<nav aria-label="' + esc(t.pro_panel) + '">' + items.map(link).join("") + (u.admin ? '<p class="pgroup">' + t.pn_admin + "</p>" + PNAV.admin.map(link).join("") : "") +
-      '<p class="pgroup"></p><a href="#/">' + ic("search") + "<span>" + t.pn_site + '</span></a><button class="pnavout" type="button" data-act="logout"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg><span>' + t.logout + "</span></button></nav>" +
+      '<p class="pgroup"></p>' + (role === "patient" ? '<a href="#/">' + ic("search") + "<span>" + t.pn_site + "</span></a>" : "") + '<button class="pnavout" type="button" data-act="logout"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg><span>' + t.logout + "</span></button></nav>" +
       '<div class="puser">' + avatarOf(u, "sm") + '<div><b>' + esc(u.name) + "</b><small>" + esc(role === "doctor" ? specName(u.profile || {}) : u.email || fmtPhone(u.phone || "")) + '</small></div><button class="pico" type="button" data-act="logout" title="' + esc(t.logout) + '" aria-label="' + esc(t.logout) + '"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg></button></div></aside>' +
       '<div class="pmain"><header class="ptop"><button class="pico pmenu" type="button" data-act="pnav" aria-label="' + esc(t.nav_menu) + '" aria-controls="pside" aria-expanded="false"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><b class="ptitle">' + (title ? t.pn_t[title] : "") + '</b><span class="spacer"></span>' +
       '<div class="lang plang" role="group" aria-label="Language">' + ["uz", "ru", "en"].map(function (l) { return '<button type="button" data-l="' + l + '" aria-pressed="' + (lang === l) + '">' + l.toUpperCase() + "</button>"; }).join("") + "</div>" +
-      '<a class="btn ghost sm" href="' + siteUrl("#/") + '">' + t.pn_site + "</a></header>" + '<div class="pcontent">' + pg.body + "</div></div></div>";
+      '<div class="dd pacct"><button type="button" class="ddbtn pacctbtn" aria-haspopup="true" aria-expanded="false">' + avatarOf(u, "sm") + '<span class="pacctname">' + esc(shortName(u)) + '</span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="menu menu-r" hidden>' + acctMenu(u, true) + "</div></div></header>" + '<div class="pcontent">' + pg.body + "</div></div></div>";
+  }
+  /* a short name for buttons: the first name, skipping "Dr" */
+  var shortName = function (u) { var w = String(u.name || "").split(/\s+/).filter(function (x) { return x && !/^(dr|doc|д-р)\.?$/i.test(x); }); return w[0] || u.name || ""; };
+  /* the account menu, in the site's header and in the panel's top bar */
+  function acctMenu(u, inPanel) {
+    var t = L(), role = u.role, items = ['<span class="mh">' + esc(u.name) + " · " + t.pn_role[role] + "</span>"];
+    if (!inPanel) items.push('<a href="#/account">' + ic("home") + t.pn_role[role] + "</a>");
+    if (role === "patient") items.push('<a href="' + acc("/consults") + '">' + ic("chat") + t.pn_t.consults + "</a>");
+    if (role === "doctor") items.push('<a href="' + acc("/requests") + '">' + ic("chat") + t.pn_t.requests + "</a>");
+    if (role === "clinic") items.push('<a href="' + acc("/requests") + '">' + ic("bell") + t.pn_t.crequests + "</a>");
+    items.push('<a href="' + acc("/settings") + '">' + ic("user") + t.pn_t.settings + "</a>", '<a href="' + acc("/prefs") + '">' + ic("gear") + t.pn_t.prefs + "</a>");
+    if (u.admin) items.push('<a href="#/admin">' + ic("shield") + t.pn_admin + "</a>");
+    if (inPanel && role === "patient") items.push('<a class="sep" href="#/">' + ic("search") + t.pn_site + "</a>");
+    items.push('<button class="sep acctout" type="button" data-act="logout">' + t.logout + "</button>");
+    return items.join("");
   }
   /* ---------------- the doctor's panel: its own workspace, after Practo / Doctor Anywhere doctor apps ----------------
      overview, request queue, week schedule, patients, earnings, reviews, and profile with prices and hours */
@@ -1890,7 +1907,10 @@
     var rb = $("regBtn"); if (rb) { rb.hidden = !!mu; rb.setAttribute("href", "#/register"); }
     var isD = !!(mu && mu.role === "doctor"), nNew = isD ? proMine(mu).filter(function (c) { return c.status === "new"; }).length : 0;
     all(".navcta, .navcta-m").forEach(function (a) { a.textContent = isD ? t.pro_panel : t.nav_consult; a.setAttribute("href", isD ? "#/account" : "#/consult?now=1"); if (nNew) a.setAttribute("data-n", nNew); else a.removeAttribute("data-n"); });
-    if (ab) { ab.textContent = mu ? mu.name.split(" ")[0] : t.nav_login; ab.setAttribute("href", mu ? "#/account" : "#/login"); if (n.c) ab.setAttribute("data-n", n.c); else ab.removeAttribute("data-n"); }
+    if (ab) { ab.textContent = t.nav_login; ab.hidden = !!mu; }
+    /* signed in: the account button opens a menu (panel, profile, settings, sign out) */
+    var ad = $("acctDd"), amb = $("acctMenuBtn");
+    if (ad) { ad.hidden = !mu; if (mu) { amb.innerHTML = esc(shortName(mu)) + '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>'; if (n.c) amb.setAttribute("data-n", n.c); else amb.removeAttribute("data-n"); if ($("acctMenu").hidden) $("acctMenu").innerHTML = acctMenu(mu, false); } }
     all('a[href="#/visits"]').forEach(function (a) { if (n.v) a.setAttribute("data-n", n.v); else a.removeAttribute("data-n"); });
     all(".admlink").forEach(function (al) { al.hidden = !(mu && mu.admin); });
   }
@@ -2100,12 +2120,23 @@
     var row = function (title, body, note) { return '<div class="setrow"><div><h3>' + title + "</h3>" + (note ? '<p class="muted">' + note + "</p>" : "") + "</div><div>" + body + "</div></div>"; };
     var langs = '<div class="seg setseg" role="group">' + [["uz", "O‘zbekcha"], ["ru", "Русский"], ["en", "English"]].map(function (l) { return '<button type="button" data-setlang="' + l[0] + '" aria-pressed="' + (lang === l[0]) + '">' + l[1] + "</button>"; }).join("") + "</div>";
     var clear = SET_ASK ? '<div class="confirm-row"><b>' + t.set_data_q + '</b><button class="btn danger sm" type="button" data-act="cleardata-yes">' + t.set_data_yes + '</button><button class="btn ghost sm" type="button" data-act="cleardata-no">' + t.v_keep + "</button></div>" : '<button class="btn ghost sm" type="button" data-act="cleardata">' + t.set_data_btn + "</button>";
-    return '<div class="wrap pad acc"><h1>' + t.set_h + '</h1><p class="lead">' + t.set_p + '</p><div class="dcard setcard">' +
+    return '<div class="wrap pad acc"><h1>' + t.set_h + '</h1><p class="lead">' + t.set_p + "</p>" + settingsCard(false) + "</div>";
+  }
+  /* the settings card: on the site's settings page and in every panel */
+  function settingsCard(inPanel) {
+    var t = L(), u = me(), hasPos = false;
+    try { hasPos = !!sessionStorage.getItem("shifokor-pos"); } catch (e) {}
+    var seg = function (key, opts, cur, labels) { return '<div class="seg setseg" role="group">' + opts.map(function (o) { return '<button type="button" data-pref="' + key + '" data-val="' + o + '" aria-pressed="' + (cur === o) + '">' + labels[o] + "</button>"; }).join("") + "</div>"; };
+    var row = function (title, body, note) { return '<div class="setrow"><div><h3>' + title + "</h3>" + (note ? '<p class="muted">' + note + "</p>" : "") + "</div><div>" + body + "</div></div>"; };
+    var langs = '<div class="seg setseg" role="group">' + [["uz", "O‘zbekcha"], ["ru", "Русский"], ["en", "English"]].map(function (l) { return '<button type="button" data-setlang="' + l[0] + '" aria-pressed="' + (lang === l[0]) + '">' + l[1] + "</button>"; }).join("") + "</div>";
+    var clear = SET_ASK ? '<div class="confirm-row"><b>' + t.set_data_q + '</b><button class="btn danger sm" type="button" data-act="cleardata-yes">' + t.set_data_yes + '</button><button class="btn ghost sm" type="button" data-act="cleardata-no">' + t.v_keep + "</button></div>" : '<button class="btn ghost sm" type="button" data-act="cleardata">' + t.set_data_btn + "</button>";
+    var accRow = u ? '<a class="btn ghost sm" href="' + (inPanel ? acc("/settings") : "#/account") + '">' + (inPanel ? t.pn_t.settings : t.nav_account) + '</a> <button class="btn ghost sm" type="button" data-act="logout">' + t.logout + "</button>" : '<a class="btn sm" href="#/login">' + t.nav_login + '</a> <a class="btn ghost sm" href="#/register">' + t.go_reg + "</a>";
+    return '<div class="dcard setcard">' +
       row(t.set_lang, langs) + row(t.set_size, seg("size", ["n", "l"], PREF.size, t.sizes)) + row(t.set_theme, seg("theme", ["auto", "light", "dark"], PREF.theme, t.themes)) +
-      row(t.set_map, seg("map", ["on", "off"], mapOn ? "on" : "off", t.maps)) +
-      row(t.set_loc, '<button class="btn ghost sm" type="button" data-act="forgetloc"' + (hasPos ? "" : " disabled") + ">" + t.set_loc_btn + "</button>", hasPos ? t.set_loc_p : t.set_loc_none) +
-      row(t.set_acc, u ? '<a class="btn ghost sm" href="#/account">' + t.nav_account + '</a> <button class="btn ghost sm" type="button" data-act="logout">' + t.logout + "</button>" : '<a class="btn sm" href="#/login">' + t.nav_login + '</a> <a class="btn ghost sm" href="#/register">' + t.go_reg + "</a>", u ? esc(u.name) : "") +
-      row(t.set_data, clear, t.set_data_p) + "</div></div>";
+      (inPanel ? "" : row(t.set_map, seg("map", ["on", "off"], mapOn ? "on" : "off", t.maps)) +
+      row(t.set_loc, '<button class="btn ghost sm" type="button" data-act="forgetloc"' + (hasPos ? "" : " disabled") + ">" + t.set_loc_btn + "</button>", hasPos ? t.set_loc_p : t.set_loc_none)) +
+      row(t.set_acc, accRow, u ? esc(u.name) : "") +
+      row(t.set_data, clear, t.set_data_p) + "</div>";
   }
 
   /* ---------------- browse ---------------- */

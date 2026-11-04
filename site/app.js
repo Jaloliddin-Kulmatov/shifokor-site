@@ -721,7 +721,9 @@
 
   /* ---------------- confirming the email with a 6-digit code ---------------- */
   var VER = { uid: "", at: 0, code: "", off: false, msg: "", busy: false }, VER_T = null;
-  var needsEmail = function (u) { return !!(u && u.email && !u.emailVerified); };
+  /* off until Resend has verified shifokor.com: no reminder, no code page after sign-up (the server side is ready) */
+  var EMAIL_CHECK = false;
+  var needsEmail = function (u) { return EMAIL_CHECK && !!(u && u.email && !u.emailVerified); };
   function verSend(force) {
     var u = me(), t = L(); if (!needsEmail(u) || VER.busy) return;
     if (!force && VER.uid === u.id) return;
@@ -2064,7 +2066,7 @@
     var row = function (x) {
       var pr = x.profile || {}, f = pr.fac && facByKey[pr.fac];
       var facts = [[t.adm_contact, [x.email, x.phone ? fmtPhone(x.phone) : "", x.tg].filter(Boolean).map(esc).join(" · ") || "—"], [t.adm_lic, pr.lic ? esc(pr.lic) : "—"]];
-      if (x.email) facts.push(["Email", x.email_verified ? '<span class="badge ok">' + t.adm_email_ok + "</span>" : '<span class="badge warn">' + t.adm_email_no + "</span>"]);
+      if (EMAIL_CHECK && x.email) facts.push(["Email", x.email_verified ? '<span class="badge ok">' + t.adm_email_ok + "</span>" : '<span class="badge warn">' + t.adm_email_no + "</span>"]);
       if (x.role === "clinic" && pr.contact) facts.push([t.adm_cperson, esc(pr.contact) + (pr.contact_role ? " · " + esc(pr.contact_role) : "")]);
       if (x.role === "clinic") facts.push([t.adm_fac, f ? '<a href="#/f/' + f.key + '">' + esc(facLabel(f)) + "</a>" : pr.claim ? esc(pr.claim) : "—"]);
       if (x.role === "doctor") facts.push([t.d_spec, esc(specName(pr)) || "—"], [t.works_at, (pr.work || []).map(wpLabel).map(esc).join("; ") || "—"]);
@@ -2758,7 +2760,7 @@
       if (rbad) { $("r-err").textContent = rbad[0]; $(rbad[1]).focus(); return; }
       var er = checkContact(t, name, em, ph, tg) || (pw.length < 6 ? t.e_pw : pw !== pw2 ? t.e_pw2 : "") || (findByContact(em, ph) ? t.e_exists : "");
       if (er) { $("r-err").textContent = er; return; }
-      var nextUrl = function () { var n = afterAuth(); return em && n === "#/account" ? acc("/verify") : n; };
+      var nextUrl = function () { var n = afterAuth(); return EMAIL_CHECK && em && n === "#/account" ? acc("/verify") : n; };
       if (BE) {
         $("r-err").textContent = "";
         BE.signUp({ role: REGROLE, name: name, email: em, phone: ph ? digits(ph) : "", tg: tg ? "@" + tgName(tg) : "", password: pw, profile: rprof }).then(function (r) {

@@ -29,7 +29,7 @@ writeFileSync(
 // Telegram notices: on a production deploy, point the bot's webhook at this site. Failing here never fails the build.
 const tg = (env.TELEGRAM_BOT_TOKEN || "").trim(), host = (env.VERCEL_PROJECT_PRODUCTION_URL || "").trim();
 if (tg && conn && host && env.VERCEL_ENV === "production") {
-  const secret = createHash("sha256").update("shifokor-webhook:" + tg).digest("hex").slice(0, 48);   // same as api/_notify.js
+  const secret = createHash("sha256").update("shifokor-webhook:" + tg).digest("hex").slice(0, 48);   // same as api/_modules/notify.js
   try {
     const r = await fetch("https://api.telegram.org/bot" + tg + "/setWebhook", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: "https://" + host + "/api/app?tg=hook", secret_token: secret, allowed_updates: ["message", "callback_query"] }) });
     const j = await r.json().catch(() => ({}));

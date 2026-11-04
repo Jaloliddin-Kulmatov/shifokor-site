@@ -78,7 +78,8 @@ Then redeploy. On the first request the server creates its tables (`app_users`, 
 
 ## How the backend works
 
-- The connection string lives only on the server (`api/app.js`); the browser gets nothing but a sign-in token.
+- **Layout** (after SuperFlow/Mijozim): `api/app.js` only routes; the work lives in `api/_core` (database, errors, checks, sessions, roles), `api/_modules` (one module per area), `api/_worker` (job queue: reminders an hour before a booked consultation) and `api/_webapi` (REST API v1 at `/api/v1/...`). The site's own `POST /api/app { action }` calls are unchanged. Details and the endpoint list: `docs/architecture.md`.
+- The connection string lives only on the server (`api/_core/db.js`); the browser gets nothing but a sign-in token.
 - Accounts: patients, doctors and clinics sign up with an email or a +998 phone number and a password (stored as a scrypt hash). Sign-in works with either. Sessions last 30 days.
 - Applications and messages: patients see only their own; doctors see open applications for them and the ones they accepted; only the patient and the accepted doctor can write in a consultation.
 - Checks: a clinic takes visit requests only after an admin confirms it (for the hospital it claimed; claiming another hospital or changing the name or licence needs a new check). Doctors show "Checked" once confirmed. Verify with an official source, such as the hospital's official phone number or the licence register.

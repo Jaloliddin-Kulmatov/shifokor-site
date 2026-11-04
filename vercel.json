@@ -10,5 +10,6 @@
     { "source": "/panel/", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
     { "source": "/panel/index.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
   ],
+  "rewrites": [{ "source": "/api/v1/:path*", "destination": "/api/app?v1=:path*" }],
   "crons": [{ "path": "/api/daily", "schedule": "0 5 * * *" }]
 }

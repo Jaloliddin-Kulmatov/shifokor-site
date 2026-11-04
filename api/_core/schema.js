@@ -297,6 +297,21 @@ create table if not exists app_med_orders (
 create index if not exists app_med_orders_consult_idx on app_med_orders (consult_id);
 create index if not exists app_med_orders_patient_idx on app_med_orders (patient_id);
 
+-- Worker: jobs that run at a given time (reminders an hour before a booked consultation, and more later).
+create table if not exists app_jobs (
+  id bigint generated always as identity primary key,
+  kind text not null,
+  run_at timestamptz not null,
+  payload jsonb not null default '{}',
+  ref text,
+  tries int not null default 0,
+  last_error text,
+  done_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists app_jobs_due_idx on app_jobs (run_at) where done_at is null;
+create index if not exists app_jobs_ref_idx on app_jobs (kind, ref) where done_at is null;
+
 alter table app_users enable row level security;
 alter table app_sessions enable row level security;
 alter table app_consults enable row level security;
@@ -310,4 +325,5 @@ alter table app_payouts enable row level security;
 alter table app_preg enable row level security;
 alter table app_preg_checks enable row level security;
 alter table app_med_orders enable row level security;
+alter table app_jobs enable row level security;
 `;

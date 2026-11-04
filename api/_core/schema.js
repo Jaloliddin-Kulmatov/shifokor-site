@@ -105,6 +105,10 @@ create table if not exists app_reviews (
   check (consult_id is not null or appt_id is not null)
 );
 create index if not exists app_reviews_target_idx on app_reviews (target_id);
+-- optional detail stars: attention, explanation, on time (after Zocdoc's bedside manner / wait time)
+alter table app_reviews add column if not exists s_att smallint check (s_att between 1 and 5);
+alter table app_reviews add column if not exists s_exp smallint check (s_exp between 1 and 5);
+alter table app_reviews add column if not exists s_wait smallint check (s_wait between 1 and 5);
 
 -- Added later; "add column if not exists" upgrades databases created before.
 -- verified_at: an admin checked this clinic or doctor. For a clinic it covers the hospital in verified_fac only.

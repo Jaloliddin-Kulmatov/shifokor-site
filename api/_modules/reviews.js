@@ -24,10 +24,11 @@ const actions = {
       row = (await q("select id, clinic_id as target from app_appts where id = $1 and patient_id = $2 and status = 'confirmed' and day <= $3", [b.appt, me.id, today()])).rows[0];
     } else bad("id");
     if (!row) throw new Fail(403, "forbidden");
+    const sub = (v) => { const n = Math.round(Number(v)); return n >= 1 && n <= 5 ? n : null; };   // detail stars are optional
     const parts = String(me.name || "").trim().split(/\s+/);
     const author = b.anon ? "" : (parts[0] + (parts[1] ? " " + parts[1].charAt(0) + "." : "")).slice(0, 60);   // "Ali V."
     try {
-      await q("insert into app_reviews (patient_id, target_id, consult_id, appt_id, stars, body, author) values ($1, $2, $3, $4, $5, $6, $7)", [me.id, row.target, b.consult ? row.id : null, b.appt ? row.id : null, stars, opt(b.body, 600), author]);
+      await q("insert into app_reviews (patient_id, target_id, consult_id, appt_id, stars, body, author, s_att, s_exp, s_wait) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)", [me.id, row.target, b.consult ? row.id : null, b.appt ? row.id : null, stars, opt(b.body, 600), author, sub(b.att), sub(b.exp), sub(b.wait)]);
     } catch (e) {
       if (e.code === "23505") throw new Fail(409, "reviewed");
       throw e;

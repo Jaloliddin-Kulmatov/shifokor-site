@@ -1588,7 +1588,11 @@
   }
   /* ---------------- reviews: only after a finished consultation or a visit ---------------- */
   var KR = "shifokor-reviews";
-  var reviews = function () { return store.get(KR, []).concat(SMP.r); };
+  var SMP_RV = null;
+  var reviews = function () {
+    if (!SMP_RV) SMP_RV = SMP.r.map(function (r) { if (r.att) return r; var h = hash(r.id + "sub"); var lo = r.stars < 5 ? 1 : 0; return Object.assign({}, r, { att: r.stars, exp: Math.max(1, r.stars - (lo && Math.abs(h) % 3 === 0 ? 1 : 0)), wait: Math.max(1, r.stars - (lo && Math.abs(h >> 3) % 2 === 0 ? 1 : 0)) }); });
+    return store.get(KR, []).concat(SMP_RV);
+  };
   var RV = null, RR = null;   /* open review form { key, stars, body, anon }; open reply { id, text } */
   function ratingOf(id) { var l = reviews().filter(function (r) { return r.target === id && !r.hidden; }), n = l.length; return { n: n, avg: n ? l.reduce(function (a, r) { return a + r.stars; }, 0) / n : 0 }; }
   /* a few reviews say less than many: pull small counts towards 4 stars before ranking */
@@ -1602,16 +1606,23 @@
   function rvCard(kind, id, targetName, forClinic) {
     var t = L(), mine = myReview(kind, id), key = kind + id;
     if (mine) return '<div class="dcard rvcard"><h2>' + t.rv_yours + "</h2><p>" + starsTxt(mine.stars) + "</p>" + (mine.body ? '<p class="pre" style="margin:6px 0 0">' + esc(mine.body) + "</p>" : "") + (mine.reply ? '<div class="rvreply"><b>' + t.rv_reply_h + ":</b> " + esc(mine.reply) + "</div>" : "") + "</div>";
-    if (!RV || RV.key !== key) RV = { key: key, stars: 0, body: "", anon: false };
+    if (!RV || RV.key !== key) RV = { key: key, stars: 0, body: "", anon: false, sub: { att: 0, exp: 0, wait: 0 } };
     return '<form class="dcard rvcard" id="rvform" data-kind="' + kind + '" data-id="' + id + '" novalidate><h2>' + (forClinic ? t.rv_ask_h_c : t.rv_ask_h) + '</h2><p class="muted" style="margin:4px 0 12px">' + esc(targetName) + " · " + t.rv_ask_p + "</p>" +
       '<div class="rvstars" role="group" aria-label="' + t.rv_stars + '">' + [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" data-rvstar="' + n + '" aria-pressed="' + (RV.stars >= n) + '" aria-label="' + esc(t.rv_star_l(n)) + '">★</button>'; }).join("") + "</div>" +
+      '<div class="rvsubs"><p class="muted" style="margin:12px 0 6px">' + t.rv_sub_h + "</p>" + RV_SUB.map(function (k) { return '<div class="rvsubrow"><span>' + (forClinic ? t.rv_sub_c[k] : t.rv_sub[k]) + '</span><div class="rvstars sm" role="group" aria-label="' + esc(forClinic ? t.rv_sub_c[k] : t.rv_sub[k]) + '">' + [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" data-rvsub="' + k + '" data-n="' + n + '" aria-pressed="' + (RV.sub[k] >= n) + '" aria-label="' + esc(t.rv_star_l(n)) + '">★</button>'; }).join("") + "</div></div>"; }).join("") + "</div>" +
       '<div class="fld" style="margin-top:12px"><label for="rv-body">' + t.rv_body + '</label><textarea id="rv-body" maxlength="600" placeholder="' + esc(t.rv_body_ph) + '">' + esc(RV.body) + "</textarea></div>" +
       '<label class="chk"><input type="checkbox" id="rv-anon"' + (RV.anon ? " checked" : "") + "><span>" + t.rv_anon + '</span></label><div class="err" id="rv-err" aria-live="polite"></div><button class="btn block" type="submit">' + t.rv_send + "</button></form>";
+  }
+  /* detail stars: attention, explanation, on time; shown as bars once at least one review has them */
+  var RV_SUB = ["att", "exp", "wait"];
+  function rvSubSummary(l, forClinic) {
+    var t = L(), rows = RV_SUB.map(function (k) { var v = l.filter(function (r) { return r[k] > 0; }); return { k: k, n: v.length, avg: v.length ? v.reduce(function (a, r) { return a + r[k]; }, 0) / v.length : 0 }; }).filter(function (x) { return x.n; });
+    return rows.length ? '<div class="rvsum">' + rows.map(function (x) { return '<div class="rvsumrow"><span>' + (forClinic ? t.rv_sub_c[x.k] : t.rv_sub[x.k]) + '</span><span class="rvbar" aria-hidden="true"><i style="width:' + Math.round(x.avg / 5 * 100) + '%"></i></span><b class="nums">' + avgTxt(x.avg) + "</b></div>"; }).join("") + "</div>" : "";
   }
   function rvList(u) {
     var t = L(), l = reviews().filter(function (r) { return r.target === u.id && !r.hidden; }).sort(function (a, b) { return b.at - a.at; });
     var item = function (r) { return '<div class="rvitem"><div class="rvtop">' + starsTxt(r.stars) + " <b>" + esc(r.author || t.rv_anon_name) + '</b><span class="muted"> · ' + t.rv_kind[r.kind] + " · " + fmt(new Date(r.at), { day: "numeric", month: "short" }) + "</span></div>" + (r.body ? '<p class="pre">' + esc(r.body) + "</p>" : "") + (r.reply ? '<div class="rvreply"><b>' + t.rv_reply_h + ":</b> " + esc(r.reply) + "</div>" : "") + "</div>"; };
-    return '<div class="sect" id="reviews"><h2>' + t.rv_h + " " + ratingLine(u.id) + "</h2>" + (l.length ? l.map(item).join("") : '<p class="muted">' + t.rv_none + "</p>") + '<p class="fine" style="margin-top:10px">' + (u.sample ? t.smp_rv : t.rv_only) + "</p></div>";
+    return '<div class="sect" id="reviews"><h2>' + t.rv_h + " " + ratingLine(u.id) + "</h2>" + rvSubSummary(l, u.role === "clinic") + (l.length ? l.map(item).join("") : '<p class="muted">' + t.rv_none + "</p>") + '<p class="fine" style="margin-top:10px">' + (u.sample ? t.smp_rv : t.rv_only) + "</p></div>";
   }
   /* ================= the panel app (/panel/): one workspace per role, after SuperFlow's CRM panel =================
      The public site (/) shows doctors and takes applications; everything behind a sign-in lives here, with its own
@@ -2591,6 +2602,7 @@
       render(true); if ($("apx-time")) $("apx-time").focus(); else if ($("apx-note")) $("apx-note").focus(); return;
     }
     if (ds.rvstar) { rvCollect(); RV.stars = +ds.rvstar; render(true); return; }
+    if (ds.rvsub) { rvCollect(); RV.sub[ds.rvsub] = +ds.n; render(true); return; }
     if (ds.act === "rvopen") { RV = { key: "v" + ds.id, stars: 0, body: "", anon: false }; render(true); return; }
     if (ds.sl) { var cur = slideAt(); slideTo(ds.sl === "prev" ? cur - 1 : ds.sl === "next" ? cur + 1 : +ds.sl); return; }
     if (ds.rr) { if ((current.path === "/account" || current.path === "/pro")) accCollect(); var rr0 = reviews().filter(function (x) { return x.id === ds.rr; })[0]; RR = ds.rr === "close" || !rr0 ? null : { id: rr0.id, text: rr0.reply || "" }; render(true); if ($("rvreply-in")) $("rvreply-in").focus(); return; }
@@ -2865,11 +2877,11 @@
       rvCollect(); var rk = e.target.dataset.kind, rid = e.target.dataset.id, rer = $("rv-err"), R0 = RV;
       if (!(R0.stars >= 1)) { rer.textContent = t.rv_err_stars; return; }
       var rdone = function () { RV = null; toast(t.rv_thanks); render(true); };
-      if (BE) { var ro = { stars: R0.stars, body: R0.body.trim(), anon: R0.anon }; ro[rk === "c" ? "consult" : "appt"] = rid; BE.reviewCreate(ro).then(rdone, function (x) { rer.textContent = beMsg(t, x); }); return; }
+      if (BE) { var ro = { stars: R0.stars, body: R0.body.trim(), anon: R0.anon, att: R0.sub.att || null, exp: R0.sub.exp || null, wait: R0.sub.wait || null }; ro[rk === "c" ? "consult" : "appt"] = rid; BE.reviewCreate(ro).then(rdone, function (x) { rer.textContent = beMsg(t, x); }); return; }
       var rsrc = rk === "c" ? consultById(rid) : appts().filter(function (x) { return x.id === rid; })[0], rmu = me();
       if (!rsrc || myReview(rk, rid)) { rer.textContent = t.e_reviewed; return; }
       var nm = String((rmu && rmu.name) || (rk === "c" ? rsrc.name : rsrc.name) || "").trim().split(/\s+/);
-      var rl = store.get(KR, []); rl.push({ id: "r" + Date.now().toString(36), target: rk === "c" ? rsrc.doctorId : rsrc.clinicId, stars: R0.stars, body: R0.body.trim().slice(0, 600), author: R0.anon ? "" : nm[0] + (nm[1] ? " " + nm[1].charAt(0) + "." : ""), hidden: false, reply: "", at: Date.now(), kind: rk, consult: rk === "c" ? rid : "", appt: rk === "v" ? rid : "", mine: true });
+      var rl = store.get(KR, []); rl.push({ id: "r" + Date.now().toString(36), target: rk === "c" ? rsrc.doctorId : rsrc.clinicId, stars: R0.stars, att: R0.sub.att, exp: R0.sub.exp, wait: R0.sub.wait, body: R0.body.trim().slice(0, 600), author: R0.anon ? "" : nm[0] + (nm[1] ? " " + nm[1].charAt(0) + "." : ""), hidden: false, reply: "", at: Date.now(), kind: rk, consult: rk === "c" ? rid : "", appt: rk === "v" ? rid : "", mine: true });
       store.set(KR, rl); rdone(); return;
     }
     if (id === "rvreply") {

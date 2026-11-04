@@ -4,6 +4,9 @@
   var add = function (lang, o) { Object.keys(o).forEach(function (k) { T[lang][k] = o[k]; }); };
 
   add("uz", {
+    rv_sub_h: "Batafsil baho (ixtiyoriy)",
+    rv_sub: {"att": "E’tibor", "exp": "Tushuntirish", "wait": "O‘z vaqtida"},
+    rv_sub_c: {"att": "Xodimlar munosabati", "exp": "Tushuntirish", "wait": "Kutish vaqti"},
     doc_h: "Hujjatlar (tekshiruv uchun)",
     doc_p_doc: "Tibbiy litsenziya, diplom yoki sertifikat rasmini yoki PDF faylini yuklang. Jamoamiz tekshirgach, profilingizda “Tekshirilgan” belgisi paydo bo‘ladi.",
     doc_p_cli: "Klinika litsenziyasi va boshqa hujjatlar rasmini yoki PDF faylini yuklang. Jamoamiz tekshirgach, klinika sahifasida “Tekshirilgan” belgisi paydo bo‘ladi.",
@@ -32,6 +35,9 @@
   });
 
   add("ru", {
+    rv_sub_h: "Подробная оценка (необязательно)",
+    rv_sub: {"att": "Внимание", "exp": "Объяснение", "wait": "Пунктуальность"},
+    rv_sub_c: {"att": "Отношение персонала", "exp": "Объяснение", "wait": "Время ожидания"},
     doc_h: "Документы (для проверки)",
     doc_p_doc: "Загрузите фото или PDF медицинской лицензии, диплома или сертификата. После проверки в профиле появится отметка «Проверено».",
     doc_p_cli: "Загрузите фото или PDF лицензии клиники и других документов. После проверки на странице клиники появится отметка «Проверено».",
@@ -60,6 +66,9 @@
   });
 
   add("en", {
+    rv_sub_h: "More detail (optional)",
+    rv_sub: {"att": "Attention", "exp": "Explanation", "wait": "On time"},
+    rv_sub_c: {"att": "Staff manner", "exp": "Explanation", "wait": "Waiting time"},
     doc_h: "Documents (for the check)",
     doc_p_doc: "Upload a photo or PDF of your medical licence, diploma or certificate. Once our team has checked it, your profile shows a “Verified” mark.",
     doc_p_cli: "Upload a photo or PDF of the clinic's licence and other documents. Once our team has checked them, the clinic page shows a “Verified” mark.",

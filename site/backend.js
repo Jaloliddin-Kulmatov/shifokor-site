@@ -48,7 +48,7 @@
   }
 
   function toReview(r) {
-    return { id: r.id, target: r.target_id, stars: r.stars, body: r.body || "", author: r.author || "", hidden: !!r.hidden, reply: r.reply || "", at: Date.parse(r.created_at), kind: r.by_consult ? "c" : "v", consult: r.consult_id || "", appt: r.appt_id || "", mine: !!r.mine };
+    return { id: r.id, target: r.target_id, stars: r.stars, att: r.s_att || 0, exp: r.s_exp || 0, wait: r.s_wait || 0, body: r.body || "", author: r.author || "", hidden: !!r.hidden, reply: r.reply || "", at: Date.parse(r.created_at), kind: r.by_consult ? "c" : "v", consult: r.consult_id || "", appt: r.appt_id || "", mine: !!r.mine };
   }
 
   /* the pregnancy profile in the shape the page uses; dates stay YYYY-MM-DD */

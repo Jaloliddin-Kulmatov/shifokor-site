@@ -20,13 +20,16 @@ Last updated 5 November 2026.
 | Reviews only from real patients | Zocdoc | Done (only after a consultation or visit) |
 | A separate workspace for doctors | Practo Ray, Doctolib Pro | Done (Shifokor paneli) |
 | Clinic accounts with branches, staff doctors and a shared calendar | Doctolib Pro, Practo Ray | Done (Nov 2026) |
+| Password reset (code by Telegram, email or SMS; admin link) | everyone | Done (Nov 2026) |
+| Pages Google can index (/shifokor/<id>, sitemap, schema.org) | Zocdoc, Doctolib | Done (Nov 2026) |
+| Licence and diploma upload for the check | Doctolib Pro, Practo | Done (Nov 2026) |
 | Prices up front | Doctor Anywhere, Practo | Done |
-| Health records the patient keeps (past visits, documents) | Doctolib, Doctor Anywhere | **Next** |
-| Consultation summary / sick note as a PDF | Doctor Anywhere, Kry/Livi | **Next** |
+| Health records the patient keeps (past visits, documents) | Doctolib, Doctor Anywhere | Done (Nov 2026, "Tibbiy kartam") |
+| Consultation summary / sick note as a PDF | Doctor Anywhere, Kry/Livi | Done (printable summary, save as PDF) |
 | Waiting list: "tell me if an earlier time frees up" | Doctolib | **Next** |
-| Review details (attention, explanation, waiting) | Zocdoc, Jameda | **Next** |
+| Review details (attention, explanation, waiting) | Zocdoc, Jameda | Done (Nov 2026) |
 | Family profiles (book for a child or parent from one account) | Doctolib | **Next** |
-| Telegram Mini App / installable phone app | Doctor Anywhere, Kry/Livi | **Next** |
+| Telegram Mini App / installable phone app | Doctor Anywhere, Kry/Livi | Installable app done; Telegram Mini App **next** (needs the bot) |
 | Insurance and employer plans | Zocdoc, Doctor Anywhere, Teladoc | Later |
 | Lab tests and health check packages | Doctor Anywhere, Halodoc | Later |
 

@@ -2158,6 +2158,17 @@
     var clear = SET_ASK ? '<div class="confirm-row"><b>' + t.set_data_q + '</b><button class="btn danger sm" type="button" data-act="cleardata-yes">' + t.set_data_yes + '</button><button class="btn ghost sm" type="button" data-act="cleardata-no">' + t.v_keep + "</button></div>" : '<button class="btn ghost sm" type="button" data-act="cleardata">' + t.set_data_btn + "</button>";
     return '<div class="wrap pad acc"><h1>' + t.set_h + '</h1><p class="lead">' + t.set_p + "</p>" + settingsCard(false) + "</div>";
   }
+  /* installing the site on the phone like an app (a service worker makes it open offline too) */
+  var INSTALL = null, standalone = function () { return (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true; };
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) window.addEventListener("load", function () { navigator.serviceWorker.register("/sw.js").catch(function () {}); });
+  window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); INSTALL = e; if (/\/(settings|prefs)/.test(current.path)) render(true); });
+  window.addEventListener("appinstalled", function () { INSTALL = null; toast(L().ins_done); });
+  function installRow() {
+    var t = L(), ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    var body = standalone() ? '<span class="badge ok">' + ic("check") + t.ins_have + "</span>" : INSTALL ? '<button class="btn sm" type="button" data-act="install">' + ic("plus") + t.ins_btn + "</button>" : "";
+    var note = standalone() ? "" : INSTALL ? t.ins_p : ios ? t.ins_ios : t.ins_other;
+    return '<div class="setrow"><div><h3>' + t.ins_h + "</h3>" + (note ? '<p class="muted">' + note + "</p>" : "") + "</div><div>" + body + "</div></div>";
+  }
   /* the settings card: on the site's settings page and in every panel */
   function settingsCard(inPanel) {
     var t = L(), u = me(), hasPos = false;
@@ -2167,7 +2178,7 @@
     var langs = '<div class="seg setseg" role="group">' + [["uz", "O‘zbekcha"], ["ru", "Русский"], ["en", "English"]].map(function (l) { return '<button type="button" data-setlang="' + l[0] + '" aria-pressed="' + (lang === l[0]) + '">' + l[1] + "</button>"; }).join("") + "</div>";
     var clear = SET_ASK ? '<div class="confirm-row"><b>' + t.set_data_q + '</b><button class="btn danger sm" type="button" data-act="cleardata-yes">' + t.set_data_yes + '</button><button class="btn ghost sm" type="button" data-act="cleardata-no">' + t.v_keep + "</button></div>" : '<button class="btn ghost sm" type="button" data-act="cleardata">' + t.set_data_btn + "</button>";
     var accRow = u ? '<a class="btn ghost sm" href="' + (inPanel ? acc("/settings") : "#/account") + '">' + (inPanel ? t.pn_t.settings : t.nav_account) + '</a> <button class="btn ghost sm" type="button" data-act="logout">' + t.logout + "</button>" : '<a class="btn sm" href="#/login">' + t.nav_login + '</a> <a class="btn ghost sm" href="#/register">' + t.go_reg + "</a>";
-    return '<div class="dcard setcard">' +
+    return '<div class="dcard setcard">' + installRow() +
       row(t.set_lang, langs) + row(t.set_size, seg("size", ["n", "l"], PREF.size, t.sizes)) + row(t.set_theme, seg("theme", ["auto", "light", "dark"], PREF.theme, t.themes)) +
       (inPanel ? "" : row(t.set_map, seg("map", ["on", "off"], mapOn ? "on" : "off", t.maps)) +
       row(t.set_loc, '<button class="btn ghost sm" type="button" data-act="forgetloc"' + (hasPos ? "" : " disabled") + ">" + t.set_loc_btn + "</button>", hasPos ? t.set_loc_p : t.set_loc_none)) +
@@ -2610,6 +2621,7 @@
       var al = appts(); al.forEach(function (x) { if (x.id === aid && apOpen(x)) x.status = "cancelled"; }); saveAppts(al); toast(t.ap_cancelled); render(true); return;
     }
     if (ds.regrole) { REGROLE = ds.regrole; var keep = regKeep(); if (current.q.role) { try { history.replaceState(null, "", location.pathname + location.search + "#/register"); } catch (x) {} } render(true); regPut(keep); return; }
+    if (ds.act === "install") { if (INSTALL) { INSTALL.prompt(); INSTALL.userChoice.then(function () { INSTALL = null; render(true); }); } return; }
     if (ds.act === "share") {
       var shu = ds.url, shn = ds.name;
       if (navigator.share) { navigator.share({ title: shn + " | Shifokor", url: shu }).catch(function () {}); return; }

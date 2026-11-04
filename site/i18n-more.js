@@ -4,6 +4,7 @@
   var add = function (lang, o) { Object.keys(o).forEach(function (k) { T[lang][k] = o[k]; }); };
 
   add("uz", {
+    ins_h: "Ilova", ins_btn: "Telefonga o‘rnatish", ins_p: "Shifokor telefoningiz ekranida ilova kabi ochiladi.", ins_ios: "Safari’da pastdagi «Ulashish» tugmasini bosing, so‘ng «Bosh ekranga qo‘shish» (Add to Home Screen).", ins_other: "Brauzer menyusidan «Ilovani o‘rnatish» yoki «Bosh ekranga qo‘shish»ni tanlang.", ins_have: "O‘rnatilgan", ins_done: "Shifokor telefoningizga o‘rnatildi.",
     sh_share: "Ulashish", sh_copied: "Havola nusxalandi.", sh_copy: "Havolani nusxalang:",
     fg_e_id: "Telefon raqami (+998 …) yoki emailni to‘g‘ri yozing.",
     fg_link: "Parolni unutdingizmi?", fg_h: "Parolni tiklash", fg_p: "Ro‘yxatdan o‘tgan telefon raqamingiz yoki emailingizni yozing. Sizga 6 xonali kod yuboramiz.",
@@ -18,6 +19,7 @@
   });
 
   add("ru", {
+    ins_h: "Приложение", ins_btn: "Установить на телефон", ins_p: "Shifokor будет открываться с экрана телефона как приложение.", ins_ios: "В Safari нажмите «Поделиться» внизу, затем «На экран «Домой»».", ins_other: "В меню браузера выберите «Установить приложение» или «Добавить на главный экран».", ins_have: "Установлено", ins_done: "Shifokor установлен на телефон.",
     sh_share: "Поделиться", sh_copied: "Ссылка скопирована.", sh_copy: "Скопируйте ссылку:",
     fg_e_id: "Укажите телефон (+998 …) или email правильно.",
     fg_link: "Забыли пароль?", fg_h: "Восстановление пароля", fg_p: "Укажите телефон или email, с которым вы регистрировались. Мы пришлём 6-значный код.",
@@ -32,6 +34,7 @@
   });
 
   add("en", {
+    ins_h: "App", ins_btn: "Install on this phone", ins_p: "Shifokor opens from your home screen like an app.", ins_ios: "In Safari, tap Share at the bottom, then “Add to Home Screen”.", ins_other: "In your browser menu, choose “Install app” or “Add to Home screen”.", ins_have: "Installed", ins_done: "Shifokor is installed on your phone.",
     sh_share: "Share", sh_copied: "Link copied.", sh_copy: "Copy the link:",
     fg_e_id: "Enter a valid phone number (+998 …) or email.",
     fg_link: "Forgot your password?", fg_h: "Reset your password", fg_p: "Enter the phone number or email you registered with. We'll send you a 6-digit code.",

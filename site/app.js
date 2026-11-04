@@ -1632,7 +1632,7 @@
   var acc = function (p) { return "#/account" + (p && p !== "/" ? p : ""); };
   var PRO_FORM = false;   /* viewAccount() returns just the profile form, for the panel's settings page */
   var PNAV = {
-    patient: [["/", "home", "home"], ["/consults", "chat", "consults"], ["/visits", "cal", "visits"], ["/meds", "flask", "meds"], ["/ona", "heart", "ona"], ["/settings", "user", "settings"], ["/prefs", "gear", "prefs"]],
+    patient: [["/", "home", "home"], ["/consults", "chat", "consults"], ["/record", "file", "record"], ["/visits", "cal", "visits"], ["/meds", "flask", "meds"], ["/ona", "heart", "ona"], ["/settings", "user", "settings"], ["/prefs", "gear", "prefs"]],
     doctor: [["/", "home", "home"], ["/requests", "chat", "requests"], ["/schedule", "cal", "schedule"], ["/patients", "heart", "patients"], ["/earnings", "card", "earnings"], ["/reviews", "star", "reviews"], ["/settings", "user", "settings"], ["/prefs", "gear", "prefs"]],
     clinic: [["/", "home", "home"], ["/requests", "bell", "crequests"], ["/calendar", "cal", "ccalendar"], ["/team", "heart", "cdoctors"], ["/branches", "pin", "cbranches"], ["/reviews", "star", "reviews"], ["/settings", "user", "settings"], ["/prefs", "gear", "prefs"]],
     admin: [["/admin", "shield", "a_chk"], ["/admin?tab=pay", "card", "a_pay"], ["/admin?tab=import", "plus", "a_import"], ["/admin?tab=meds", "flask", "a_meds"]]
@@ -1676,6 +1676,47 @@
     var todays = list.filter(function (a) { return a.day === today && a.status === "confirmed"; }), docs = doctorsAt(u), r = ratingOf(u.id);
     return pHead(esc(u.name), t.pn_cli_p, '<a class="btn ghost" href="' + siteUrl("#/c/" + u.id) + '">' + ic("search") + t.acc_view + "</a>") + trustCard(u) +
       '<div class="pstats">' + pStat("cal", t.pn_st_cnew, fresh.length, "", acc("/requests")) + pStat("check", t.pn_st_ctoday, todays.length, "", acc("/requests")) + pStat("heart", t.pn_st_cdocs, docs.length, myStaff(u).filter(function (x) { return x.status !== "active"; }).length ? t.cl_inv_wait_n(myStaff(u).filter(function (x) { return x.status !== "active"; }).length) : "", acc("/team")) + pStat("pin", t.cl_st_branches, branchesOf(u.id).length, "", acc("/branches")) + pStat("star", t.pro_st_rating(r.n), r.n ? avgTxt(r.avg) + " ★" : "—", "", acc("/reviews")) + "</div>" + clinicInbox(u);
+  }
+  /* ---------------- the patient's health record: what they told doctors, every finished consultation with the
+     doctor's last words and medicines, and clinic visits; each consultation has a printable summary (save as PDF) ---------------- */
+  var lastDocMsg = function (c) { var m = (c.msgs || []).filter(function (x) { return x.from === "d" && x.text; }); return m.length ? m[m.length - 1].text : ""; };
+  function pPatientRecord(u) {
+    var t = L(), mine = consults().filter(function (c) { return c.userId === u.id; }).sort(function (a, b) { return b.at - a.at; });
+    var latest = function (k) { var c = mine.filter(function (x) { return x.who === "self" && String(x[k] || "").trim(); })[0]; return c ? esc(c[k]) : ""; };
+    var info = [[t.cs_allergy, latest("allergy")], [t.cs_chronic, latest("chronic")], [t.cs_meds, latest("meds")]];
+    var done = mine.filter(function (c) { return c.status === "done" || c.status === "referred"; });
+    var item = function (c) {
+      var d = c.doctorId ? userById(c.doctorId) : null, adv = lastDocMsg(c);
+      return '<div class="recitem"><div class="recdate"><b class="nums">' + esc(fmt(new Date(c.closedAt || c.at), { day: "numeric", month: "short" })) + "</b><small>" + new Date(c.closedAt || c.at).getFullYear() + '</small></div><div class="recbody"><h3>' + esc(c.doctorName || (d && d.name) || "") + (d ? ' <small class="muted">' + esc(specName(d.profile || {})) + "</small>" : "") + "</h3>" +
+        '<p class="muted">' + (c.who !== "self" ? esc(c.name) + " · " : "") + esc(String(c.complaint || "").slice(0, 160)) + "</p>" +
+        (c.outcome != null && c.status === "done" ? '<span class="badge plain">' + t.on_out[c.outcome] + "</span> " : c.status === "referred" ? '<span class="badge warn">' + t.on_out[2] + "</span> " : "") +
+        (adv ? '<div class="recadv"><b>' + t.rec_advice + ":</b> " + esc(adv) + "</div>" : "") +
+        (c.rx && c.rx.length ? '<div class="recrx"><b>' + t.rx_h + ":</b> " + c.rx.map(function (m) { return esc(m.name) + (m.how ? " — " + esc(m.how) : "") + (m.days ? " (" + t.rx_days(m.days) + ")" : ""); }).join("; ") + "</div>" : "") +
+        '<div class="btns"><a class="btn ghost sm" href="' + acc("/summary/" + c.id) + '">' + ic("file") + t.rec_pdf + '</a><a class="linkbtn" href="' + acc("/consult/" + c.id) + '">' + t.rec_chat + "</a></div></div></div>";
+    };
+    var visits = appts().filter(function (a) { return a.userId === u.id && a.status === "confirmed"; }).sort(function (a, b) { return a.day < b.day ? 1 : -1; });
+    return pHead(t.pn_t.record, t.rec_p) +
+      pCard(t.rec_info_h, info.some(function (x) { return x[1]; }) ? '<dl class="kv">' + info.map(function (x) { return "<dt>" + x[0] + "</dt><dd>" + (x[1] || '<span class="muted">—</span>') + "</dd>"; }).join("") + '</dl><p class="fine" style="margin-top:8px">' + t.rec_info_p + "</p>" : '<p class="muted">' + t.rec_none_info + "</p>") +
+      pCard(t.rec_tl_h + " · " + done.length, done.length ? '<div class="reclist">' + done.map(item).join("") + "</div>" : pEmpty("file", t.rec_none, t.rec_none_p, '<a class="btn" href="' + siteUrl("#/doctors") + '">' + t.hf_go + "</a>")) +
+      (visits.length ? pCard(t.pn_t.visits, '<ul class="list">' + visits.map(function (a) { var c = userById(a.clinicId); return "<li><b>" + esc(a.day) + (a.time ? " " + esc(a.time) : "") + "</b> · " + esc(c ? c.name : "") + (a.note ? ' <span class="muted">— ' + esc(a.note) + "</span>" : "") + "</li>"; }).join("") + "</ul>") : "");
+  }
+  /* one consultation as a page to print or save as PDF (the browser's own "Save as PDF") */
+  function pSummary(u, cid) {
+    var t = L(), c = consultById(cid);
+    if (!c || (c.userId !== u.id && c.doctorId !== u.id)) return pCard("", pEmpty("file", t.not_found, ""));
+    var d = c.doctorId ? userById(c.doctorId) : null, row = function (k, v) { return v ? "<tr><th>" + k + "</th><td>" + v + "</td></tr>" : ""; };
+    var docMsgs = (c.msgs || []).filter(function (m) { return m.from === "d" && m.text; });
+    return '<div class="noprint sumtools"><a class="btn ghost sm" href="' + acc(u.role === "patient" ? "/record" : "/patients") + '">‹ ' + t.sum_back + '</a><button class="btn sm" type="button" data-act="print">' + ic("file") + t.sum_print + "</button></div>" +
+      '<article class="sumdoc"><header class="sumhead"><img src="icon.svg" alt="" width="40" height="40"><div><b>Shifokor</b><small>shifokor.com</small></div><div class="sumno"><small>' + t.sum_h + '</small><b class="nums">№ ' + esc(String(c.n || "")) + "</b></div></header>" +
+      "<h1>" + t.sum_h + "</h1>" +
+      '<table class="sumtab">' + row(t.sum_patient, esc(c.name) + (c.age !== "" ? ", " + t.pro_age(c.age) : "") + (c.sex ? ", " + t.cs_sexes[c.sex] : "")) + row(t.sum_date, esc(fmt(new Date(c.closedAt || c.at), { day: "numeric", month: "long" })) + " " + new Date(c.closedAt || c.at).getFullYear()) +
+        row(t.sum_doctor, esc(c.doctorName || (d && d.name) || "") + (d ? " — " + esc(specName(d.profile || {})) : "")) + row(t.sum_type, t.cs_types[c.type] ? t.cs_types[c.type][0] : "") + "</table>" +
+      "<h2>" + t.sum_complaint + '</h2><p class="pre">' + esc(c.complaint || "") + "</p>" +
+      (c.chronic || c.allergy || c.meds ? '<table class="sumtab">' + row(t.cs_chronic, esc(c.chronic)) + row(t.cs_allergy, esc(c.allergy)) + row(t.cs_meds, esc(c.meds)) + "</table>" : "") +
+      "<h2>" + t.rec_advice + "</h2>" + (docMsgs.length ? docMsgs.map(function (m) { return '<p class="pre">' + esc(m.text) + "</p>"; }).join("") : '<p class="muted">—</p>') +
+      (c.outcome != null && c.status === "done" ? "<p><b>" + t.sum_outcome + ":</b> " + t.on_out[c.outcome] + "</p>" : c.status === "referred" ? "<p><b>" + t.sum_outcome + ":</b> " + t.on_out[2] + "</p>" : "") +
+      (c.rx && c.rx.length ? "<h2>" + t.rx_h + '</h2><table class="sumtab rx"><thead><tr><th>' + t.rx_name + "</th><th>" + t.rx_how + "</th><th>" + t.rx_days_l + "</th></tr></thead><tbody>" + c.rx.map(function (m) { return "<tr><td>" + esc(m.name) + "</td><td>" + esc(m.how || "") + '</td><td class="nums">' + esc(String(m.days || "")) + "</td></tr>"; }).join("") + "</tbody></table>" : "") +
+      '<p class="fine sumnote">' + t.sum_note + "</p></article>";
   }
   /* ---------------- licence and diploma documents, for the checking team only ---------------- */
   var KDOC = "shifokor-docs", DOCS = { uid: "", list: null, busy: false, kind: "", err: "" }, DOC_KINDS = ["licence", "diploma", "certificate", "clinic_licence", "other"];
@@ -1803,9 +1844,10 @@
     if (path === "/pro") path = q.tab === "profile" ? "/settings" : "/" + (q.tab && q.tab !== "home" ? q.tab : "");
     if (path === "/visits" && role !== "patient") path = "/";
     if (path === "/verify") return { body: pVerify(u), key: "verify" };
-    var mineR = role === "doctor" ? ["/", "/requests", "/schedule", "/patients", "/earnings", "/reviews"] : role === "clinic" ? ["/", "/requests", "/calendar", "/team", "/branches", "/reviews"] : ["/", "/consults", "/visits", "/meds", "/ona"];
+    var mineR = role === "doctor" ? ["/", "/requests", "/schedule", "/patients", "/earnings", "/reviews"] : role === "clinic" ? ["/", "/requests", "/calendar", "/team", "/branches", "/reviews"] : ["/", "/consults", "/record", "/visits", "/meds", "/ona"];
     /* another role's page, or one that doesn't exist: this account's overview */
-    if (mineR.indexOf(path) < 0 && path !== "/settings" && path !== "/prefs" && path !== "/admin" && path.indexOf("/consult/") !== 0) return { redirect: acc("/") };
+    if (mineR.indexOf(path) < 0 && path !== "/settings" && path !== "/prefs" && path !== "/admin" && path.indexOf("/consult/") !== 0 && path.indexOf("/summary/") !== 0) return { redirect: acc("/") };
+    if (path.indexOf("/summary/") === 0) return { body: pSummary(u, path.slice(9)), key: role === "patient" ? "record" : "patients" };
     if (path === "/prefs") return { body: pHead(t.pn_t.prefs, t.set_p) + '<div class="acc">' + settingsCard(true) + "</div>", key: "prefs" };
     if (path.indexOf("/consult/") === 0) return { body: viewConsultThread(path.slice(9)), key: role === "doctor" ? "requests" : role === "clinic" ? "requests" : "consults" };
     if (path === "/admin") return { body: viewAdmin(q), key: "a_" + (q.tab === "pay" ? "pay" : q.tab === "import" ? "import" : q.tab === "meds" ? "meds" : "chk") };
@@ -1818,7 +1860,7 @@
     }
     if (role === "clinic") { var ck = { requests: "crequests", calendar: "ccalendar", team: "cdoctors", branches: "cbranches", reviews: "reviews" };
       return { body: page === "requests" ? pHead(t.pn_t.crequests, t.ap_inbox_p) + clinicInbox(u) : page === "calendar" ? pClinicCalendar(u, q) : page === "team" ? pClinicTeam(u) : page === "branches" ? pClinicBranches(u) : page === "reviews" ? pHead(t.pro_t.reviews, "") + rvMine(u) : pClinicHome(u), key: ck[page] || "home" }; }
-    return { body: page === "consults" ? pPatientConsults(u) : page === "visits" ? pPatientVisits(u) : page === "meds" ? pPatientMeds(u) : page === "ona" ? viewOna() : pPatientHome(u), key: ["consults", "visits", "meds", "ona"].indexOf(page) > -1 ? page : "home" };
+    return { body: page === "record" ? pPatientRecord(u) : page === "consults" ? pPatientConsults(u) : page === "visits" ? pPatientVisits(u) : page === "meds" ? pPatientMeds(u) : page === "ona" ? viewOna() : pPatientHome(u), key: ["consults", "record", "visits", "meds", "ona"].indexOf(page) > -1 ? page : "home" };
   }
   function panelShell(pg) {
     var t = L(), u = me(), role = u.role, items = PNAV[role] || PNAV.patient, nNew = role === "doctor" ? proMine(u).filter(function (c) { return c.status === "new"; }).length : role === "clinic" ? appts().filter(function (a) { return a.clinicId === u.id && a.status === "new" && apOpen(a); }).length : 0;
@@ -2665,6 +2707,7 @@
       var al = appts(); al.forEach(function (x) { if (x.id === aid && apOpen(x)) x.status = "cancelled"; }); saveAppts(al); toast(t.ap_cancelled); render(true); return;
     }
     if (ds.regrole) { REGROLE = ds.regrole; var keep = regKeep(); if (current.q.role) { try { history.replaceState(null, "", location.pathname + location.search + "#/register"); } catch (x) {} } render(true); regPut(keep); return; }
+    if (ds.act === "print") { window.print(); return; }
     if (ds.docopen) { docOpen(ds.docopen); return; }
     if (ds.docdel) {
       if (BE) { el.disabled = true; BE.docDelete(ds.docdel).then(function () { DOCS.list = null; render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }

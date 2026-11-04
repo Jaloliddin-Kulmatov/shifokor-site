@@ -179,3 +179,38 @@ body.panelapp .top, body.panelapp .foot, body.panelapp .skip { display: none; }
 .docadd { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 14px; }
 .docadd select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font: inherit; }
 .docpick { cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+
+/* the patient's health record */
+.reclist { display: grid; }
+.recitem { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 14px; padding: 14px 0; border-top: 1px solid var(--line); }
+.recitem:first-child { border-top: 0; padding-top: 0; }
+.recdate { display: grid; justify-items: center; align-content: start; padding: 8px 4px; border-radius: 14px; background: var(--accent-soft); color: var(--accent); }
+.recdate b { font-size: 1rem; text-align: center; }
+.recdate small { font-size: 0.75rem; }
+.recbody h3 { margin: 0 0 4px; font: 700 1rem var(--font-display); }
+.recbody h3 small { font: 500 0.85rem var(--font-body); }
+.recbody p { margin: 0 0 6px; }
+.recadv, .recrx { margin: 8px 0 0; font-size: 0.93rem; overflow-wrap: anywhere; }
+.recbody .btns { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; }
+/* the printable summary */
+.sumtools { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.sumdoc { max-width: 760px; background: #fff; color: #111; border: 1px solid var(--line); border-radius: 18px; padding: clamp(18px, 4vw, 40px); }
+.sumdoc h1 { font: 700 1.4rem var(--font-display); margin: 18px 0 12px; color: #111; }
+.sumdoc h2 { font: 700 1.02rem var(--font-display); margin: 18px 0 6px; color: #111; }
+.sumhead { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 2px solid #0F4C4F; }
+.sumhead > div { display: grid; }
+.sumhead small { color: #555; font-size: 0.8rem; }
+.sumno { margin-left: auto; text-align: right; }
+.sumtab { width: 100%; border-collapse: collapse; margin: 6px 0; font-size: 0.95rem; }
+.sumtab th, .sumtab td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #e3e8e8; vertical-align: top; }
+.sumtab th { width: 34%; color: #555; font-weight: 600; }
+.sumtab.rx th { width: auto; }
+.sumnote { margin-top: 22px; color: #555; border-top: 1px solid #e3e8e8; padding-top: 10px; }
+@media print {
+  .pside, .ptop, .noprint, .evbanner, .toast, #toast { display: none !important; }
+  .pshell, .pmain, .pcontent { display: block !important; padding: 0 !important; margin: 0 !important; background: #fff !important; }
+  body { background: #fff !important; }
+  .sumdoc { border: 0; padding: 0; max-width: none; }
+}
+.sumtab th { text-transform: none; letter-spacing: 0; font-size: 0.92rem; }
+.sumtab th { font-family: var(--font-body); }

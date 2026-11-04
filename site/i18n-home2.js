@@ -2,7 +2,7 @@
 (function (T) {
   var add = function (lang, o) { Object.keys(o).forEach(function (k) { T[lang][k] = o[k]; }); };
   /* the panel's sidebar: "Profil" for the account details, "Sozlamalar" for language, text size and look */
-  var nav = { uz: { settings: "Profil", prefs: "Sozlamalar" }, ru: { settings: "Профиль", prefs: "Настройки" }, en: { settings: "Profile", prefs: "Settings" } };
+  var nav = { uz: { settings: "Profil", prefs: "Sozlamalar", record: "Tibbiy kartam" }, ru: { settings: "Профиль", prefs: "Настройки", record: "Моя медкарта" }, en: { settings: "Profile", prefs: "Settings", record: "Health record" } };
   Object.keys(nav).forEach(function (l) { Object.keys(nav[l]).forEach(function (k) { T[l].pn_t[k] = nav[l][k]; }); });
 
   add("uz", {

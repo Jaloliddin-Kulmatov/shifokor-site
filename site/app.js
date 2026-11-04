@@ -19,6 +19,7 @@
     nav: '<path d="M3 11l18-8-8 18-2-8z"/>',
     copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 00-1-1H5a1 1 0 00-1 1v10a1 1 0 001 1h3"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
+    file: '<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
     share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>',
     gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/>',
     book: '<path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 21V5M8 7h7"/>',
@@ -1665,6 +1666,35 @@
     return pHead(esc(u.name), t.pn_cli_p, '<a class="btn ghost" href="' + siteUrl("#/c/" + u.id) + '">' + ic("search") + t.acc_view + "</a>") + trustCard(u) +
       '<div class="pstats">' + pStat("cal", t.pn_st_cnew, fresh.length, "", acc("/requests")) + pStat("check", t.pn_st_ctoday, todays.length, "", acc("/requests")) + pStat("heart", t.pn_st_cdocs, docs.length, myStaff(u).filter(function (x) { return x.status !== "active"; }).length ? t.cl_inv_wait_n(myStaff(u).filter(function (x) { return x.status !== "active"; }).length) : "", acc("/team")) + pStat("pin", t.cl_st_branches, branchesOf(u.id).length, "", acc("/branches")) + pStat("star", t.pro_st_rating(r.n), r.n ? avgTxt(r.avg) + " ★" : "—", "", acc("/reviews")) + "</div>" + clinicInbox(u);
   }
+  /* ---------------- licence and diploma documents, for the checking team only ---------------- */
+  var KDOC = "shifokor-docs", DOCS = { uid: "", list: null, busy: false, kind: "", err: "" }, DOC_KINDS = ["licence", "diploma", "certificate", "clinic_licence", "other"];
+  function docsMine(u) {
+    if (!BE) return store.get(KDOC, []).filter(function (d) { return d.user_id === u.id; });
+    if (DOCS.uid !== u.id || (!DOCS.list && !DOCS.busy)) { DOCS = { uid: u.id, list: null, busy: true, kind: DOCS.kind, err: "" }; BE.docs().then(function (j) { DOCS.list = j.docs || []; }, function () { DOCS.list = []; }).then(function () { DOCS.busy = false; if (current.path.indexOf("/account/settings") === 0) render(true); }); }
+    return DOCS.list || [];
+  }
+  var docSize = function (n) { return n > 1e6 ? (n / 1e6).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1e3)) + " KB"; };
+  function docsCard(u) {
+    var t = L(), list = docsMine(u), kinds = DOC_KINDS.filter(function (k) { return u.role === "clinic" ? k !== "diploma" : k !== "clinic_licence"; });
+    var rows = list.map(function (d) { return '<div class="docrow">' + ic(d.mime === "application/pdf" ? "file" : "camera") + '<div class="stmain"><b>' + esc(d.name || t.doc_kinds[d.kind]) + '</b><small class="muted">' + t.doc_kinds[d.kind] + " · " + docSize(+d.size || 0) + " · " + esc(fmt(new Date(d.created_at), { day: "numeric", month: "short" })) + '</small></div><button class="linkbtn" type="button" data-docopen="' + d.id + '">' + t.doc_open + '</button><button class="linkbtn" type="button" data-docdel="' + d.id + '">' + t.svc_remove + "</button></div>"; }).join("");
+    return pCard(t.doc_h, '<p class="muted" style="margin:0 0 12px">' + (u.role === "clinic" ? t.doc_p_cli : t.doc_p_doc) + "</p>" + (BE && !DOCS.list ? '<p class="muted">…</p>' : rows ? '<div class="stlist">' + rows + "</div>" : '<p class="muted">' + t.doc_none + "</p>") +
+      (list.length < 8 ? '<div class="docadd"><label class="vh" for="doc-kind">' + t.doc_kind + '</label><select id="doc-kind">' + kinds.map(function (k) { return '<option value="' + k + '"' + (DOCS.kind === k ? " selected" : "") + ">" + t.doc_kinds[k] + "</option>"; }).join("") + '</select><label class="btn sm docpick">' + ic("plus") + t.doc_add + '<input type="file" id="doc-file" accept="image/*,application/pdf" hidden></label></div>' : "") +
+      '<p class="err" aria-live="polite">' + esc(DOCS.err) + '</p><p class="fine">' + t.doc_private + "</p>");
+  }
+  /* a file from the browser as base64: photos made smaller as JPEG, PDFs as they are (up to 1.6 MB) */
+  function docRead(file) {
+    if (/^image\//.test(file.type)) return shrinkPhoto(file, 2000).then(function (ph) { return { data: ph.data, mime: "image/jpeg", url: ph.url, size: Math.round(ph.data.length * 0.75) }; });
+    return new Promise(function (ok, no) {
+      if (file.type !== "application/pdf" || file.size > 1600000) { no(new Error("file")); return; }
+      var r = new FileReader(); r.onload = function () { var u = String(r.result); ok({ data: u.slice(u.indexOf(",") + 1), mime: "application/pdf", url: u, size: file.size }); }; r.onerror = function () { no(new Error("file")); }; r.readAsDataURL(file);
+    });
+  }
+  function docOpen(id) {
+    var w = window.open("", "_blank");
+    var show = function (mime, b64) { var bin = atob(b64), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); var url = URL.createObjectURL(new Blob([a], { type: mime })); if (w) w.location = url; else location.href = url; };
+    if (!BE) { var d = store.get(KDOC, []).filter(function (x) { return x.id === id; })[0]; if (d) show(d.mime, d.url.slice(d.url.indexOf(",") + 1)); return; }
+    BE.docFile(id).then(function (j) { show(j.mime, j.data); }, function (x) { if (w) w.close(); toast(beMsg(L(), x)); });
+  }
   /* ---------------- clinics with branches and staff (after SuperFlow's branches and specialists) ----------------
      A clinic keeps branches and invites doctors by phone; the doctor accepts in their panel. The clinic's calendar shows
      its doctors' booked times, not the patients. Server mode reads what sync brought; demo mode keeps it all here. */
@@ -1768,7 +1798,7 @@
     if (path === "/prefs") return { body: pHead(t.pn_t.prefs, t.set_p) + '<div class="acc">' + settingsCard(true) + "</div>", key: "prefs" };
     if (path.indexOf("/consult/") === 0) return { body: viewConsultThread(path.slice(9)), key: role === "doctor" ? "requests" : role === "clinic" ? "requests" : "consults" };
     if (path === "/admin") return { body: viewAdmin(q), key: "a_" + (q.tab === "pay" ? "pay" : q.tab === "import" ? "import" : q.tab === "meds" ? "meds" : "chk") };
-    if (path === "/settings") { PRO_FORM = true; try { return { body: pHead(t.pro_t.profile, t.pn_set_p, role !== "patient" ? '<a class="btn ghost" href="' + siteUrl(role === "doctor" ? "#/doc/" + u.id : "#/c/" + u.id) + '">' + t.acc_view + "</a>" : "") + (role === "doctor" ? liveCard(u) + myClinicsCard(u) : "") + viewAccount(), key: "settings" }; } finally { PRO_FORM = false; } }
+    if (path === "/settings") { PRO_FORM = true; try { return { body: pHead(t.pro_t.profile, t.pn_set_p, role !== "patient" ? '<a class="btn ghost" href="' + siteUrl(role === "doctor" ? "#/doc/" + u.id : "#/c/" + u.id) + '">' + t.acc_view + "</a>" : "") + (role === "doctor" ? liveCard(u) + myClinicsCard(u) : "") + (role !== "patient" ? docsCard(u) : "") + viewAccount(), key: "settings" }; } finally { PRO_FORM = false; } }
     var page = path.slice(1) || "home";
     if (role === "doctor") {
       var mine = proMine(u);
@@ -1918,7 +1948,7 @@
     var t = L(), pr = u.profile || {}; if (!BE || (u.role !== "clinic" && u.role !== "doctor")) return "";
     if (u.verified) return '<div class="note-box ok-box">' + ic("shield") + " <b>" + t.vf_yes + ".</b> " + t.vf_ok_p + " " + t.vf_reset + "</div>";
     var missing = !pr.lic || (u.role === "clinic" && !pr.fac);
-    return '<div class="note-box"><b>' + t.vf_h + ": " + t.vf_wait + ".</b> " + (u.role === "clinic" ? t.vf_wait_clinic : t.vf_wait_doc) + (missing ? '<p style="margin:8px 0 0"><b>' + (u.role === "clinic" ? t.vf_need_clinic : t.vf_need_doc) + "</b></p>" : "") + "</div>";
+    return '<div class="note-box"><b>' + t.vf_h + ": " + t.vf_wait + ".</b> " + (u.role === "clinic" ? t.vf_wait_clinic : t.vf_wait_doc) + (missing ? '<p style="margin:8px 0 0"><b>' + (u.role === "clinic" ? t.vf_need_clinic : t.vf_need_doc) + "</b></p>" : "") + '<p style="margin:8px 0 0">' + t.doc_hint + "</p></div>";
   }
   var NT_WAIT = false;
   function notifyCard(u) {
@@ -1952,7 +1982,7 @@
   var ADM = { list: null, busy: false, err: "" };
   function admLoad() {
     if (!BE || ADM.busy) return; ADM.busy = true;
-    BE.adminList().then(function (j) { ADM.list = j.users || []; ADM.reviews = j.reviews || []; ADM.tg = j.webhook; ADM.err = ""; }, function (x) { ADM.err = beMsg(L(), x); ADM.list = ADM.list || []; }).then(function () { ADM.busy = false; if (current.path === "/admin") render(true); });
+    BE.adminList().then(function (j) { ADM.list = j.users || []; ADM.reviews = j.reviews || []; ADM.docs = j.docs || []; ADM.tg = j.webhook; ADM.err = ""; }, function (x) { ADM.err = beMsg(L(), x); ADM.list = ADM.list || []; }).then(function () { ADM.busy = false; if (current.path === "/admin") render(true); });
   }
   /* ---------------- paying doctors: what each is owed from paid, finished consultations, and the transfers made ---------------- */
   var PO = { data: null, busy: false, err: "", form: null, del: "" };
@@ -2125,6 +2155,8 @@
     var row = function (x) {
       var pr = x.profile || {}, f = pr.fac && facByKey[pr.fac];
       var facts = [[t.adm_contact, [x.email, x.phone ? fmtPhone(x.phone) : "", x.tg].filter(Boolean).map(esc).join(" · ") || "—"], [t.adm_lic, pr.lic ? esc(pr.lic) : "—"]];
+      var xd = (ADM.docs || []).filter(function (d) { return d.user_id === x.id; });
+      facts.push([t.doc_h, xd.length ? xd.map(function (d) { return '<button class="linkbtn" type="button" data-docopen="' + d.id + '">' + esc(d.name || t.doc_kinds[d.kind]) + "</button> <small class=\"muted\">(" + t.doc_kinds[d.kind] + ")</small>"; }).join("<br>") : '<span class="muted">' + t.doc_none_adm + "</span>"]);
       if (EMAIL_CHECK && x.email) facts.push(["Email", x.email_verified ? '<span class="badge ok">' + t.adm_email_ok + "</span>" : '<span class="badge warn">' + t.adm_email_no + "</span>"]);
       if (x.role === "clinic" && pr.contact) facts.push([t.adm_cperson, esc(pr.contact) + (pr.contact_role ? " · " + esc(pr.contact_role) : "")]);
       if (x.role === "clinic") facts.push([t.adm_fac, f ? '<a href="#/f/' + f.key + '">' + esc(facLabel(f)) + "</a>" : pr.claim ? esc(pr.claim) : "—"]);
@@ -2621,6 +2653,11 @@
       var al = appts(); al.forEach(function (x) { if (x.id === aid && apOpen(x)) x.status = "cancelled"; }); saveAppts(al); toast(t.ap_cancelled); render(true); return;
     }
     if (ds.regrole) { REGROLE = ds.regrole; var keep = regKeep(); if (current.q.role) { try { history.replaceState(null, "", location.pathname + location.search + "#/register"); } catch (x) {} } render(true); regPut(keep); return; }
+    if (ds.docopen) { docOpen(ds.docopen); return; }
+    if (ds.docdel) {
+      if (BE) { el.disabled = true; BE.docDelete(ds.docdel).then(function () { DOCS.list = null; render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
+      store.set(KDOC, store.get(KDOC, []).filter(function (d) { return d.id !== ds.docdel; })); render(true); return;
+    }
     if (ds.act === "install") { if (INSTALL) { INSTALL.prompt(); INSTALL.userChoice.then(function () { INSTALL = null; render(true); }); } return; }
     if (ds.act === "share") {
       var shu = ds.url, shn = ds.name;
@@ -2992,6 +3029,18 @@
       var sid = id.slice(6), nb = e.target.value;
       if (BE) { e.target.disabled = true; BE.staffBranch(sid, nb).then(function () { toast(L().cl_br_set); render(true); }, function (x) { e.target.disabled = false; toast(beMsg(L(), x)); }); return; }
       store.set(KSTA, demoStaff().map(function (x) { return x.id === sid ? Object.assign({}, x, { branchId: nb }) : x; })); toast(L().cl_br_set); render(true); return;
+    }
+    if (id === "doc-kind") { DOCS.kind = e.target.value; return; }
+    if (id === "doc-file") {
+      var dfile = e.target.files && e.target.files[0], dkind = $("doc-kind").value, du = me(); e.target.value = ""; if (!dfile || !du) return;
+      DOCS.err = "";
+      docRead(dfile).then(function (f) {
+        var nm = dfile.name.replace(/\.[a-z0-9]+$/i, "").slice(0, 120);
+        if (BE) return BE.docUpload({ kind: dkind, name: nm, data: f.data }).then(function () { DOCS.list = null; toast(L().doc_added); render(true); });
+        var dl = store.get(KDOC, []); dl.push({ id: "d" + Date.now().toString(36), user_id: du.id, kind: dkind, name: nm, mime: f.mime, url: f.url, size: f.size, created_at: new Date().toISOString() });
+        try { store.set(KDOC, dl); toast(L().doc_added); } catch (x) { DOCS.err = L().doc_e_file; } render(true);
+      }).catch(function (x) { DOCS.err = x && x.code === "limit" ? L().e_ap_limit : L().doc_e_file; render(true); });
+      return;
     }
     if (id === "r-region") { regRegionChanged(); return; }
     if (id === "r-spec") { $("r-spec-o").hidden = e.target.value !== "other"; return; }

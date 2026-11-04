@@ -4,6 +4,19 @@
   var add = function (lang, o) { Object.keys(o).forEach(function (k) { T[lang][k] = o[k]; }); };
 
   add("uz", {
+    doc_h: "Hujjatlar (tekshiruv uchun)",
+    doc_p_doc: "Tibbiy litsenziya, diplom yoki sertifikat rasmini yoki PDF faylini yuklang. Jamoamiz tekshirgach, profilingizda “Tekshirilgan” belgisi paydo bo‘ladi.",
+    doc_p_cli: "Klinika litsenziyasi va boshqa hujjatlar rasmini yoki PDF faylini yuklang. Jamoamiz tekshirgach, klinika sahifasida “Tekshirilgan” belgisi paydo bo‘ladi.",
+    doc_none: "Hali hujjat yuklanmagan.",
+    doc_none_adm: "yuklanmagan",
+    doc_kind: "Hujjat turi",
+    doc_add: "Fayl tanlash",
+    doc_open: "Ochish",
+    doc_added: "Hujjat yuklandi.",
+    doc_e_file: "Faylni yuklab bo‘lmadi: rasm yoki 1,6 MB gacha PDF bo‘lsin.",
+    doc_private: "Hujjatlarni faqat siz va tekshiruv jamoasi ko‘radi; saytda ko‘rsatilmaydi.",
+    doc_hint: "Tekshiruvni tezlashtirish uchun “Profil” sahifasida litsenziya yoki diplom rasmini yuklang.",
+    doc_kinds: {"licence": "Tibbiy litsenziya", "diploma": "Diplom", "certificate": "Sertifikat", "clinic_licence": "Klinika litsenziyasi", "other": "Boshqa hujjat"},
     ins_h: "Ilova", ins_btn: "Telefonga o‘rnatish", ins_p: "Shifokor telefoningiz ekranida ilova kabi ochiladi.", ins_ios: "Safari’da pastdagi «Ulashish» tugmasini bosing, so‘ng «Bosh ekranga qo‘shish» (Add to Home Screen).", ins_other: "Brauzer menyusidan «Ilovani o‘rnatish» yoki «Bosh ekranga qo‘shish»ni tanlang.", ins_have: "O‘rnatilgan", ins_done: "Shifokor telefoningizga o‘rnatildi.",
     sh_share: "Ulashish", sh_copied: "Havola nusxalandi.", sh_copy: "Havolani nusxalang:",
     fg_e_id: "Telefon raqami (+998 …) yoki emailni to‘g‘ri yozing.",
@@ -19,6 +32,19 @@
   });
 
   add("ru", {
+    doc_h: "Документы (для проверки)",
+    doc_p_doc: "Загрузите фото или PDF медицинской лицензии, диплома или сертификата. После проверки в профиле появится отметка «Проверено».",
+    doc_p_cli: "Загрузите фото или PDF лицензии клиники и других документов. После проверки на странице клиники появится отметка «Проверено».",
+    doc_none: "Документы пока не загружены.",
+    doc_none_adm: "не загружены",
+    doc_kind: "Тип документа",
+    doc_add: "Выбрать файл",
+    doc_open: "Открыть",
+    doc_added: "Документ загружен.",
+    doc_e_file: "Не удалось загрузить: нужен снимок или PDF до 1,6 МБ.",
+    doc_private: "Документы видите только вы и команда проверки; на сайте они не показываются.",
+    doc_hint: "Чтобы ускорить проверку, загрузите фото лицензии или диплома на странице «Профиль».",
+    doc_kinds: {"licence": "Медицинская лицензия", "diploma": "Диплом", "certificate": "Сертификат", "clinic_licence": "Лицензия клиники", "other": "Другой документ"},
     ins_h: "Приложение", ins_btn: "Установить на телефон", ins_p: "Shifokor будет открываться с экрана телефона как приложение.", ins_ios: "В Safari нажмите «Поделиться» внизу, затем «На экран «Домой»».", ins_other: "В меню браузера выберите «Установить приложение» или «Добавить на главный экран».", ins_have: "Установлено", ins_done: "Shifokor установлен на телефон.",
     sh_share: "Поделиться", sh_copied: "Ссылка скопирована.", sh_copy: "Скопируйте ссылку:",
     fg_e_id: "Укажите телефон (+998 …) или email правильно.",
@@ -34,6 +60,19 @@
   });
 
   add("en", {
+    doc_h: "Documents (for the check)",
+    doc_p_doc: "Upload a photo or PDF of your medical licence, diploma or certificate. Once our team has checked it, your profile shows a “Verified” mark.",
+    doc_p_cli: "Upload a photo or PDF of the clinic's licence and other documents. Once our team has checked them, the clinic page shows a “Verified” mark.",
+    doc_none: "No documents uploaded yet.",
+    doc_none_adm: "none uploaded",
+    doc_kind: "Document type",
+    doc_add: "Choose file",
+    doc_open: "Open",
+    doc_added: "Document uploaded.",
+    doc_e_file: "Couldn't upload: use a photo or a PDF up to 1.6 MB.",
+    doc_private: "Only you and the checking team see your documents; they're never shown on the site.",
+    doc_hint: "To speed up the check, upload a photo of your licence or diploma on the Profile page.",
+    doc_kinds: {"licence": "Medical licence", "diploma": "Diploma", "certificate": "Certificate", "clinic_licence": "Clinic licence", "other": "Other document"},
     ins_h: "App", ins_btn: "Install on this phone", ins_p: "Shifokor opens from your home screen like an app.", ins_ios: "In Safari, tap Share at the bottom, then “Add to Home Screen”.", ins_other: "In your browser menu, choose “Install app” or “Add to Home screen”.", ins_have: "Installed", ins_done: "Shifokor is installed on your phone.",
     sh_share: "Share", sh_copied: "Link copied.", sh_copy: "Copy the link:",
     fg_e_id: "Enter a valid phone number (+998 …) or email.",

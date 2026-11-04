@@ -322,6 +322,18 @@ create table if not exists app_pw_resets (
   sent_at timestamptz not null default now()
 );
 
+-- a doctor's or clinic's licence, diploma or certificate, for the checking team only
+create table if not exists app_docs (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references app_users (id) on delete cascade,
+  kind text not null check (kind in ('licence', 'diploma', 'certificate', 'clinic_licence', 'other')),
+  name text check (name is null or char_length(name) <= 120),
+  mime text not null check (mime in ('image/jpeg', 'image/png', 'image/webp', 'application/pdf')),
+  data bytea not null check (octet_length(data) <= 1600000),
+  created_at timestamptz not null default now()
+);
+create index if not exists app_docs_user_idx on app_docs (user_id);
+
 create table if not exists app_branches (
   id uuid primary key default gen_random_uuid(),
   clinic_id uuid not null references app_users (id) on delete cascade,
@@ -380,4 +392,5 @@ alter table app_branches enable row level security;
 alter table app_staff enable row level security;
 alter table app_email_codes enable row level security;
 alter table app_pw_resets enable row level security;
+alter table app_docs enable row level security;
 `;

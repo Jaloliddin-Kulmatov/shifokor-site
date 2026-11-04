@@ -174,6 +174,10 @@
     adminInvite: function (id) { return call("admin_invite", { id: id }); },
     adminRemovePending: function (id) { return call("admin_remove_pending", { id: id }); },
     /* an invited doctor opens their link, then sets a password and is signed in */
+    docs: function (user) { return call("docs", user ? { user: user } : {}); },
+    docUpload: function (o) { return call("doc_upload", o); },
+    docDelete: function (id) { return call("doc_delete", { id: id }); },
+    docFile: function (id) { return call("doc_file", { id: id }); },
     pwForgot: function (id) { return call("pw_forgot", { id: id }); },
     pwReset: async function (id, code, password) { var j = await call("pw_reset", { id: id, code: code, password: password }); setToken(j.token); await refresh(); },
     pwLinkInfo: function (token) { return call("pw_link_info", { token: token }); },

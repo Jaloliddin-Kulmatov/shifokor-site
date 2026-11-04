@@ -112,3 +112,8 @@ body.panelapp .top, body.panelapp .foot, body.panelapp .skip { display: none; }
 @media (max-width: 900px) { .pside { height: auto; } .pside nav { padding-bottom: 16px; } }
 .pside { height: 100dvh; }
 @media (max-width: 900px) { .pside { height: auto; } }
+/* phones: a close button in the menu; the dark area behind it closes it too */
+.pbrandrow { display: flex; align-items: center; padding-right: 10px; flex: none; }
+.pbrandrow .pbrand { flex: 1; min-width: 0; }
+.pclose { display: none; }
+@media (max-width: 900px) { .pclose { display: grid; } }

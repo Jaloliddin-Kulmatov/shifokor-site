@@ -1574,11 +1574,11 @@
     var t = L(), u = me(), role = u.role, items = PNAV[role] || PNAV.patient, nNew = role === "doctor" ? proMine(u).filter(function (c) { return c.status === "new"; }).length : role === "clinic" ? appts().filter(function (a) { return a.clinicId === u.id && a.status === "new" && apOpen(a); }).length : 0;
     var link = function (x) { var on = x[2] === pg.key; return '<a href="' + (x[0].indexOf("/admin") === 0 ? "#" + x[0] : acc(x[0])) + '"' + (on ? ' aria-current="page"' : "") + ">" + ic(x[1]) + "<span>" + t.pn_t[x[2]] + "</span>" + ((x[2] === "requests" || x[2] === "crequests") && nNew ? '<b class="pronum">' + nNew + "</b>" : "") + "</a>"; };
     var title = (items.concat(PNAV.admin).filter(function (x) { return x[2] === pg.key; })[0] || [])[2];
-    return '<div class="pshell"><aside class="pside" id="pside"><a class="pbrand" href="' + acc("/") + '"><img src="icon.svg" alt="" width="36" height="36"><span><b>Shifokor</b><small>' + t.pn_role[role] + "</small></span></a>" +
+    return '<div class="pshell"><aside class="pside" id="pside"><div class="pbrandrow"><a class="pbrand" href="' + acc("/") + '"><img src="icon.svg" alt="" width="36" height="36"><span><b>Shifokor</b><small>' + t.pn_role[role] + '</small></span></a><button class="pico pclose" type="button" data-act="pnav" aria-label="' + esc(t.ap_x) + '"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
       '<nav aria-label="' + esc(t.pro_panel) + '">' + items.map(link).join("") + (u.admin ? '<p class="pgroup">' + t.pn_admin + "</p>" + PNAV.admin.map(link).join("") : "") +
       '<p class="pgroup"></p><a href="#/">' + ic("search") + "<span>" + t.pn_site + '</span></a><button class="pnavout" type="button" data-act="logout"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg><span>' + t.logout + "</span></button></nav>" +
       '<div class="puser">' + avatarOf(u, "sm") + '<div><b>' + esc(u.name) + "</b><small>" + esc(role === "doctor" ? specName(u.profile || {}) : u.email || fmtPhone(u.phone || "")) + '</small></div><button class="pico" type="button" data-act="logout" title="' + esc(t.logout) + '" aria-label="' + esc(t.logout) + '"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg></button></div></aside>' +
-      '<div class="pmain"><header class="ptop"><button class="pico pmenu" type="button" data-act="pnav" aria-label="' + esc(t.nav_menu) + '" aria-controls="pside"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><b class="ptitle">' + (title ? t.pn_t[title] : "") + '</b><span class="spacer"></span>' +
+      '<div class="pmain"><header class="ptop"><button class="pico pmenu" type="button" data-act="pnav" aria-label="' + esc(t.nav_menu) + '" aria-controls="pside" aria-expanded="false"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><b class="ptitle">' + (title ? t.pn_t[title] : "") + '</b><span class="spacer"></span>' +
       '<div class="lang plang" role="group" aria-label="Language">' + ["uz", "ru", "en"].map(function (l) { return '<button type="button" data-l="' + l + '" aria-pressed="' + (lang === l) + '">' + l.toUpperCase() + "</button>"; }).join("") + "</div>" +
       '<a class="btn ghost sm" href="' + siteUrl("#/") + '">' + t.pn_site + "</a></header>" + '<div class="pcontent">' + pg.body + "</div></div></div>";
   }
@@ -2102,7 +2102,10 @@
   function closeMenu() { all(".menu").forEach(function (m) { m.hidden = true; }); all(".ddbtn").forEach(function (b) { b.setAttribute("aria-expanded", "false"); }); }
   function openBooking(o) { var p = byId(o.p), u = me(); openModal({ type: "book", step: "rf", p: o.p, d: o.d, t: o.t, m: o.m, k: svcsFor(p, o.m)[0].k, name: u ? u.name : "", phone: u && u.phone ? fmtPhone(u.phone) : "" }); }
 
+  /* the panel's menu on phones: open or closed */
+  function pnavSet(open) { var sh = document.querySelector(".pshell"); if (!sh) return; sh.classList.toggle("navopen", open); all('.pmenu').forEach(function (b) { b.setAttribute("aria-expanded", String(open)); }); if (open) { var f = document.querySelector(".pside nav a"); if (f) f.focus({ preventScroll: true }); } }
   document.addEventListener("click", function (e) {
+    if (document.querySelector(".pshell.navopen") && !e.target.closest(".pside") && !e.target.closest(".pmenu")) { pnavSet(false); return; }
     if (!e.target.closest(".dd")) closeMenu();
     var authA = e.target.closest('a[href="#/login"], a[href="#/register"]');
     if (authA && current && current.path !== "/login" && current.path !== "/register") { try { sessionStorage.setItem(NEXT_K, location.hash || "#/"); } catch (x) {} }
@@ -2339,7 +2342,7 @@
     if (ds.svcdel != null) { accCollect(); ACC.pr.svc.splice(+ds.svcdel, 1); render(true); return; }
     if (ds.act === "wpadd") { accCollect(); ACC.pr.work.push({ t: "x", label: "" }); render(true); var ws = all("#wp-list input"); if (ws.length) ws[ws.length - 1].focus(); return; }
     if (ds.wpdel != null) { accCollect(); ACC.pr.work.splice(+ds.wpdel, 1); render(true); return; }
-    if (ds.act === "pnav") { var sh = document.querySelector(".pshell"); if (sh) sh.classList.toggle("navopen"); return; }
+    if (ds.act === "pnav") { pnavSet(!document.querySelector(".pshell.navopen")); return; }
     if (ds.act === "logout" && BE) { BE.signOut().then(function () { ACC = null; toast(t.logged_out); go("#/"); }); return; }
     if (ds.act === "accdel-yes" && BE) { BE.deleteAccount().then(function () { ACC = null; ACC_DEL = false; toast(t.acc_deleted); go("#/"); }, function () { toast(t.be_err); }); return; }
     if (ds.act === "logout") { store.set(KS, null); ACC = null; toast(t.logged_out); go("#/"); return; }
@@ -2664,6 +2667,7 @@
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Escape") return;
     var om = document.querySelector(".menu:not([hidden])");
+    if (document.querySelector(".pshell.navopen")) { pnavSet(false); var mb = document.querySelector(".pmenu"); if (mb) mb.focus(); return; }
     if (modal) closeModal(); else if (om) { closeMenu(); om.previousElementSibling.focus(); } else if ($("ap-h")) go(apClose());
   });
   /* another tab booked or changed something: refresh so a taken slot disappears here too */

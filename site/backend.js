@@ -22,7 +22,7 @@
   }
 
   function toUser(u) {
-    return { id: u.id, role: u.role, name: u.name, email: u.email || "", phone: u.phone || "", tg: u.tg || "", profile: u.profile || {}, updated: String(u.updated_at || "").slice(0, 10), verified: !!u.verified, pending: !!u.pending, inviteAt: u.invite_at ? Date.parse(u.invite_at) : 0, tgLinked: !!u.tg_linked, admin: !!u.admin, remote: true,
+    return { id: u.id, role: u.role, name: u.name, email: u.email || "", phone: u.phone || "", tg: u.tg || "", profile: u.profile || {}, updated: String(u.updated_at || "").slice(0, 10), verified: !!u.verified, pending: !!u.pending, inviteAt: u.invite_at ? Date.parse(u.invite_at) : 0, tgLinked: !!u.tg_linked, emailVerified: !!u.email_verified, admin: !!u.admin, remote: true,
       onlineUntil: u.online ? Date.parse(u.online) : 0, photoUrl: u.photo ? C.api + "?photo=" + u.id + "&v=" + u.photo : "" };
   }
   function toConsult(c) {
@@ -154,6 +154,8 @@
     reschedule: async function (cid, slot, note) { await call("reschedule", { id: cid, slot: slot, note: note }); await refresh(); },
     consultRx: async function (cid, rx) { await call("consult_rx", { id: cid, rx: rx }); await refresh(); },
     medOrder: async function (o) { var j = await call("med_order", o); await refresh(); return j; },
+    emailCode: function () { return call("email_code"); },
+    emailVerify: async function (code) { var j = await call("email_verify", { code: code }); await refresh(); return j; },
     branchSave: async function (o) { var j = await call("branch_save", o); await refresh(); return j; },
     branchDelete: async function (id) { await call("branch_delete", { id: id }); await refresh(); },
     staffInvite: async function (o) { var j = await call("staff_invite", o); await refresh(); return j; },

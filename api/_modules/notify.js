@@ -2,11 +2,14 @@
 // Both are optional and only switch on when their environment variables are set:
 //   TELEGRAM_BOT_TOKEN            from @BotFather
 //   ESKIZ_EMAIL, ESKIZ_PASSWORD   an Eskiz.uz account; ESKIZ_FROM is the sender name (default "4546")
+//   RESEND_API_KEY, MAIL_FROM     email through resend.com; MAIL_FROM is e.g. "Shifokor <noreply@shifokor.com>" on a domain verified there
 // A notice that fails never fails the action that sent it.
 const crypto = require("crypto");
 
 const TG = (process.env.TELEGRAM_BOT_TOKEN || "").trim();
 const SMS = (process.env.ESKIZ_EMAIL || "").trim() && (process.env.ESKIZ_PASSWORD || "").trim();
+const MAIL = (process.env.RESEND_API_KEY || "").trim();
+const MAIL_FROM = (process.env.MAIL_FROM || "Shifokor <onboarding@resend.dev>").trim();
 // Telegram sends this back in a header on every webhook call, so the webhook knows the call is really from Telegram.
 const TG_SECRET = TG ? crypto.createHash("sha256").update("shifokor-webhook:" + TG).digest("hex").slice(0, 48) : "";
 
@@ -54,4 +57,14 @@ async function sms(phone, text) {
 const MONTHS = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"];
 const dayUz = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || "")); return m ? Number(m[3]) + "-" + MONTHS[Number(m[2]) - 1] : String(iso || ""); };
 
-module.exports = { TG: !!TG, SMS: !!SMS, TG_SECRET, tgApi, tgBotName, tgSend, sms, dayUz };
+// an email; false when email isn't set up or the send failed
+async function mail(to, subject, text, html) {
+  if (!MAIL || !to) return false;
+  try {
+    const r = await within(fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: "Bearer " + MAIL, "Content-Type": "application/json" }, body: JSON.stringify({ from: MAIL_FROM, to: [to], subject, text, html }) }), 6000);
+    if (!r || !r.ok) { console.error("mail send", r && r.status, r && (await r.text().catch(() => ""))); return false; }
+    return true;
+  } catch (e) { console.error("mail send", e.message); return false; }
+}
+
+module.exports = { TG: !!TG, SMS: !!SMS, MAIL: !!MAIL, mail, TG_SECRET, tgApi, tgBotName, tgSend, sms, dayUz };

@@ -19,6 +19,9 @@
     nav: '<path d="M3 11l18-8-8 18-2-8z"/>',
     copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 00-1-1H5a1 1 0 00-1 1v10a1 1 0 001 1h3"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
+    book: '<path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 21V5M8 7h7"/>',
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/>',
+    mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
     tag: '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/>',
     bell: '<path d="M6 17V11a6 6 0 0112 0v6l2 2H4z"/><path d="M10 21a2 2 0 004 0"/>',
     free: '<circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/>',
@@ -670,6 +673,86 @@
   function avatarOf(u, cls) { var c = "pav" + (cls ? " " + cls : ""); return u.photoUrl ? '<img class="' + c + ' pimg" src="' + esc(u.photoUrl) + '" alt="" loading="lazy">' : '<div class="' + c + '" aria-hidden="true">' + esc(initials(u.name)) + "</div>"; }
   function personAv(u) { return avatarOf(u, ""); }
 
+  /* the doctor's and the clinic's details at sign-up: what patients and the checking team need first.
+     Everything here can be changed later in the profile; * marks what is needed now. */
+  var regSec = function (icon, title, sub, body) { return '<section class="regsec"><div class="regsech"><span class="icobox">' + ic(icon) + "</span><div><h2>" + title + "</h2>" + (sub ? "<p>" + sub + "</p>" : "") + "</div></div>" + body + "</section>"; };
+  var regReq = function (s) { return s + ' <span class="req" aria-hidden="true">*</span>'; };
+  function regRegion(t, req) {
+    return '<div class="two"><div class="fld"><label for="r-region">' + (req ? regReq(t.f_region) : t.f_region) + '</label><select id="r-region"><option value="">—</option>' + REG.slice().sort(function (x, y) { return nmL(x).localeCompare(nmL(y)); }).map(function (r) { return '<option value="' + r.code + '">' + esc(nmL(r)) + "</option>"; }).join("") +
+      '</select></div><div class="fld"><label for="r-district">' + t.f_district + '</label><select id="r-district">' + districtOptions("", "") + "</select></div></div>";
+  }
+  function regExtra(t) {
+    var fi = function (id, label, type, extra) { return '<div class="fld"><label for="' + id + '">' + label + '</label><input id="' + id + '" type="' + (type || "text") + '"' + (extra || "") + "></div>"; };
+    var ta = function (id, label, ph) { return '<div class="fld"><label for="' + id + '">' + label + '</label><textarea id="' + id + '" maxlength="1500" rows="3" placeholder="' + esc(ph || "") + '"></textarea></div>'; };
+    if (REGROLE === "doctor") return regSec("shield", t.rg_d_spec_h, t.rg_d_spec_p,
+        '<div class="two"><div class="fld"><label for="r-spec">' + regReq(t.d_spec) + '</label><select id="r-spec"><option value="">—</option>' + DOC_SP.map(function (k) { return '<option value="' + k + '">' + t.docsp[k] + "</option>"; }).join("") + "</select></div>" +
+        fi("r-years", regReq(t.d_years), "number", ' min="0" max="70" inputmode="numeric"') + '</div><div class="fld" id="r-spec-o" hidden><label for="r-spec-other">' + t.d_spec_other + '</label><input id="r-spec-other" maxlength="80"></div>' +
+        '<div class="two">' + fi("r-lic", t.d_lic, "text", ' maxlength="60" autocomplete="off"') + '<div class="fld"><label for="r-sex">' + t.d_sex + '</label><select id="r-sex">' + [["", "—"], ["f", t.cs_sexes.f], ["m", t.cs_sexes.m]].map(function (o) { return '<option value="' + o[0] + '">' + o[1] + "</option>"; }).join("") + "</select></div></div>") +
+      regSec("book", t.sec_bg, t.rg_d_bg_p, ta("r-edu", t.d_edu, t.d_edu_ph).replace('<label for="r-edu">', '<label class="vh" for="r-edu">') +
+        '<div class="fld"><span class="flabel">' + t.d_langs + '</span><div class="checks" id="r-langs">' + ["uz", "ru", "en", "kaa", "tg"].map(function (l) { var n = { kaa: "Qaraqalpaq", tg: "Tojik" }[l] || t.lg[l]; return '<label class="mini"><input type="checkbox" value="' + l + '"' + (l === "uz" ? " checked" : "") + ">" + n + "</label>"; }).join("") + "</div></div>") +
+      regSec("pin", t.sec_work, t.rg_d_work_p, regRegion(t, true) + '<datalist id="r-placelist">' + placeOptions("") + "</datalist>" + fi("r-work", t.works_at, "text", ' list="r-placelist" maxlength="200" placeholder="' + esc(t.d_work_ph) + '"')) +
+      regSec("heart", t.d_bio, t.rg_d_bio_p, ta("r-bio", t.d_bio, t.d_bio_ph));
+    if (REGROLE === "clinic") return regSec("hosp", t.sec_clinic, t.rg_c_p,
+        '<div class="two"><div class="fld"><label for="r-ctype">' + regReq(t.c_type) + '</label><select id="r-ctype">' + CAT_ORDER.map(function (c) { return '<option value="' + c + '"' + (c === "clinic" ? " selected" : "") + ">" + t.cat[c] + "</option>"; }).join("") + '</select></div><div class="fld"><label for="r-own">' + t.c_own + '</label><select id="r-own">' + ["p", "s"].map(function (o) { return '<option value="' + o + '">' + t.own[o] + "</option>"; }).join("") + "</select></div></div>" +
+        fi("r-clic", t.c_lic, "text", ' maxlength="60" autocomplete="off"') + ta("r-about", t.c_about, t.rg_c_about_ph)) +
+      regSec("pin", t.sec_loc, t.rg_c_loc_p, regRegion(t, true) + fi("r-addr", regReq(t.c_addr), "text", ' maxlength="300" autocomplete="street-address"') + fi("r-hours", t.c_hours, "text", ' maxlength="120" placeholder="' + esc(t.c_hours_ph) + '"')) +
+      regSec("user", t.rg_c_who_h, t.rg_c_who_p, '<div class="two">' + fi("r-contact", t.rg_c_who, "text", ' maxlength="120" autocomplete="name"') + fi("r-crole", t.rg_c_role, "text", ' maxlength="80" placeholder="' + esc(t.rg_c_role_ph) + '"') + "</div>");
+    return "";
+  }
+  /* what was typed in the sign-up form, so switching the role doesn't lose it */
+  function regKeep() { var o = {}; all("#regform input, #regform select, #regform textarea").forEach(function (el) { if (!el.id && el.closest("#r-langs")) o["lang:" + el.value] = el.checked; else if (el.id) o[el.id] = el.type === "checkbox" ? el.checked : el.value; }); return o; }
+  function regPut(o) {
+    if (o["r-region"] && $("r-region")) { $("r-region").value = o["r-region"]; regRegionChanged(); }
+    Object.keys(o).forEach(function (k) { if (k.indexOf("lang:") === 0) { var cb = document.querySelector('#r-langs input[value="' + k.slice(5) + '"]'); if (cb) cb.checked = o[k]; return; } var el = $(k); if (el && k !== "r-region") { if (el.type === "checkbox") el.checked = o[k]; else el.value = o[k]; } });
+    if ($("r-spec-o")) $("r-spec-o").hidden = $("r-spec").value !== "other";
+  }
+  function regRegionChanged() { var r = $("r-region").value; if ($("r-district")) $("r-district").innerHTML = districtOptions(r, ""); if ($("r-placelist")) $("r-placelist").innerHTML = placeOptions(r); }
+  function regProfile() {
+    var v = function (id) { var el = $(id); return el ? el.value.trim() : ""; };
+    if (REGROLE === "doctor") { var w = matchPlace(v("r-work")); return { spec: v("r-spec"), spec_other: v("r-spec") === "other" ? v("r-spec-other") : "", years: v("r-years"), lic: v("r-lic"), sex: v("r-sex"), edu: v("r-edu"), bio: v("r-bio"), region: v("r-region"), district: v("r-district"), langs: all("#r-langs input:checked").map(function (i) { return i.value; }), work: w ? [w] : [] }; }
+    if (REGROLE === "clinic") return { ctype: v("r-ctype") || "clinic", own: v("r-own") || "p", lic: v("r-clic"), about: v("r-about"), region: v("r-region"), district: v("r-district"), addr: v("r-addr"), hours: v("r-hours"), contact: v("r-contact"), contact_role: v("r-crole") };
+    return {};
+  }
+  function regCheck(t, p) {
+    if (REGROLE === "doctor") { if (!p.spec) return [t.rg_e_spec, "r-spec"]; if (p.years === "" || !(+p.years >= 0 && +p.years <= 70)) return [t.rg_e_years, "r-years"]; if (!p.region) return [t.rg_e_region, "r-region"]; }
+    if (REGROLE === "clinic") { if (!p.region) return [t.rg_e_region, "r-region"]; if (!p.addr) return [t.rg_e_addr, "r-addr"]; }
+    return null;
+  }
+
+  /* ---------------- confirming the email with a 6-digit code ---------------- */
+  var VER = { uid: "", at: 0, code: "", off: false, msg: "", busy: false }, VER_T = null;
+  var needsEmail = function (u) { return !!(u && u.email && !u.emailVerified); };
+  function verSend(force) {
+    var u = me(), t = L(); if (!needsEmail(u) || VER.busy) return;
+    if (!force && VER.uid === u.id) return;
+    VER.uid = u.id; VER.msg = "";
+    if (!BE) { VER.code = String(Math.floor(Math.random() * 1e6)).padStart(6, "0"); VER.at = Date.now(); return; }
+    if (!BE.notify().mail) { VER.off = true; return; }
+    VER.busy = true;
+    BE.emailCode().then(function () { VER.at = Date.now(); VER.off = false; }, function (x) { var c = x && x.code; if (c === "no_mail") VER.off = true; else if (c === "wait") VER.at = VER.at || Date.now(); else VER.msg = c === "mail" ? t.ev_e_mail : beMsg(t, x); })
+      .then(function () { VER.busy = false; if (current.path.indexOf("/account/verify") === 0) render(true); });
+  }
+  function verTick() {
+    clearInterval(VER_T); VER_T = setInterval(function () {
+      var b = $("ev-resend"); if (!b) { clearInterval(VER_T); return; }
+      var left = Math.ceil((VER.at + 60e3 - Date.now()) / 1000); b.disabled = left > 0; b.textContent = left > 0 ? L().ev_resend_in(left) : L().ev_resend;
+    }, 1000);
+  }
+  function pVerify(u) {
+    var t = L();
+    if (!u.email) return pHead(t.ev_h, "") + pCard("", pEmpty("mail", t.ev_noemail, t.ev_noemail_p, '<a class="btn" href="' + acc("/settings") + '">' + t.pro_t.profile + "</a>"));
+    if (u.emailVerified) return pHead(t.ev_h, "") + pCard("", pEmpty("check", t.ev_done, t.ev_done_p(esc(u.email)), '<a class="btn" href="' + acc("/") + '">' + t.ev_go + "</a>"));
+    verSend(false); setTimeout(verTick, 0);
+    var left = Math.ceil((VER.at + 60e3 - Date.now()) / 1000);
+    var body = VER.off ? '<div class="note-box">' + t.ev_off + "</div>" :
+      '<p class="lead" style="margin:0 0 16px">' + t.ev_sent(esc(u.email)) + "</p>" + (!BE && VER.code ? '<div class="demo" style="margin:0 0 16px">' + t.ev_demo(VER.code) + "</div>" : "") +
+      '<form id="evform" class="evform" novalidate><div class="fld"><label for="ev-code">' + t.ev_code + '</label><input id="ev-code" class="evcode nums" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" placeholder="••••••"></div>' +
+      '<div class="err" id="ev-err" aria-live="polite">' + esc(VER.msg) + '</div><div class="btns"><button class="btn" type="submit">' + t.ev_btn + '</button><button class="btn ghost" type="button" id="ev-resend" data-act="evresend"' + (left > 0 ? " disabled" : "") + ">" + (left > 0 ? t.ev_resend_in(left) : t.ev_resend) + "</button></div></form>" +
+      '<p class="fine" style="margin-top:14px">' + t.ev_spam + ' <a href="' + acc("/settings") + '">' + t.ev_change + "</a></p>";
+    return pHead(t.ev_h, t.ev_p) + '<section class="pcard evcard"><div class="evicon">' + ic("mail") + "</div>" + body + '<p style="margin:18px 0 0"><a class="linkbtn" href="' + acc("/") + '">' + t.ev_later + "</a></p></section>";
+  }
+  function verBanner(u) { var t = L(); return '<section class="pcard evbanner"><span class="icobox">' + ic("mail") + "</span><div><b>" + t.ev_ban_h + '</b><p class="muted">' + t.ev_ban_p(esc(u.email)) + '</p></div><a class="btn sm" href="' + acc("/verify") + '">' + t.ev_ban_btn + "</a></section>"; }
+
   function viewRegister() {
     var t = L(), clinic = REGROLE === "clinic";
     var roles = ["patient", "doctor", "clinic"].map(function (r) { return '<button type="button" class="rolecard" data-regrole="' + r + '" aria-pressed="' + (REGROLE === r) + '"><span class="icobox">' + ic(r === "patient" ? "heart" : r === "doctor" ? "shield" : "hosp") + "</span><b>" + t.role[r] + "</b><span>" + t.role_d[r] + "</span></button>"; }).join("");
@@ -677,8 +760,9 @@
     return '<div class="wrap pad acc"><p class="authtop">' + t.have_acc + ' <a href="#/login">' + t.go_login + '</a></p><h1>' + t.reg_h + '</h1><p class="lead">' + t.reg_p + '</p><div class="demo" style="margin:16px 0 22px">' + t.acc_demo + '</div><div class="roles" role="group">' + roles + "</div>" +
       '<form class="form" id="regform" novalidate>' + f("r-name", clinic ? t.f_clinicname : t.f_fullname, "text", ' autocomplete="' + (clinic ? "organization" : "name") + '"') +
       '<div class="two">' + f("r-email", t.f_email, "email", ' autocomplete="email" inputmode="email"') + f("r-phone", t.f_phone2, "tel", ' autocomplete="tel" inputmode="tel" placeholder="+998"') + '</div><p class="fine" style="margin:-4px 0 14px">' + t.or_note + "</p>" +
-      f("r-tg", t.f_tg, "text", ' autocomplete="off" placeholder="' + t.f_tg_ph + '"') +
+      f("r-tg", t.f_tg, "text", ' autocomplete="off" placeholder="' + t.f_tg_ph + '"') + regExtra(t) +
       '<div class="two">' + f("r-pw", t.f_pw, "password", ' autocomplete="new-password"') + f("r-pw2", t.f_pw2, "password", ' autocomplete="new-password"') + "</div>" +
+      (REGROLE !== "patient" ? '<p class="fine regnote">' + ic("shield") + t.rg_note + "</p>" : "") +
       '<div class="err" id="r-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.reg_btn + '</button><p class="muted" style="margin-top:14px;text-align:center">' + t.have_acc + ' <a href="#/login">' + t.go_login + "</a></p></form></div>";
   }
   function viewLogin() {
@@ -1620,6 +1704,11 @@
   }
   /* the shell: sidebar with the role's pages (and admin pages for admins), top bar with the page name, language and the way back to the site */
   function panelPage(path0, q) {
+    var pg = panelPage0(path0, q), u = me();
+    if (pg.body && !pg.bare && !pg.redirect && pg.key !== "verify" && needsEmail(u)) pg.body = verBanner(u) + pg.body;
+    return pg;
+  }
+  function panelPage0(path0, q) {
     var path = path0 === "/account" ? "/" : path0.indexOf("/account/") === 0 ? path0.slice(8) : path0;
     var t = L(), u = me(), role = u ? u.role : "";
     if (u && (path === "/login" || path === "/register")) return { redirect: acc("/") };
@@ -1630,6 +1719,7 @@
     /* links written for the old one-page site, and public pages opened from the panel */
     if (path === "/pro") path = q.tab === "profile" ? "/settings" : "/" + (q.tab && q.tab !== "home" ? q.tab : "");
     if (path === "/visits" && role !== "patient") path = "/";
+    if (path === "/verify") return { body: pVerify(u), key: "verify" };
     var mineR = role === "doctor" ? ["/", "/requests", "/schedule", "/patients", "/earnings", "/reviews"] : role === "clinic" ? ["/", "/requests", "/calendar", "/team", "/branches", "/reviews"] : ["/", "/consults", "/visits", "/meds", "/ona"];
     /* another role's page, or one that doesn't exist: this account's overview */
     if (mineR.indexOf(path) < 0 && path !== "/settings" && path !== "/admin" && path.indexOf("/consult/") !== 0) return { redirect: acc("/") };
@@ -1974,6 +2064,8 @@
     var row = function (x) {
       var pr = x.profile || {}, f = pr.fac && facByKey[pr.fac];
       var facts = [[t.adm_contact, [x.email, x.phone ? fmtPhone(x.phone) : "", x.tg].filter(Boolean).map(esc).join(" · ") || "—"], [t.adm_lic, pr.lic ? esc(pr.lic) : "—"]];
+      if (x.email) facts.push(["Email", x.email_verified ? '<span class="badge ok">' + t.adm_email_ok + "</span>" : '<span class="badge warn">' + t.adm_email_no + "</span>"]);
+      if (x.role === "clinic" && pr.contact) facts.push([t.adm_cperson, esc(pr.contact) + (pr.contact_role ? " · " + esc(pr.contact_role) : "")]);
       if (x.role === "clinic") facts.push([t.adm_fac, f ? '<a href="#/f/' + f.key + '">' + esc(facLabel(f)) + "</a>" : pr.claim ? esc(pr.claim) : "—"]);
       if (x.role === "doctor") facts.push([t.d_spec, esc(specName(pr)) || "—"], [t.works_at, (pr.work || []).map(wpLabel).map(esc).join("; ") || "—"]);
       facts.push([t.adm_since, esc(fmt(new Date(x.created_at), { day: "numeric", month: "short" }))]);
@@ -2443,7 +2535,8 @@
       if (BE) { BE.apptAction(aid, "cancel").then(function () { toast(t.ap_cancelled); render(true); }, function (x) { toast(beMsg(t, x)); render(true); }); return; }
       var al = appts(); al.forEach(function (x) { if (x.id === aid && apOpen(x)) x.status = "cancelled"; }); saveAppts(al); toast(t.ap_cancelled); render(true); return;
     }
-    if (ds.regrole) { REGROLE = ds.regrole; var keep = { n: $("r-name").value, e: $("r-email").value, p: $("r-phone").value, g: $("r-tg").value }; render(true); $("r-name").value = keep.n; $("r-email").value = keep.e; $("r-phone").value = keep.p; $("r-tg").value = keep.g; return; }
+    if (ds.regrole) { REGROLE = ds.regrole; var keep = regKeep(); if (current.q.role) { try { history.replaceState(null, "", location.pathname + location.search + "#/register"); } catch (x) {} } render(true); regPut(keep); return; }
+    if (ds.act === "evresend") { el.disabled = true; verSend(true); render(true); return; }
     if (ds.regroleLink) { REGROLE = ds.regroleLink; return; }
     if (ds.act === "svcadd") { accCollect(); ACC.pr.svc.push({ name: "", price: "", online: false }); render(true); var rows = all("#svc-list .s-n"); if (rows.length) rows[rows.length - 1].focus(); return; }
     if (ds.svcdel != null) { accCollect(); ACC.pr.svc.splice(+ds.svcdel, 1); render(true); return; }
@@ -2661,22 +2754,32 @@
     if (id === "docsearch") { go("#/doctors?" + qs({ s: $("hs-s").value, r: $("hs-r").value, q: $("hs-q").value.trim() })); return; }
     if (id === "regform") {
       var rv = function (x) { return $(x).value.trim(); }, name = rv("r-name"), em = rv("r-email").toLowerCase(), ph = rv("r-phone"), tg = rv("r-tg"), pw = $("r-pw").value, pw2 = $("r-pw2").value;
+      var rprof = regProfile(), rbad = regCheck(t, rprof);
+      if (rbad) { $("r-err").textContent = rbad[0]; $(rbad[1]).focus(); return; }
       var er = checkContact(t, name, em, ph, tg) || (pw.length < 6 ? t.e_pw : pw !== pw2 ? t.e_pw2 : "") || (findByContact(em, ph) ? t.e_exists : "");
       if (er) { $("r-err").textContent = er; return; }
+      var nextUrl = function () { var n = afterAuth(); return em && n === "#/account" ? acc("/verify") : n; };
       if (BE) {
         $("r-err").textContent = "";
-        BE.signUp({ role: REGROLE, name: name, email: em, phone: ph ? digits(ph) : "", tg: tg ? "@" + tgName(tg) : "", password: pw }).then(function (r) {
+        BE.signUp({ role: REGROLE, name: name, email: em, phone: ph ? digits(ph) : "", tg: tg ? "@" + tgName(tg) : "", password: pw, profile: rprof }).then(function (r) {
           if (r.needsConfirm) { $("r-err").textContent = t.be_confirm; return; }
-          ACC = null; toast(t.welcome(name)); go(afterAuth());
+          ACC = null; toast(t.welcome(name)); go(nextUrl());
         }, function (x) { $("r-err").textContent = beMsg(t, x); });
         return;
       }
       var nid = "u" + Date.now().toString(36);
       hashPw(pw, nid).then(function (h) {
-        var list = users(); list.push({ id: nid, role: REGROLE, name: name, email: em, phone: ph ? digits(ph) : "", tg: tg ? "@" + tgName(tg) : "", pw: h, created: iso(today0()), updated: iso(today0()), profile: REGROLE === "doctor" ? { spec: "gp", modes: ["in", "on"], langs: ["uz"], work: [], svc: [] } : REGROLE === "clinic" ? { ctype: "clinic", own: "s", svc: [] } : {} });
-        saveUsers(list); store.set(KS, nid); ACC = null; toast(t.welcome(name)); go(afterAuth());
+        var list = users(); list.push({ id: nid, role: REGROLE, name: name, email: em, phone: ph ? digits(ph) : "", tg: tg ? "@" + tgName(tg) : "", pw: h, created: iso(today0()), updated: iso(today0()), profile: Object.assign(REGROLE === "doctor" ? { spec: "gp", modes: ["in", "on"], langs: ["uz"], work: [], svc: [] } : REGROLE === "clinic" ? { ctype: "clinic", own: "s", svc: [] } : {}, rprof) });
+        saveUsers(list); store.set(KS, nid); ACC = null; toast(t.welcome(name)); go(nextUrl());
       });
       return;
+    }
+    if (id === "evform") {
+      var code = String($("ev-code").value).replace(/\D/g, ""), everr = $("ev-err");
+      if (code.length !== 6) { everr.textContent = t.ev_e_len; $("ev-code").focus(); return; }
+      if (BE) { var evb = e.target.querySelector("[type=submit]"); evb.disabled = true; BE.emailVerify(code).then(function () { toast(t.ev_ok); render(true); }, function (x) { evb.disabled = false; var c = x && x.code; everr.textContent = c === "code" ? t.ev_e_code : c === "expired" ? t.ev_e_exp : c === "tries" ? t.ev_e_tries : beMsg(t, x); }); return; }
+      if (code !== VER.code) { everr.textContent = t.ev_e_code; return; }
+      var lv = users(), cuv = me(); lv.forEach(function (x) { if (x.id === cuv.id) x.emailVerified = true; }); saveUsers(lv); VER.code = ""; toast(t.ev_ok); render(true); return;
     }
     if (id === "loginform") {
       if (BE) {
@@ -2697,7 +2800,7 @@
       if (er2) { $("a-err").textContent = er2; $("a-err").scrollIntoView({ block: "center" }); return; }
       A.pr.svc = A.pr.svc.filter(function (x) { return x.name; }); A.pr.work = A.pr.work.filter(function (w) { return w && w.label; });
       if (BE) { BE.saveProfile({ role: cu2.role, name: A.name, email: em2, phone: A.phone ? digits(A.phone) : "", tg: A.tg ? "@" + tgName(A.tg) : "", profile: A.pr }).then(function () { ACC = null; toast(t.saved); render(true); }, function (x) { $("a-err").textContent = beMsg(t, x); }); return; }
-      var l4 = users(); l4.forEach(function (x) { if (x.id === cu2.id) { x.name = A.name; x.email = em2; x.phone = A.phone ? digits(A.phone) : ""; x.tg = A.tg ? "@" + tgName(A.tg) : ""; x.profile = A.pr; x.updated = iso(today0()); } });
+      var l4 = users(); l4.forEach(function (x) { if (x.id === cu2.id) { if ((x.email || "") !== em2) x.emailVerified = false; x.name = A.name; x.email = em2; x.phone = A.phone ? digits(A.phone) : ""; x.tg = A.tg ? "@" + tgName(A.tg) : ""; x.profile = A.pr; x.updated = iso(today0()); } });
       saveUsers(l4); ACC = null; toast(t.saved); render(true); return;
     }
     if (id === "dform") {
@@ -2765,6 +2868,8 @@
       if (BE) { e.target.disabled = true; BE.staffBranch(sid, nb).then(function () { toast(L().cl_br_set); render(true); }, function (x) { e.target.disabled = false; toast(beMsg(L(), x)); }); return; }
       store.set(KSTA, demoStaff().map(function (x) { return x.id === sid ? Object.assign({}, x, { branchId: nb }) : x; })); toast(L().cl_br_set); render(true); return;
     }
+    if (id === "r-region") { regRegionChanged(); return; }
+    if (id === "r-spec") { $("r-spec-o").hidden = e.target.value !== "other"; return; }
     if (id === "im-agree") { IM.agree = e.target.checked; return; }
     if (id === "im-file" && e.target.files && e.target.files[0]) { imRead(e.target.files[0]).then(function (txt) { IM.text = txt; IM.rows = imRows(txt); IM.results = null; IM.err = ""; render(true); }, function () { toast(L().be_err); }); return; }
     if (id === "cs-region") { csCollect(); CS.district = ""; render(true); return; }

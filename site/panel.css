@@ -149,3 +149,16 @@ body.panelapp .top, body.panelapp .foot, body.panelapp .skip { display: none; }
   .pcard.invcard { flex-direction: column; align-items: stretch; }
 }
 .strow select, .phead label.sel select { padding: 7px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font: 500 0.9rem var(--font-body); }
+
+/* confirming the email */
+.evcard { max-width: 560px; }
+.evicon { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); margin-bottom: 14px; }
+.evicon svg { width: 28px; height: 28px; }
+.evform .fld { max-width: 260px; }
+.evcode { font: 700 1.6rem var(--font-display); letter-spacing: 0.4em; text-align: center; }
+.evform .btns { display: flex; flex-wrap: wrap; gap: 10px; }
+.pcard.evbanner { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; border: 1px solid color-mix(in srgb, var(--ochre) 40%, transparent); background: var(--ochre-soft); }
+.evbanner .icobox { flex: none; margin: 0; background: var(--surface); color: var(--ochre); }
+.evbanner > div { flex: 1; min-width: 0; }
+.evbanner p { margin: 2px 0 0; overflow-wrap: anywhere; }
+@media (max-width: 600px) { .pcard.evbanner { flex-wrap: wrap; } .evbanner .btn { width: 100%; } }

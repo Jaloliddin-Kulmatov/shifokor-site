@@ -300,6 +300,17 @@ create index if not exists app_med_orders_patient_idx on app_med_orders (patient
 -- Clinics with branches and staff (after SuperFlow's tenants, branches and specialists). A clinic invites a doctor
 -- by phone; the doctor accepts in their panel (a doctor who isn't on Shifokor yet sees it after registering with
 -- that number). The clinic sees its doctors' booked times, not the patients' details.
+alter table app_users add column if not exists email_verified_at timestamptz;
+-- a 6-digit code sent to confirm an account's email; only its hash is kept, for 30 minutes and 5 tries
+create table if not exists app_email_codes (
+  user_id uuid primary key references app_users (id) on delete cascade,
+  email text not null,
+  code_hash text not null,
+  expires_at timestamptz not null,
+  tries int not null default 0,
+  sent_at timestamptz not null default now()
+);
+
 create table if not exists app_branches (
   id uuid primary key default gen_random_uuid(),
   clinic_id uuid not null references app_users (id) on delete cascade,
@@ -356,4 +367,5 @@ alter table app_med_orders enable row level security;
 alter table app_jobs enable row level security;
 alter table app_branches enable row level security;
 alter table app_staff enable row level security;
+alter table app_email_codes enable row level security;
 `;

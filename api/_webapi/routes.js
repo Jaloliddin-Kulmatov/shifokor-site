@@ -33,6 +33,8 @@ const ROUTES = [
   ["POST", "/reviews/:id/reply", "review_reply", (p, b) => Object.assign({}, b, { id: p.id })],
   ["PUT", "/me/profile", "save_profile", (p, b) => b],
   ["POST", "/me/online", "set_online", (p, b) => b],
+  ["POST", "/me/email/code", "email_code", () => ({})],
+  ["POST", "/me/email/verify", "email_verify", (p, b) => b],
   ["GET", "/branches", "sync", () => ({}), (r) => ({ branches: r.clinics.branches })],
   ["POST", "/branches", "branch_save", (p, b) => Object.assign({}, b, { id: undefined })],
   ["PUT", "/branches/:id", "branch_save", (p, b) => Object.assign({}, b, { id: p.id })],

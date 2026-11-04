@@ -14,9 +14,9 @@ const actions = {
   // ---------- checking clinics and doctors (admins only) ----------
   async admin_list(b, me) {
     requireAdmin(me);
-    const r = await q("select id, role, name, email, phone, tg, profile, created_at, updated_at, verified_at, verified_fac, imported_at, claimed_at, invite_at from app_users where role in ('clinic', 'doctor') order by verified_at nulls first, created_at desc limit 500");
+    const r = await q("select id, role, name, email, phone, tg, profile, created_at, updated_at, verified_at, verified_fac, imported_at, claimed_at, invite_at, email_verified_at from app_users where role in ('clinic', 'doctor') order by verified_at nulls first, created_at desc limit 500");
     const rv = await q("select r.id, r.target_id, t.name as target_name, r.stars, r.body, r.author, r.hidden, r.created_at from app_reviews r join app_users t on t.id = r.target_id order by r.created_at desc limit 300");
-    return { users: r.rows.map((u) => Object.assign(userOut(u), { email: u.email || "", phone: u.phone || "", created_at: u.created_at, verified_at: u.verified_at, invite_at: u.invite_at })), reviews: rv.rows, webhook: N.TG };
+    return { users: r.rows.map((u) => Object.assign(userOut(u), { email: u.email || "", phone: u.phone || "", created_at: u.created_at, verified_at: u.verified_at, invite_at: u.invite_at, email_verified: !!u.email_verified_at })), reviews: rv.rows, webhook: N.TG };
   },
 
   async admin_verify(b, me) {

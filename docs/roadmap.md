@@ -35,7 +35,7 @@ Last updated 4 November 2026.
 ### Now (before real patients)
 1. Host patient data in Uzbekistan (personal-data law) and keep the Vercel site as the front end.
 2. Replace sample doctors with real, checked doctors in Fergana: women gynaecologists, paediatricians, family doctors.
-3. Set `TELEGRAM_BOT_TOKEN`, `CRON_SECRET`, Payme and Click keys, and a TURN relay for calls on mobile data.
+3. Set `TELEGRAM_BOT_TOKEN`, `CRON_SECRET`, `RESEND_API_KEY` and `MAIL_FROM` (email codes), Payme and Click keys, and a TURN relay for calls on mobile data.
 4. Test every flow on two real phones: register, apply, accept, chat, voice, call, cancel, move, review.
 5. Have a lawyer confirm the telemedicine rules and medicine delivery.
 

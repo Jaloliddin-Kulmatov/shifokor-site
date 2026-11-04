@@ -25,7 +25,7 @@ async function newSession(userId) {
 async function whoAmI(req) {
   const m = /^Bearer\s+([A-Za-z0-9_-]{20,100})$/.exec(req.headers.authorization || "");
   if (!m) return null;
-  const r = await q("select u.id, u.role, u.name, u.email, u.phone, u.tg, u.profile, u.updated_at, u.verified_at, u.verified_fac, u.tg_chat, u.imported_at, u.claimed_at, u.online_until, u.photo_at from app_sessions s join app_users u on u.id = s.user_id where s.token_hash = $1 and s.expires_at > now()", [sha(m[1])]);
+  const r = await q("select u.id, u.role, u.name, u.email, u.phone, u.tg, u.profile, u.updated_at, u.verified_at, u.verified_fac, u.tg_chat, u.email_verified_at, u.imported_at, u.claimed_at, u.online_until, u.photo_at from app_sessions s join app_users u on u.id = s.user_id where s.token_hash = $1 and s.expires_at > now()", [sha(m[1])]);
   return r.rows[0] ? Object.assign(r.rows[0], { tokenHash: sha(m[1]) }) : null;
 }
 const need = (me) => { if (!me) throw new Fail(401, "auth"); return me; };

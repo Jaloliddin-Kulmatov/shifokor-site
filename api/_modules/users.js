@@ -11,6 +11,12 @@ const N = require("./notify");
 const { photoOf } = require("./files");
 const { send } = require("../_core/http");
 
+// what a doctor or clinic may fill in at sign-up (the rest of the profile is filled in later)
+const SIGNUP_KEYS = {
+  doctor: ["spec", "spec_other", "years", "lic", "edu", "bio", "region", "district", "langs", "sex", "work", "modes"],
+  clinic: ["ctype", "own", "region", "district", "addr", "hours", "lic", "about", "contact", "contact_role"],
+  patient: ["region", "district"]
+};
 const DEFAULT_PROFILE = {
   doctor: { spec: "gp", modes: ["in", "on"], langs: ["uz"], work: [], svc: [] },   // online consultations are on from the start, so patients can apply at once
   clinic: { ctype: "clinic", own: "s", svc: [] },
@@ -56,7 +62,9 @@ const actions = {
     const pw = typeof b.password === "string" ? b.password : "";
     if (pw.length < 6 || pw.length > 200) bad("password");
     try {
-      const r = await q("insert into app_users (role, name, email, phone, tg, pw_hash, profile) values ($1, $2, $3, $4, $5, $6, $7) returning id", [role, name, email, phone, tg, hashPw(pw), DEFAULT_PROFILE[role]]);
+      const given = profileOf(b.profile), prof = Object.assign({}, DEFAULT_PROFILE[role]);
+      SIGNUP_KEYS[role].forEach((k) => { if (given[k] !== undefined && given[k] !== "") prof[k] = given[k]; });
+      const r = await q("insert into app_users (role, name, email, phone, tg, pw_hash, profile) values ($1, $2, $3, $4, $5, $6, $7) returning id", [role, name, email, phone, tg, hashPw(pw), prof]);
       return { token: await newSession(r.rows[0].id) };
     } catch (e) {
       if (e.code !== "23505") throw e;
@@ -116,12 +124,40 @@ const actions = {
     const prof = profileOf(b.profile), was = me.profile || {};
     const recheck = name !== me.name || String(prof.lic || "") !== String(was.lic || "") || (me.role === "clinic" && String(prof.fac || "") !== String(was.fac || ""));
     try {
-      await q("update app_users set name = $2, email = $3, phone = $4, tg = $5, profile = $6, verified_at = case when $7::boolean then null else verified_at end, updated_at = now() where id = $1", [me.id, name, email, phone, tgOf(b.tg), prof, recheck]);
+      await q("update app_users set name = $2, email = $3, phone = $4, tg = $5, profile = $6, verified_at = case when $7::boolean then null else verified_at end, email_verified_at = case when email is distinct from $3 then null else email_verified_at end, updated_at = now() where id = $1", [me.id, name, email, phone, tgOf(b.tg), prof, recheck]);
     } catch (e) {
       if (e.code === "23505") throw new Fail(409, "exists");
       throw e;
     }
     return { ok: true };
+  },
+
+  // ---------- confirming the account's email with a 6-digit code ----------
+  async email_code(b, me) {
+    need(me);
+    if (!me.email) bad("email");
+    if (me.email_verified_at) return { verified: true };
+    if (!N.MAIL) throw new Fail(503, "no_mail");
+    const last = (await q("select sent_at from app_email_codes where user_id = $1", [me.id])).rows[0];
+    if (last && Date.now() - new Date(last.sent_at).getTime() < 60e3) throw new Fail(429, "wait");
+    const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
+    await q("insert into app_email_codes (user_id, email, code_hash, expires_at) values ($1, $2, $3, now() + interval '30 minutes') on conflict (user_id) do update set email = excluded.email, code_hash = excluded.code_hash, expires_at = excluded.expires_at, tries = 0, sent_at = now()", [me.id, me.email, sha(me.id + ":" + code)]);
+    const text = "Shifokor: emailingizni tasdiqlash kodi " + code + ". Kod 30 daqiqa amal qiladi.\nКод подтверждения email: " + code + "\nYour Shifokor email code: " + code + "\n\nAgar siz ro‘yxatdan o‘tmagan bo‘lsangiz, bu xatni e’tiborsiz qoldiring.";
+    const html = '<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px;color:#14302f"><h2 style="margin:0 0 12px">Shifokor</h2><p>Emailingizni tasdiqlash kodi / Код подтверждения / Your code:</p><p style="font-size:32px;letter-spacing:8px;font-weight:700;margin:16px 0">' + code + '</p><p style="color:#5b6b6a">Kod 30 daqiqa amal qiladi. Agar siz ro‘yxatdan o‘tmagan bo‘lsangiz, bu xatni e’tiborsiz qoldiring.</p></div>';
+    if (!(await N.mail(me.email, "Shifokor: tasdiqlash kodi " + code, text, html))) { await q("delete from app_email_codes where user_id = $1", [me.id]); throw new Fail(502, "mail"); }
+    return { sent: true };
+  },
+  async email_verify(b, me) {
+    need(me);
+    const code = String(b.code || "").replace(/\D/g, "");
+    if (code.length !== 6) bad("code");
+    const r = (await q("update app_email_codes set tries = tries + 1 where user_id = $1 returning email, code_hash, expires_at, tries", [me.id])).rows[0];
+    if (!r || r.email !== me.email || new Date(r.expires_at).getTime() < Date.now()) throw new Fail(410, "expired");
+    if (r.tries > 5) throw new Fail(429, "tries");
+    if (r.code_hash !== sha(me.id + ":" + code)) throw new Fail(400, "code");
+    await q("update app_users set email_verified_at = now() where id = $1 and email = $2", [me.id, r.email]);
+    await q("delete from app_email_codes where user_id = $1", [me.id]);
+    return { verified: true };
   },
 
   // a doctor says they're online now, for 1, 2 or 4 hours; 0 turns it off. Patients asking for the

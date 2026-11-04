@@ -73,6 +73,7 @@ Optional variables (add them, then redeploy):
 | `CRON_SECRET` | Any long random text. Vercel sends it with the daily follow-up job, and other callers are refused. Without it the job still works, since it only ever sends what's due. |
 | `PLATFORM_FEE_PERCENT` | The platform's share of each paid consultation, 0 to 50 (default 0). It's recorded on each consultation when it's paid, so changing it later doesn't change past ones. |
 | `ESKIZ_EMAIL`, `ESKIZ_PASSWORD`, `ESKIZ_FROM` | SMS through [Eskiz.uz](https://eskiz.uz) for patients without Telegram (visit confirmed or declined). Eskiz must approve the message texts first; `ESKIZ_FROM` defaults to `4546`. |
+| `RESEND_API_KEY`, `MAIL_FROM` | Email codes that confirm an account's email, through [Resend](https://resend.com) (free for 3,000 emails a month). Verify the domain `shifokor.com` in Resend, then set `MAIL_FROM` to e.g. `Shifokor <noreply@shifokor.com>`. Without them, sign-up still works and the confirm page says email sending isn't on yet. |
 
 Then redeploy. On the first request the server creates its tables (`app_users`, `app_sessions`, `app_consults`, `app_messages`, `app_appts`, `app_reviews`, `app_files`, `app_signals`, `app_payments`, `app_payouts`, `app_preg`, `app_preg_checks`) by itself, including new ones added later. Without `DATABASE_URL` the site runs in demo mode.
 

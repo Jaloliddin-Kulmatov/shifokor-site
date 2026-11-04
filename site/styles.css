@@ -1486,3 +1486,17 @@ audio.voice { display: block; width: 240px; max-width: 100%; height: 36px; margi
 .brp { display: grid; gap: 4px; padding: 14px; border: 1px solid var(--line); border-radius: 16px; font-size: 0.92rem; }
 .brp b { display: flex; align-items: center; gap: 6px; }
 .brp b svg { width: 16px; height: 16px; color: var(--accent); flex: none; }
+
+/* sign-up: the doctor's and clinic's details in tinted sections */
+.regsec { margin: 6px 0 18px; padding: 18px 18px 6px; border-radius: 18px; background: linear-gradient(180deg, var(--accent-soft), color-mix(in srgb, var(--accent-soft) 35%, var(--surface))); border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent); }
+.regsech { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
+.regsech .icobox { width: 40px; height: 40px; flex: none; margin: 0; background: var(--surface); }
+.regsech .icobox svg { width: 20px; height: 20px; }
+.regsech h2 { margin: 0; font: 700 1.05rem var(--font-display); }
+.regsech p { margin: 2px 0 0; color: var(--muted); font-size: 0.9rem; }
+.regsec input, .regsec select, .regsec textarea { background: var(--surface); }
+.regsec .checks { display: flex; flex-wrap: wrap; gap: 8px; }
+.req { color: var(--risk); }
+.regnote { display: flex; gap: 8px; align-items: flex-start; margin: 0 0 14px; }
+.regnote svg { width: 18px; height: 18px; flex: none; color: var(--accent); margin-top: 2px; }
+.regsec [hidden] { display: none; }

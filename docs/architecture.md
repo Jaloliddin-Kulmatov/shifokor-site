@@ -22,7 +22,7 @@ api/
     site.js         This deployment's address; Telegram notice to a user.
     http.js         JSON responses, RFC 7807 problem details, request bodies.
   _modules/         Application: one module per area. Each exports its actions (use cases) and helpers.
-    users.js        sign-up, invites, sign-in, profile, online now, doctor photo, Telegram linking
+    users.js        sign-up (with the doctor's or clinic's first details), email codes, invites, sign-in, profile, online now, doctor photo, Telegram linking
     consults.js     apply (with a booked time), cancel, move, chat, accept, finish, in-person, pay link
     consult-repo.js reading a consultation, system notes in its chat
     slots.js        doctors' weekly hours, free times, day-before reminder

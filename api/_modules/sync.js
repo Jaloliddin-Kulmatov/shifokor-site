@@ -24,7 +24,7 @@ const actions = {
     let ona = { preg: null, mothers: [] };
     let medOrders = [];
     if (me) {
-      mine = Object.assign(userOut(me), { email: me.email || "", phone: me.phone || "", tg_linked: !!me.tg_chat, admin: isAdmin(me) });
+      mine = Object.assign(userOut(me), { email: me.email || "", phone: me.phone || "", tg_linked: !!me.tg_chat, email_verified: !!me.email_verified_at, admin: isAdmin(me) });
       const i = users.findIndex((u) => u.id === me.id);
       if (i > -1) users[i] = mine; else users.push(mine);
       const cs = await q(
@@ -51,7 +51,7 @@ const actions = {
       "select id, target_id, stars, body, author, hidden, reply, replied_at, created_at, consult_id is not null as by_consult, patient_id = $1::uuid as mine, case when patient_id = $1::uuid then consult_id end as consult_id, case when patient_id = $1::uuid then appt_id end as appt_id from app_reviews where not hidden or patient_id = $1::uuid order by created_at desc limit 1000",
       [me ? me.id : null]
     )).rows;
-    return { me: mine, users, consults, appts, reviews, notify: { tg: N.TG, sms: N.SMS }, pay: { payme: P.PAYME, click: P.CLICK }, earnings: earned, ona, med_orders: medOrders, clinics: await clinics.sync(me) };
+    return { me: mine, users, consults, appts, reviews, notify: { tg: N.TG, sms: N.SMS, mail: N.MAIL }, pay: { payme: P.PAYME, click: P.CLICK }, earnings: earned, ona, med_orders: medOrders, clinics: await clinics.sync(me) };
   }
 };
 

@@ -1,6 +1,6 @@
 # Shifokor: what we learned from other platforms, and the plan
 
-Last updated 4 November 2026.
+Last updated 5 November 2026.
 
 ## What the best platforms do, and where Shifokor stands
 
@@ -29,6 +29,29 @@ Last updated 4 November 2026.
 | Telegram Mini App / installable phone app | Doctor Anywhere, Kry/Livi | **Next** |
 | Insurance and employer plans | Zocdoc, Doctor Anywhere, Teladoc | Later |
 | Lab tests and health check packages | Doctor Anywhere, Halodoc | Later |
+
+## Core functions (November 2026)
+
+What the leading platforms put first, and what Shifokor keeps up front:
+
+| Platform | What it leads with |
+|---|---|
+| Zocdoc, Doctolib | One search box (complaint, doctor or clinic + place), then booking a free time |
+| Doctor Anywhere, Kry/Livi | See a doctor online now: chat and video, then medicines |
+| Practo, Halodoc | Find doctors, video consult, then pharmacy and lab tests as extra tabs |
+| OVI (Tashkent, 2025) | Picks the doctor for you from reviews, ratings and location; 24/7 chat and video |
+| DMED (state) | Polyclinic queue, e-prescriptions, records — not choice of a private doctor |
+
+**Kept up front:** find a doctor (search, filters, top-rated by real reviews), online consultation (chat, voice,
+photos, audio and video calls), booking a time, clinics and visit booking, the patient/doctor/clinic panels.
+**One click away under "More" and in the footer:** specialists, family health, prices, "Onalar uchun", mental health,
+health tips, about, questions, settings. Nothing was removed; the header went from 3 menus with 16 links to
+Find a doctor · Clinics · More · Online consultation.
+
+**Home page order:** search with a real photo → healthcare for you (prices) → who needs help (4 photo cards) →
+top-rated doctors (only doctors with reviews) → promises → how to use → reviews → specialties → when online fits →
+for doctors and clinics → questions. Removed from the home page (still on their own pages): the region lists, the
+mission comparison, the second call-to-action band and the DMED box (it's in the questions).
 
 ## The plan
 
@@ -67,7 +90,7 @@ Last updated 4 November 2026.
 
 ## Design system (November 2026)
 - **One search box first** (Zocdoc): complaint or doctor's name, region, Search. Specialty, language, woman doctor and "online now" fold under "Ko‘proq filtrlar". Example complaints sit under the box.
-- **Home page order:** search → "Siz uchun tibbiy yordam" → when online help works (slider) → top-rated doctors as tiles → see a doctor online + promises → how to use → reviews → specialties → when online is not enough → why we exist → call to action → DMED → regions → questions. Nothing is said twice.
+- **Home page order:** see "Core functions" above. Nothing is said twice.
 - **Cards:** 20 px corners, a soft shadow; cards you can tap lift slightly on hover (not with reduced motion).
 - **Headings:** one size per level on every page.
 - **Top bar:** one filled button (register); "Onlayn maslahat" is tinted so the two don't compete.

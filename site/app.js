@@ -285,7 +285,9 @@
       '<div class="hfchips">' + [["hf-on", t.df_online], ["hf-fem", t.df_fem], ["hf-rate", t.hf_rated]].map(function (x) { return '<label class="chipchk"><input type="checkbox" id="' + x[0] + '"><span>' + x[1] + "</span></label>"; }).join("") + "</div></details>" +
       '<div class="hfquick"><span class="muted">' + t.hf_try + "</span>" + t.hf_tries.map(function (x) { return '<a href="#/doctors?' + qs({ q: x }) + '">' + esc(x) + "</a>"; }).join("") + "</div>" +
       '<div class="hfmore"><a class="btn light" href="#/consult?now=1">' + ic("video") + t.asap_now[0] + '</a><a class="hflink" href="#/prices">' + ic("tag") + t.hf_prices + "</a></div></form>";
-    var docs = realFirst(withSamples().filter(function (u) { return u.role === "doctor"; }), "rating").slice(0, 6);
+    var score = function (r) { return (r.avg * r.n + 4 * 3) / (r.n + 3); };
+    var docs = withSamples().filter(function (u) { return u.role === "doctor"; }).map(function (u) { return { u: u, r: ratingOf(u.id) }; }).filter(function (x) { return x.r.n > 0; })
+      .sort(function (a, b) { return score(b.r) - score(a.r) || (a.u.sample ? 1 : 0) - (b.u.sample ? 1 : 0); }).slice(0, 6).map(function (x) { return x.u; });
     /* search by specialty, with how many doctors each has */
     var specs = DOC_SP.filter(function (k) { return k !== "other"; }).map(function (k) { return { k: k, n: withSamples().filter(function (u) { return u.role === "doctor" && (u.profile || {}).spec === k; }).length }; });
     var seen = {}, rvs = reviews().filter(function (r) { var d = userById(r.target); return !r.hidden && r.stars >= 4 && r.body && d && d.role === "doctor"; })
@@ -293,25 +295,27 @@
       .filter(function (r) { if (seen[r.target] || seen[r.body]) return false; seen[r.target] = seen[r.body] = 1; return true; }).slice(0, 3);
     var rvHome = rvs.length ? '<div class="wrap pad" style="padding-top:12px"><div class="sechead"><h2>' + t.hrv_h + "</h2>" + (rvs.some(function (r) { return userById(r.target).sample; }) ? smpBadge() : "") + '</div><div class="hrv">' + rvs.map(function (r) { var d = userById(r.target); return '<figure class="hrvi"><div class="stars" aria-label="' + esc(t.rv_star_l(r.stars)) + '">' + "★★★★★".slice(0, r.stars) + "</div><blockquote>" + esc(r.body) + "</blockquote><figcaption><b>" + esc(r.author || t.rv_anon_name) + '</b><a href="#/doc/' + d.id + '">' + esc(d.name) + " · " + esc(specName(d.profile || {})) + "</a></figcaption></figure>"; }).join("") + "</div></div>" : "";
     var cats = '<div class="wrap pad" style="padding-top:12px"><h2>' + t.cat_h + '</h2><p class="lead">' + t.cat_p + '</p><div class="specgrid">' + specs.map(function (x) { return '<a class="specbox" href="#/doctors?' + qs({ s: x.k }) + '"><b>' + t.docsp[x.k] + '</b><span class="muted">' + t.cat_n(x.n) + "</span></a>"; }).join("") + "</div></div>";
-    var regs = regSel.map(function (r) { return '<a class="chip" href="#/doctors?' + qs({ r: r.code }) + '">' + esc(nmL(r)) + "</a>"; }).join("");
-    /* "consult a doctor online" with a big phone and three trust cards, then how to use it, as on Doctor Anywhere */
-    var vcSec = '<div class="band soft"><div class="wrap pad vcgrid"><div><h2>' + t.vc_h + '</h2><p class="lead">' + t.vc_p + '</p><ul class="vcregs">' + regSel.map(function (r) { return '<li><a href="#/doctors?' + qs({ r: r.code }) + '">' + esc(nmL(r)) + "</a></li>"; }).join("") + '</ul><a class="btn big" href="#/consult?now=1">' + ic("video") + t.vc_go + '</a><p class="vcrx">' + ic("home") + "<span>" + t.vc_rx + "</span></p></div>" + '<div class="vcart">' + phCall(true) + "</div></div>" +
-      '<div class="wrap tcards">' + t.tc.map(function (x, i) { return '<div class="tcard"><div class="tcimg t' + i + '">' + ic(["shield", "free", "check"][i]) + "</div><div><b>" + x[0] + "</b><p>" + x[1] + "</p></div></div>"; }).join("") + "</div></div>";
     var howSec = '<div class="wrap pad howgrid"><div class="howart"><span class="bignum" aria-hidden="true">01</span>' + phHome() + '</div><div><h2>' + t.how_use_h + '</h2><ol class="howlist">' + t.how_f.map(function (x, i) { return '<li><span class="hn">0' + (i + 1) + "</span><div><b>" + x[0] + "</b><p>" + x[1] + "</p></div></li>"; }).join("") + '</ol><a class="btn" href="#/doctors">' + ic("search") + t.hm_cta_pick + "</a></div></div>";
-    return '<div class="band deep homehero"><div class="wrap hero"><div><h1>' + t.hf_h1 + '</h1><p class="herotag">' + t.hero_tag + '</p><p class="sub">' + t.hf_sub + "</p>" + form + "</div>" + heroPhones() + "</div></div>" +
-      hcCards() + whenSlider() +
-      (live.length ? '<div class="wrap pad" style="padding-top:12px"><div class="sechead"><h2>' + t.hm_online_h + '</h2><a class="btn sm" href="#/consult?now=1">' + ic("chat") + t.hm_cta_now + '</a></div><div class="results" style="padding:14px 0 0">' + live.slice(0, 3).map(docCard).join("") + "</div></div>" : "") +
-      '<div class="wrap pad" style="padding-top:12px"><div class="sechead"><h2>' + t.top_docs_h + '</h2><a class="btn ghost sm" href="#/doctors">' + t.new_docs_all + "</a></div>" + (docs.length ? '<div class="dtgrid">' + docs.map(docTile).join("") + "</div>" : '<div class="empty" style="margin-top:14px">' + t.new_docs_none + ' <a href="#/register" data-regrole-link="doctor">' + t.reg_doc_cta + "</a></div>") + "</div>" +
-      vcSec + howSec + rvHome + cats +
+    var prosSec = '<div class="band soft"><div class="wrap pad prosgrid"><figure class="shot prosph">' + photo("doctor-desk", t.pros_img, "(max-width: 760px) 90vw, 560px") + '</figure><div><span class="eyebrow">' + t.nv_pros + "</span><h2>" + t.pros_h + '</h2><p class="lead">' + t.pros_p + '</p><ul class="slex">' + t.pros_pts.map(function (e) { return "<li>" + ic("check") + "<span>" + e + "</span></li>"; }).join("") +
+      '</ul><div class="btns"><a class="btn" href="#/register" data-regrole-link="doctor">' + t.reg_doc_cta + '</a><a class="btn ghost" href="#/register" data-regrole-link="clinic">' + t.reg_clinic_cta + "</a></div></div></div></div>";
+    return '<div class="band deep homehero"><div class="wrap hero"><div><h1>' + t.hf_h1 + '</h1><p class="herotag">' + t.hero_tag + '</p><p class="sub">' + t.hf_sub + "</p>" + form + "</div>" + heroArt() + "</div></div>" +
+      hcCards() + careCards() +
+      (live.length ? '<div class="wrap pad" style="padding-top:12px"><div class="sechead"><h2>' + t.hm_online_h + '</h2><a class="btn sm" href="#/consult?now=1">' + ic("chat") + t.hm_cta_now + '</a></div><div class="results" style="padding:14px 0 0">' + live.slice(0, 4).map(docCard).join("") + "</div></div>" : "") +
+      '<div class="wrap pad" style="padding-top:12px"><div class="sechead"><div><h2>' + t.top_docs_h + '</h2><p class="lead" style="margin:4px 0 0">' + t.top_p + '</p></div><a class="btn ghost sm" href="#/doctors">' + t.new_docs_all + "</a></div>" +
+        (docs.length ? '<div class="dtgrid">' + docs.map(docTile).join("") + "</div>" + (docs.some(function (u) { return u.sample; }) ? '<p class="fine" style="margin-top:10px">' + t.smp_dir + "</p>" : "") : '<p class="muted">' + t.top_none + "</p>") + "</div>" +
+      '<div class="wrap tcards homepromise">' + t.tc.map(function (x, i) { return '<div class="tcard"><div class="tcimg t' + i + '">' + ic(["shield", "free", "check"][i]) + "</div><div><b>" + x[0] + "</b><p>" + x[1] + "</p></div></div>"; }).join("") + "</div>" +
+      howSec + rvHome + cats +
       '<div class="wrap pad"><h2>' + t.oc_h + '</h2><p class="lead">' + t.oc_p + "</p>" + ocLists(false) + "</div>" +
-      /* why Shifokor exists: a good doctor is easy to find in a city and hard to find in a village */
-      '<div class="wrap pad mission" style="padding-top:12px"><div class="misgrid"><div><h2>' + t.mis_h + '</h2><p class="lead">' + t.mis_p + '</p></div><figure class="shot">' + photo("nukus-phone", t.img_nukus, "(max-width: 760px) 90vw, 440px") + "<figcaption>" + t.img_nukus_cap + '</figcaption></figure></div><div class="mis"><div class="mishead" aria-hidden="true"><span>' + t.mis_was + "</span><span>" + t.mis_now + "</span></div>" +
-        t.mis_rows.map(function (r) { return '<div class="misrow"><p class="was" data-l="' + esc(t.mis_was) + '">' + r[0] + '</p><p class="now" data-l="' + esc(t.mis_now) + '">' + ic("check") + "<span>" + r[1] + "</span></p></div>"; }).join("") + "</div></div>" +
-      '<div class="band deep ctaband"><div class="wrap pad ctagrid"><div><h2>' + t.hm_cta_h + "</h2><p>" + t.hm_cta_p + '</p><div class="btns"><a class="btn light big" href="#/consult?now=1">' + ic("chat") + t.hm_cta_now + '</a><a class="btn ghost big" href="#/doctors">' + ic("search") + t.hm_cta_pick + '</a></div></div><svg class="ctaart" viewBox="0 0 440 400" role="img" aria-label="' + esc(t.art_alt) + '">' + ART + "</svg></div></div>" +
-      '<div class="wrap"><div class="panel rural"><div class="icobox">' + ic("hosp") + "</div><div><h3>" + t.dmed_h + "</h3><p>" + t.dmed_p + '</p></div><div class="stat"><a class="btn ghost sm" href="https://my.gov.uz" target="_blank" rel="noopener">' + t.dmed_go + "</a></div></div></div>" +
-      '<div class="wrap pad"><figure class="shot wide">' + photo("samarkand", t.img_sam, "(max-width: 760px) 95vw, 1200px") + "<figcaption>" + t.img_sam_cap + "</figcaption></figure><h2>" + t.regions_doc_h + '</h2><div class="chips" style="margin-top:18px">' + regs + "</div></div>" +
-      '<div class="band alt"><div class="wrap pad"><h2>' + t.faq_short_h + '</h2><div class="faq">' + t.faq_f.map(function (q) { return "<details><summary>" + q[0] + "</summary><p>" + q[1] + "</p></details>"; }).join("") + "</div>" +
-      '<p class="joinline">' + t.join_line + ' <a href="#/register" data-regrole-link="doctor">' + t.join_go + '</a></p><p class="fine credits">' + t.ph_credit + "</p></div></div>";
+      prosSec +
+      '<div class="wrap pad"><h2>' + t.faq_short_h + '</h2><div class="faq">' + t.faq_f.map(function (q) { return "<details><summary>" + q[0] + "</summary><p>" + q[1] + "</p></details>"; }).join("") + "</div>" +
+      '<p class="fine credits">' + t.ph_credit + "</p></div>";
+  }
+  /* who needs help: four groups with a real photo each (the old slider, laid out as cards) */
+  function careCards() {
+    var t = L(), links = ["#/doctors?" + qs({ s: "pediatrics" }), "#/doctors?" + qs({ s: "therapist" }), "#/ona", "#/doctors?" + qs({ s: "psych" })], imgs = ["ped-baby", "elderly-visit", "pregnancy", "psychologist"];
+    return '<div class="wrap pad" style="padding-top:12px"><h2>' + t.sl_h + '</h2><p class="lead">' + t.care_p + '</p><div class="caregrid">' + t.sl.map(function (x, i) {
+      return '<a class="carecard" href="' + links[i] + '"><div class="carephoto">' + photo(imgs[i], x[5], "(max-width: 600px) 92vw, (max-width: 1100px) 45vw, 300px") + '<span class="eyebrow">' + x[0] + '</span></div><div class="caretext"><h3>' + x[1] + "</h3><p>" + x[2] + '</p><span class="carego">' + x[4] + " →</span></div></a>";
+    }).join("") + '</div><p class="fine" style="margin-top:12px">' + t.sl_em + "</p></div>";
   }
 
   /* ---------------- results ---------------- */

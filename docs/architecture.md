@@ -38,6 +38,7 @@ api/
     pay.js          Payme and Click
     ona.js          "Onalar uchun"
     meds.js         medicine lists and delivery requests
+    clinics.js      clinic branches, doctors invited by phone, the clinic's weekly calendar
     notify.js       Telegram and SMS sending
     services.js     builds pay, ona and meds with what they need
   _worker/          Background work (like SuperFlow's Hangfire jobs).
@@ -59,6 +60,7 @@ api/
 
 Also: `POST /api/v1/auth/signup|login|logout`, `/consultations/{id}/finish|refer|cancel|reschedule|messages|call|followup|pay-link|medicines|medicine-orders`,
 `/appointments`, `/appointments/{id}/confirm|decline|cancel`, `/reviews`, `/reviews/{id}/reply`, `PUT /me/profile`, `POST /me/online`,
+`/branches`, `/branches/{id}`, `/staff`, `/staff/{id}/answer|branch`, `GET /clinic/calendar`,
 `/admin/users`, `/admin/users/{id}/verify`, `/admin/payouts`, `/admin/medicine-orders`, and `POST /api/v1/jobs/tick`.
 Both run the same action, so the same checks apply. REST errors are problem details: `{ "type": "about:blank", "title": "<code>", "status": 409 }`.
 Sign in with `POST /api/v1/auth/login { "id": "<phone or email>", "password": "â€¦" }` and send `Authorization: Bearer <token>`.
@@ -68,8 +70,8 @@ Sign in with `POST /api/v1/auth/login { "id": "<phone or email>", "password": "â
 | Role | Can |
 |---|---|
 | patient | apply, book times, cancel/move own bookings, chat, call, pay, review, ask for medicine delivery, book clinic visits |
-| doctor | accept, chat, call, write medicine lists, finish, send to an in-person visit, set hours and prices, reply to reviews |
-| clinic | confirm or decline visit requests, reply to reviews |
+| doctor | accept, chat, call, write medicine lists, finish, send to an in-person visit, set hours and prices, reply to reviews, accept or decline a clinic's invitation, leave a clinic |
+| clinic | confirm or decline visit requests, reply to reviews, keep branches, invite and remove doctors, see its doctors' booked times (no patient details) |
 | admin (any account listed in `ADMIN_EMAILS` / `ADMIN_PHONES`) | check doctors and clinics, import doctors, payouts, medicine delivery, hide reviews |
 
 ## Jobs

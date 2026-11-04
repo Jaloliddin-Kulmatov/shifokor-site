@@ -11,6 +11,7 @@ const N = require("./notify");
 const { userOut } = require("./users");
 const { earnings } = require("./payouts");
 const { P, O, M } = require("./services");
+const clinics = require("./clinics");
 
 const actions = {
   async sync(b, me) {
@@ -50,7 +51,7 @@ const actions = {
       "select id, target_id, stars, body, author, hidden, reply, replied_at, created_at, consult_id is not null as by_consult, patient_id = $1::uuid as mine, case when patient_id = $1::uuid then consult_id end as consult_id, case when patient_id = $1::uuid then appt_id end as appt_id from app_reviews where not hidden or patient_id = $1::uuid order by created_at desc limit 1000",
       [me ? me.id : null]
     )).rows;
-    return { me: mine, users, consults, appts, reviews, notify: { tg: N.TG, sms: N.SMS }, pay: { payme: P.PAYME, click: P.CLICK }, earnings: earned, ona, med_orders: medOrders };
+    return { me: mine, users, consults, appts, reviews, notify: { tg: N.TG, sms: N.SMS }, pay: { payme: P.PAYME, click: P.CLICK }, earnings: earned, ona, med_orders: medOrders, clinics: await clinics.sync(me) };
   }
 };
 

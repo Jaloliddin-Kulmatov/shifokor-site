@@ -297,6 +297,34 @@ create table if not exists app_med_orders (
 create index if not exists app_med_orders_consult_idx on app_med_orders (consult_id);
 create index if not exists app_med_orders_patient_idx on app_med_orders (patient_id);
 
+-- Clinics with branches and staff (after SuperFlow's tenants, branches and specialists). A clinic invites a doctor
+-- by phone; the doctor accepts in their panel (a doctor who isn't on Shifokor yet sees it after registering with
+-- that number). The clinic sees its doctors' booked times, not the patients' details.
+create table if not exists app_branches (
+  id uuid primary key default gen_random_uuid(),
+  clinic_id uuid not null references app_users (id) on delete cascade,
+  name text not null check (char_length(name) between 1 and 120),
+  region text,
+  address text check (address is null or char_length(address) <= 300),
+  phone text,
+  hours text check (hours is null or char_length(hours) <= 120),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists app_branches_clinic_idx on app_branches (clinic_id);
+create table if not exists app_staff (
+  id uuid primary key default gen_random_uuid(),
+  clinic_id uuid not null references app_users (id) on delete cascade,
+  doctor_id uuid references app_users (id) on delete cascade,
+  phone text not null,
+  branch_id uuid references app_branches (id) on delete set null,
+  status text not null default 'invited' check (status in ('invited', 'active')),
+  created_at timestamptz not null default now(),
+  answered_at timestamptz
+);
+create unique index if not exists app_staff_phone_uq on app_staff (clinic_id, phone);
+create index if not exists app_staff_doctor_idx on app_staff (doctor_id);
+
 -- Worker: jobs that run at a given time (reminders an hour before a booked consultation, and more later).
 create table if not exists app_jobs (
   id bigint generated always as identity primary key,
@@ -326,4 +354,6 @@ alter table app_preg enable row level security;
 alter table app_preg_checks enable row level security;
 alter table app_med_orders enable row level security;
 alter table app_jobs enable row level security;
+alter table app_branches enable row level security;
+alter table app_staff enable row level security;
 `;

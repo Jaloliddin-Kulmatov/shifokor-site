@@ -660,8 +660,8 @@
     return { t: "x", label: label };
   }
   function doctorsAt(clinic) {
-    var fac = clinic.profile && clinic.profile.fac;
-    return users().filter(function (u) { return u.role === "doctor" && (u.profile.work || []).some(function (w) { return (w.t === "c" && w.id === clinic.id) || (fac && w.t === "f" && w.key === fac); }); });
+    var fac = clinic.profile && clinic.profile.fac, staff = staffOfClinic(clinic.id).map(function (x) { return x.doctorId; });
+    return users().filter(function (u) { return u.role === "doctor" && (staff.indexOf(u.id) > -1 || (u.profile.work || []).some(function (w) { return (w.t === "c" && w.id === clinic.id) || (fac && w.t === "f" && w.key === fac); })); });
   }
   function clinicForFac(key) { var l = users().filter(function (u) { return u.role === "clinic" && u.profile && u.profile.fac === key; }); return (BE ? l.filter(function (u) { return u.verified; })[0] : l[0]) || null; }
   var canBook = function (clinic) { return !BE || !!clinic.verified; };
@@ -762,7 +762,8 @@
     return '<div class="wrap"><a class="back" href="#/doctors">‹ ' + t.nav_doctors + '</a><div class="pf"><div><div class="who">' + personAv(u) + "<div><h1>" + esc(u.name) + '</h1><div class="spec">' + esc(specName(pr)) + (pr.years ? " · " + t.exp(pr.years) : "") + '</div><div class="badges">' + (u.sample ? smpBadge() : '<span class="badge">' + t.on_sh + "</span>" + vBadge(u)) + (ratingOf(u.id).n ? '<a href="#reviews" data-scroll="reviews" class="badge plain rbadge">' + ratingLine(u.id) + "</a>" : "") + (isOnline(u) ? '<span class="badge plain">' + ic("video") + t.online_b + "</span>" : "") + "</div></div></div>" +
       (u.pending ? '<p class="note-box">' + t.im_pending_note + "</p>" : "") + (u.sample ? '<p class="note-box">' + t.smp_note + ' <a href="#/doctors?' + qs({ s: pr.spec }) + '">' + t.smp_real + "</a></p>" : "") +
       (pr.bio ? '<div class="sect"><p class="lead" style="margin:0">' + esc(pr.bio) + "</p></div>" : "") +
-      ((pr.work || []).length ? '<div class="sect"><h2>' + t.works_at + '</h2><ul class="list">' + pr.work.map(function (w) { return "<li>" + wpLink(w) + "</li>"; }).join("") + "</ul></div>" : "") +
+      (function () { var wl = (pr.work || []).slice(); clinicsOfDoctor(u.id).forEach(function (x) { if (!wl.some(function (w) { return w.t === "c" && w.id === x.clinicId; }) && userById(x.clinicId)) wl.push({ t: "c", id: x.clinicId }); });
+        return wl.length ? '<div class="sect"><h2>' + t.works_at + '</h2><ul class="list">' + wl.map(function (w) { return "<li>" + wpLink(w) + "</li>"; }).join("") + "</ul></div>" : ""; })() +
       cpBlock(u) +
       ((pr.svc || []).some(function (x) { return x.name; }) ? '<div class="sect"><h2>' + t.svc_h + "</h2>" + svcTable(pr.svc, true) + "</div>" : "") + rvList(u) +
       (pr.edu ? '<div class="sect"><h2>' + t.sec_bg + '</h2><p class="pre">' + esc(pr.edu) + "</p></div>" : "") +
@@ -788,6 +789,7 @@
       ((pr.svc || []).some(function (x) { return x.name; }) ? '<div class="sect"><h2>' + t.svc_h + "</h2>" + svcTable(pr.svc, false) + (u.updated ? '<p style="margin-top:10px"><span class="confline">' + t.updated(fmt(fromIso(u.updated), { day: "numeric", month: "short" })) + "</span></p>" : "") + "</div>" : "") +
       (canBook(u) ? apForm(u, pr.fac) : '<div class="sect"><div class="note-box">' + t.ap_unv + "</div></div>") +
       rvList(u) +
+      (branchesOf(u.id).length ? '<div class="sect"><h2>' + t.cl_br_pub + '</h2><div class="brpub">' + branchesOf(u.id).map(function (b) { return '<div class="brp"><b>' + ic("pin") + esc(b.name) + "</b>" + (b.address || (b.region && regByCode[b.region]) ? '<span class="muted">' + esc([b.region && regByCode[b.region] ? nmL(regByCode[b.region]) : "", b.address].filter(Boolean).join(", ")) + "</span>" : "") + (b.hours ? "<span>" + esc(b.hours) + "</span>" : "") + (b.phone ? '<a class="nums" href="tel:+' + digits(b.phone) + '">' + esc(fmtPhone(b.phone)) + "</a>" : "") + "</div>"; }).join("") + "</div></div>" : "") +
       '<div class="sect"><h2>' + t.c_docs_h + "</h2>" + (docs.length ? '<div class="results" style="padding:0">' + docs.map(docCard).join("") + "</div>" : '<p class="muted">' + t.c_no_docs + "</p>") + "</div>" +
       '<p class="fine" style="margin-top:20px">' + t.acc_demo + "</p></div>" +
       '<aside class="stick"><h2>' + t.fac_map + "</h2>" + (f ? '<div id="map" class="map small" role="region" aria-label="' + t.p_loc + '"></div>' : "") + '<div class="stack" style="margin-top:12px">' + (canBook(u) ? '<a class="btn block" href="#book" data-scroll="book">' + ic("cal") + t.ap_h + "</a>" : "") + tgBtn(u) + (dl ? '<a class="btn ghost block" href="' + dl.y + '" target="_blank" rel="noopener">' + ic("nav") + t.fac_dir_y + "</a>" : "") + "</div></aside></div></div>";
@@ -1496,7 +1498,7 @@
   var PNAV = {
     patient: [["/", "home", "home"], ["/consults", "chat", "consults"], ["/visits", "cal", "visits"], ["/meds", "flask", "meds"], ["/ona", "heart", "ona"], ["/settings", "shield", "settings"]],
     doctor: [["/", "home", "home"], ["/requests", "chat", "requests"], ["/schedule", "cal", "schedule"], ["/patients", "heart", "patients"], ["/earnings", "card", "earnings"], ["/reviews", "star", "reviews"], ["/settings", "shield", "settings"]],
-    clinic: [["/", "home", "home"], ["/requests", "cal", "crequests"], ["/team", "heart", "cdoctors"], ["/reviews", "star", "reviews"], ["/settings", "shield", "settings"]],
+    clinic: [["/", "home", "home"], ["/requests", "bell", "crequests"], ["/calendar", "cal", "ccalendar"], ["/team", "heart", "cdoctors"], ["/branches", "pin", "cbranches"], ["/reviews", "star", "reviews"], ["/settings", "shield", "settings"]],
     admin: [["/admin", "shield", "a_chk"], ["/admin?tab=pay", "card", "a_pay"], ["/admin?tab=import", "plus", "a_import"], ["/admin?tab=meds", "flask", "a_meds"]]
   };
   var siteUrl = function (hash) { return hash || "#/"; };
@@ -1537,11 +1539,84 @@
     var t = L(), list = appts().filter(function (a) { return a.clinicId === u.id; }), fresh = list.filter(function (a) { return a.status === "new" && apOpen(a); }), today = iso(today0());
     var todays = list.filter(function (a) { return a.day === today && a.status === "confirmed"; }), docs = doctorsAt(u), r = ratingOf(u.id);
     return pHead(esc(u.name), t.pn_cli_p, '<a class="btn ghost" href="' + siteUrl("#/c/" + u.id) + '">' + ic("search") + t.acc_view + "</a>") + trustCard(u) +
-      '<div class="pstats">' + pStat("cal", t.pn_st_cnew, fresh.length, "", acc("/requests")) + pStat("check", t.pn_st_ctoday, todays.length, "", acc("/requests")) + pStat("heart", t.pn_st_cdocs, docs.length, "", acc("/team")) + pStat("star", t.pro_st_rating(r.n), r.n ? avgTxt(r.avg) + " ★" : "—", "", acc("/reviews")) + "</div>" + clinicInbox(u);
+      '<div class="pstats">' + pStat("cal", t.pn_st_cnew, fresh.length, "", acc("/requests")) + pStat("check", t.pn_st_ctoday, todays.length, "", acc("/requests")) + pStat("heart", t.pn_st_cdocs, docs.length, myStaff(u).filter(function (x) { return x.status !== "active"; }).length ? t.cl_inv_wait_n(myStaff(u).filter(function (x) { return x.status !== "active"; }).length) : "", acc("/team")) + pStat("pin", t.cl_st_branches, branchesOf(u.id).length, "", acc("/branches")) + pStat("star", t.pro_st_rating(r.n), r.n ? avgTxt(r.avg) + " ★" : "—", "", acc("/reviews")) + "</div>" + clinicInbox(u);
   }
-  function pClinicDoctors(u) {
-    var t = L(), docs = doctorsAt(u);
-    return pHead(t.pn_t.cdoctors, t.pn_cdocs_p) + (docs.length ? '<div class="dtgrid">' + docs.map(docTile).join("") + "</div>" : pCard("", pEmpty("heart", t.c_no_docs, t.pn_cdocs_none)));
+  /* ---------------- clinics with branches and staff (after SuperFlow's branches and specialists) ----------------
+     A clinic keeps branches and invites doctors by phone; the doctor accepts in their panel. The clinic's calendar shows
+     its doctors' booked times, not the patients. Server mode reads what sync brought; demo mode keeps it all here. */
+  var KBR = "shifokor-branches", KSTA = "shifokor-staff-all", BRF = null, STDEL = "", CAL = { at: 0, list: null, busy: false };
+  var demoStaff = function () { return store.get(KSTA, []); };
+  var branches = function () { return store.get(KBR, []); };
+  var branchesOf = function (cid) { return branches().filter(function (b) { return b.clinicId === cid; }); };
+  var branchById = function (id) { return branches().filter(function (b) { return b.id === id; })[0] || null; };
+  /* working doctors (accepted) of a clinic, or a doctor's clinics */
+  function staffActive() { return BE ? store.get("shifokor-staff", []) : demoStaff().filter(function (x) { return x.status === "active"; }); }
+  function staffOfClinic(cid) { return staffActive().filter(function (x) { return x.clinicId === cid; }); }
+  function clinicsOfDoctor(did) { return staffActive().filter(function (x) { return x.doctorId === did; }); }
+  /* the clinic's own list, with invitations not yet answered */
+  function myStaff(u) { if (BE) return store.get("shifokor-mystaff", []); return demoStaff().filter(function (x) { return x.clinicId === u.id; }).map(function (x) { var d = x.doctorId ? userById(x.doctorId) : null; return Object.assign({}, x, { doctorName: d ? d.name : "" }); }); }
+  /* invitations waiting for this doctor */
+  function myInvites(u) {
+    if (BE) return store.get("shifokor-invites", []);
+    return demoStaff().filter(function (x) { return x.status === "invited" && (x.doctorId === u.id || (!x.doctorId && u.phone && x.phone === digits(u.phone))); }).map(function (x) { var c = userById(x.clinicId), b = branchById(x.branchId); return { id: x.id, clinicId: x.clinicId, branchId: x.branchId, clinicName: c ? c.name : "", branchName: b ? b.name : "" }; });
+  }
+  var branchSel = function (id, cid, cur, empty) { var t = L(); return '<select id="' + id + '"><option value="">' + (empty || t.cl_no_branch) + "</option>" + branchesOf(cid).map(function (b) { return '<option value="' + b.id + '"' + (cur === b.id ? " selected" : "") + ">" + esc(b.name) + "</option>"; }).join("") + "</select>"; };
+  function pClinicBranches(u) {
+    var t = L(), list = branchesOf(u.id), staff = staffOfClinic(u.id);
+    var form = function (b) {
+      b = b || {};
+      return '<form class="pcard brform" id="brform" data-id="' + esc(b.id || "") + '" novalidate><div class="pcardh"><h2>' + (b.id ? t.cl_br_edit : t.cl_br_new) + '</h2></div><div class="two"><div class="fld"><label for="br-name">' + t.cl_br_name + '</label><input id="br-name" maxlength="120" value="' + esc(b.name || "") + '" placeholder="' + esc(t.cl_br_name_ph) + '"></div>' +
+        '<div class="fld"><label for="br-region">' + t.f_region + '</label><select id="br-region"><option value="">—</option>' + REG.slice().sort(function (x, y) { return nmL(x).localeCompare(nmL(y)); }).map(function (r) { return '<option value="' + r.code + '"' + (b.region === r.code ? " selected" : "") + ">" + esc(nmL(r)) + "</option>"; }).join("") + "</select></div></div>" +
+        '<div class="fld"><label for="br-addr">' + t.fac_addr + '</label><input id="br-addr" maxlength="300" value="' + esc(b.address || "") + '"></div><div class="two"><div class="fld"><label for="br-phone">' + t.fac_phone + '</label><input id="br-phone" type="tel" inputmode="tel" value="' + esc(b.phone ? fmtPhone(b.phone) : "") + '" placeholder="+998"></div>' +
+        '<div class="fld"><label for="br-hours">' + t.fac_hours + '</label><input id="br-hours" maxlength="120" value="' + esc(b.hours || "") + '" placeholder="' + esc(t.ohours_ph) + '"></div></div><div class="err" id="br-err" aria-live="polite"></div><div class="btns"><button class="btn" type="submit">' + t.acc_save + '</button><button class="btn ghost" type="button" data-br="close">' + t.po_cancel + "</button></div></form>";
+    };
+    var card = function (b) {
+      if (BRF && BRF.id === b.id) return form(b);
+      var n = staff.filter(function (x) { return x.branchId === b.id; }).length;
+      return '<section class="pcard brcard"><div class="pcardh"><h2>' + ic("pin") + " " + esc(b.name) + '</h2><span class="badge plain">' + t.cl_docs_n(n) + "</span></div>" +
+        '<dl class="kv">' + (b.region && regByCode[b.region] ? "<dt>" + t.f_region + "</dt><dd>" + esc(nmL(regByCode[b.region])) + "</dd>" : "") + (b.address ? "<dt>" + t.fac_addr + "</dt><dd>" + esc(b.address) + "</dd>" : "") + (b.phone ? "<dt>" + t.fac_phone + '</dt><dd class="nums">' + esc(fmtPhone(b.phone)) + "</dd>" : "") + (b.hours ? "<dt>" + t.fac_hours + "</dt><dd>" + esc(b.hours) + "</dd>" : "") + "</dl>" +
+        '<div class="btns">' + (STDEL === "br" + b.id ? '<b class="muted">' + t.cl_br_del_q + '</b><button class="btn danger sm" type="button" data-br="delok" data-id="' + b.id + '">' + t.cl_del_yes + '</button><button class="btn ghost sm" type="button" data-br="nodel">' + t.v_keep + "</button>" : '<button class="btn ghost sm" type="button" data-br="edit" data-id="' + b.id + '">' + t.cl_edit + '</button><button class="linkbtn" type="button" data-br="del" data-id="' + b.id + '">' + t.cl_delete + "</button>") + "</div></section>";
+    };
+    return pHead(t.pn_t.cbranches, t.cl_br_p, BRF && !BRF.id ? "" : '<button class="btn" type="button" data-br="new">' + ic("plus") + t.cl_br_add + "</button>") + (BRF && !BRF.id ? form(null) : "") +
+      (list.length ? '<div class="brgrid">' + list.map(card).join("") + "</div>" : BRF ? "" : pCard("", pEmpty("pin", t.cl_br_none, t.cl_br_none_p, '<button class="btn" type="button" data-br="new">' + ic("plus") + t.cl_br_add + "</button>")));
+  }
+  function pClinicTeam(u) {
+    var t = L(), rows = myStaff(u), docs = doctorsAt(u);
+    var row = function (x) {
+      var d = x.doctorId ? userById(x.doctorId) : null;
+      return '<div class="strow">' + (d ? avatarOf(d, "sm") : '<span class="pav sm" aria-hidden="true">' + ic("phone") + "</span>") + '<div class="stmain"><b>' + esc(x.doctorName || (d && d.name) || fmtPhone(x.phone)) + '</b><small class="muted">' + (d ? esc(specName(d.profile || {})) + " · " + esc(fmtPhone(x.phone)) : x.doctorName ? esc(fmtPhone(x.phone)) : "") + "</small></div>" +
+        '<span class="badge ' + (x.status === "active" ? "ok" : "warn") + '">' + (x.status === "active" ? t.cl_st_active : x.doctorId ? t.cl_st_invited : t.cl_st_wait) + "</span>" +
+        '<label class="vh" for="st-br-' + x.id + '">' + t.cl_branch + "</label>" + branchSel("st-br-" + x.id, u.id, x.branchId) +
+        (STDEL === "st" + x.id ? '<button class="btn danger sm" type="button" data-st="rmok" data-id="' + x.id + '">' + t.cl_del_yes + '</button><button class="btn ghost sm" type="button" data-st="no">' + t.v_keep + "</button>" : '<button class="linkbtn" type="button" data-st="rm" data-id="' + x.id + '">' + t.cl_remove + "</button>") + "</div>";
+    };
+    return pHead(t.pn_t.cdoctors, t.cl_team_p) +
+      '<form class="pcard stform" id="stform" novalidate><div class="pcardh"><h2>' + t.cl_inv_h + '</h2></div><p class="muted" style="margin:0 0 12px">' + t.cl_inv_p + '</p><div class="stinv"><div class="fld"><label for="st-phone">' + t.cl_inv_phone + '</label><input id="st-phone" type="tel" inputmode="tel" placeholder="+998"></div><div class="fld"><label for="st-branch">' + t.cl_branch + "</label>" + branchSel("st-branch", u.id, "") + '</div><button class="btn" type="submit">' + ic("plus") + t.cl_inv_send + '</button></div><div class="err" id="st-err" aria-live="polite"></div></form>' +
+      pCard(t.cl_staff_h + " · " + rows.length, rows.length ? '<div class="stlist">' + rows.map(row).join("") + "</div>" : '<p class="muted">' + t.cl_staff_none + "</p>") +
+      (docs.length ? pCard(t.pn_cdocs_h, '<div class="dtgrid">' + docs.map(docTile).join("") + "</div>") : "");
+  }
+  function calLoad() { if (!BE || CAL.busy) return; CAL.busy = true; BE.clinicCalendar().then(function (j) { CAL.list = j.slots || []; CAL.at = Date.now(); }, function () { CAL.list = CAL.list || []; }).then(function () { CAL.busy = false; if (current.path.indexOf("/account/calendar") === 0) render(true); }); }
+  function pClinicCalendar(u, q) {
+    var t = L(), list;
+    if (BE) { if (!CAL.list || Date.now() - CAL.at > 60e3) calLoad(); list = CAL.list || []; }
+    else { var docIds = staffOfClinic(u.id); list = consults().filter(function (c) { return c.slotAt && (c.status === "new" || c.status === "accepted"); }).map(function (c) { var s = docIds.filter(function (x) { return x.doctorId === (c.doctorId || c.doc); })[0]; var d = s && userById(s.doctorId); return s ? { id: c.id, at: c.slotAt, status: c.status, type: c.type, doctor_id: s.doctorId, doctor_name: d ? d.name : "", branch_id: s.branchId } : null; }).filter(Boolean); }
+    if (q.b) list = list.filter(function (x) { return (x.branch_id || "") === q.b; });
+    var t0 = new Date(Date.now() + TK), day0 = Date.UTC(t0.getUTCFullYear(), t0.getUTCMonth(), t0.getUTCDate()) - TK, days = [];
+    for (var i = 0; i < 7; i++) days.push(day0 + i * 864e5);
+    var filter = branchesOf(u.id).length ? '<label class="sel">' + t.cl_branch + " " + branchSel("cal-b", u.id, q.b || "", t.cl_all_branches) + "</label>" : "";
+    return pHead(t.pn_t.ccalendar, t.cl_cal_p, filter) + (BE && !CAL.list ? '<p class="muted">…</p>' :
+      '<div class="week">' + days.map(function (d, i) {
+        var dd = tkDate(d + 6 * 3600e3), items = list.filter(function (x) { return x.at >= d && x.at < d + 864e5; }).sort(function (a, b) { return a.at - b.at; });
+        return '<div class="wday' + (i === 0 ? " today" : "") + '"><div class="wdh"><small>' + esc(fmt(dd, { weekday: "short" })) + "</small><b>" + dd.getDate() + "</b></div>" + (items.length ? items.map(function (x) { var b = branchById(x.branch_id); return '<div class="wslot busy"><b class="nums">' + hhmm(x.at) + "</b><span>" + esc(x.doctor_name) + "</span>" + (b ? "<small>" + esc(b.name) + "</small>" : "") + "</div>"; }).join("") : '<p class="muted wclosed">' + t.cl_cal_free + "</p>") + "</div>";
+      }).join("") + "</div>") + '<p class="fine">' + t.cl_cal_note + "</p>";
+  }
+  /* the doctor's side: invitations to accept, and the clinics they work for */
+  function inviteCards(u) {
+    var t = L(), inv = myInvites(u); if (!inv.length) return "";
+    return inv.map(function (x) { return '<section class="pcard invcard"><div><b>' + t.cl_inv_to(esc(x.clinicName)) + "</b>" + (x.branchName ? '<p class="muted">' + t.cl_branch + ": " + esc(x.branchName) + "</p>" : "") + '<p class="fine">' + t.cl_inv_note + '</p></div><div class="btns"><button class="btn" type="button" data-inv="yes" data-id="' + x.id + '">' + t.cl_inv_yes + '</button><button class="btn ghost" type="button" data-inv="no" data-id="' + x.id + '">' + t.cl_inv_no + "</button></div></section>"; }).join("");
+  }
+  function myClinicsCard(u) {
+    var t = L(), list = clinicsOfDoctor(u.id); if (!list.length) return "";
+    return pCard(t.cl_mine_h, '<div class="stlist">' + list.map(function (x) { var c = userById(x.clinicId), b = branchById(x.branchId); return '<div class="strow"><span class="pav sm" aria-hidden="true">' + ic("hosp") + '</span><div class="stmain"><b>' + esc(c ? c.name : "") + "</b>" + (b ? '<small class="muted">' + esc(b.name) + "</small>" : "") + "</div>" + (STDEL === "lv" + x.id ? '<button class="btn danger sm" type="button" data-st="leaveok" data-id="' + x.id + '">' + t.cl_leave + '</button><button class="btn ghost sm" type="button" data-st="no">' + t.v_keep + "</button>" : '<button class="linkbtn" type="button" data-st="leave" data-id="' + x.id + '">' + t.cl_leave + "</button>") + "</div>"; }).join("") + "</div>");
   }
   /* the shell: sidebar with the role's pages (and admin pages for admins), top bar with the page name, language and the way back to the site */
   function panelPage(path0, q) {
@@ -1555,19 +1630,20 @@
     /* links written for the old one-page site, and public pages opened from the panel */
     if (path === "/pro") path = q.tab === "profile" ? "/settings" : "/" + (q.tab && q.tab !== "home" ? q.tab : "");
     if (path === "/visits" && role !== "patient") path = "/";
-    var mineR = role === "doctor" ? ["/", "/requests", "/schedule", "/patients", "/earnings", "/reviews"] : role === "clinic" ? ["/", "/requests", "/team", "/reviews"] : ["/", "/consults", "/visits", "/meds", "/ona"];
+    var mineR = role === "doctor" ? ["/", "/requests", "/schedule", "/patients", "/earnings", "/reviews"] : role === "clinic" ? ["/", "/requests", "/calendar", "/team", "/branches", "/reviews"] : ["/", "/consults", "/visits", "/meds", "/ona"];
     /* another role's page, or one that doesn't exist: this account's overview */
     if (mineR.indexOf(path) < 0 && path !== "/settings" && path !== "/admin" && path.indexOf("/consult/") !== 0) return { redirect: acc("/") };
     if (path.indexOf("/consult/") === 0) return { body: viewConsultThread(path.slice(9)), key: role === "doctor" ? "requests" : role === "clinic" ? "requests" : "consults" };
     if (path === "/admin") return { body: viewAdmin(q), key: "a_" + (q.tab === "pay" ? "pay" : q.tab === "import" ? "import" : q.tab === "meds" ? "meds" : "chk") };
-    if (path === "/settings") { PRO_FORM = true; try { return { body: pHead(t.pro_t.profile, t.pn_set_p, role !== "patient" ? '<a class="btn ghost" href="' + siteUrl(role === "doctor" ? "#/doc/" + u.id : "#/c/" + u.id) + '">' + t.acc_view + "</a>" : "") + (role === "doctor" ? liveCard(u) : "") + viewAccount(), key: "settings" }; } finally { PRO_FORM = false; } }
+    if (path === "/settings") { PRO_FORM = true; try { return { body: pHead(t.pro_t.profile, t.pn_set_p, role !== "patient" ? '<a class="btn ghost" href="' + siteUrl(role === "doctor" ? "#/doc/" + u.id : "#/c/" + u.id) + '">' + t.acc_view + "</a>" : "") + (role === "doctor" ? liveCard(u) + myClinicsCard(u) : "") + viewAccount(), key: "settings" }; } finally { PRO_FORM = false; } }
     var page = path.slice(1) || "home";
     if (role === "doctor") {
       var mine = proMine(u);
       var b = page === "requests" ? proRequests(u, mine, q.f) : page === "schedule" ? proSchedule(u, mine) : page === "patients" ? proPatients(u, mine) : page === "earnings" ? proEarnings(u, mine) : page === "reviews" ? "<h1>" + t.pro_t.reviews + "</h1>" + rvMine(u) : proHome(u, mine);
       return { body: b, key: ["requests", "schedule", "patients", "earnings", "reviews"].indexOf(page) > -1 ? page : "home" };
     }
-    if (role === "clinic") return { body: page === "requests" ? pHead(t.pn_t.crequests, t.ap_inbox_p) + clinicInbox(u) : page === "team" ? pClinicDoctors(u) : page === "reviews" ? pHead(t.pro_t.reviews, "") + rvMine(u) : pClinicHome(u), key: ["requests", "team", "reviews"].indexOf(page) > -1 ? (page === "requests" ? "crequests" : page === "team" ? "cdoctors" : page) : "home" };
+    if (role === "clinic") { var ck = { requests: "crequests", calendar: "ccalendar", team: "cdoctors", branches: "cbranches", reviews: "reviews" };
+      return { body: page === "requests" ? pHead(t.pn_t.crequests, t.ap_inbox_p) + clinicInbox(u) : page === "calendar" ? pClinicCalendar(u, q) : page === "team" ? pClinicTeam(u) : page === "branches" ? pClinicBranches(u) : page === "reviews" ? pHead(t.pro_t.reviews, "") + rvMine(u) : pClinicHome(u), key: ck[page] || "home" }; }
     return { body: page === "consults" ? pPatientConsults(u) : page === "visits" ? pPatientVisits(u) : page === "meds" ? pPatientMeds(u) : page === "ona" ? viewOna() : pPatientHome(u), key: ["consults", "visits", "meds", "ona"].indexOf(page) > -1 ? page : "home" };
   }
   function panelShell(pg) {
@@ -1609,7 +1685,7 @@
     /* a complete profile gets more requests: what is still missing, as on Practo's and Doctolib's onboarding lists */
     var pr = u.profile || {}, cp = cpOf(pr), todo = [[!!u.photoUrl, t.pro_do_photo], [!!pr.lic, t.pro_do_lic], [!!pr.bio, t.pro_do_bio], [["text", "audio", "video"].some(function (k) { return cp[k] != null; }), t.pro_do_price], [!!hoursOf(pr), t.pro_do_hours]].concat(BE && BE.notify().tg ? [[!!u.tgLinked, t.pro_do_tg]] : []);
     var done = todo.filter(function (x) { return x[0]; }).length;
-    return '<div class="prohello"><div><h1>' + t.pro_hello(esc(u.name.split(" ")[0] === "Dr" ? u.name : u.name.split(" ")[0])) + '</h1><p class="muted">' + esc(fmt(tkDate(Date.now()), { weekday: "long", day: "numeric", month: "long" })) + " · " + esc(specName(pr)) + "</p></div></div>" +
+    return inviteCards(u) + '<div class="prohello"><div><h1>' + t.pro_hello(esc(u.name.split(" ")[0] === "Dr" ? u.name : u.name.split(" ")[0])) + '</h1><p class="muted">' + esc(fmt(tkDate(Date.now()), { weekday: "long", day: "numeric", month: "long" })) + " · " + esc(specName(pr)) + "</p></div></div>" +
       liveCard(u) +
       '<div class="prostats">' + stats.map(function (x) { return '<a class="prostat" href="#/pro?tab=' + x[2] + '"><b class="nums">' + x[0] + "</b><span>" + x[1] + "</span></a>"; }).join("") + "</div>" +
       (done < todo.length ? '<div class="dcard protodo"><div class="sechead"><h2>' + t.pro_todo_h + '</h2><span class="muted nums">' + done + " / " + todo.length + '</span></div><div class="pbar2"><i style="width:' + Math.round(done / todo.length * 100) + '%"></i></div><ul>' + todo.map(function (x) { return '<li class="' + (x[0] ? "ok" : "") + '">' + ic(x[0] ? "check" : "plus") + "<span>" + x[1] + "</span></li>"; }).join("") + '</ul><a class="btn sm" href="#/pro?tab=profile">' + t.pro_todo_go + "</a></div>" : "") +
@@ -2228,6 +2304,37 @@
         var mol = medOrders(); mol.forEach(function (o) { if (o.id === ds.id && o.status === "new") o.status = "cancelled"; }); store.set(KMO, mol); render(true); return;
       }
     }
+    /* clinic branches and staff */
+    if (ds.br) {
+      var bu = me();
+      if (ds.br === "new") { BRF = { id: "" }; STDEL = ""; render(true); if ($("br-name")) $("br-name").focus(); return; }
+      if (ds.br === "edit") { BRF = { id: ds.id }; STDEL = ""; render(true); if ($("br-name")) $("br-name").focus(); return; }
+      if (ds.br === "close") { BRF = null; render(true); return; }
+      if (ds.br === "del") { STDEL = "br" + ds.id; render(true); return; }
+      if (ds.br === "nodel") { STDEL = ""; render(true); return; }
+      if (ds.br === "delok") {
+        STDEL = "";
+        if (BE) { el.disabled = true; BE.branchDelete(ds.id).then(function () { toast(t.cl_br_deleted); render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
+        store.set(KBR, branches().filter(function (b) { return b.id !== ds.id; })); store.set(KSTA, demoStaff().map(function (x) { return x.branchId === ds.id ? Object.assign({}, x, { branchId: "" }) : x; }));
+        toast(t.cl_br_deleted); render(true); return;
+      }
+    }
+    if (ds.st) {
+      if (ds.st === "rm" || ds.st === "leave") { STDEL = (ds.st === "rm" ? "st" : "lv") + ds.id; render(true); return; }
+      if (ds.st === "no") { STDEL = ""; render(true); return; }
+      if (ds.st === "rmok" || ds.st === "leaveok") {
+        STDEL = ""; var msg = ds.st === "rmok" ? t.cl_removed : t.cl_left;
+        if (BE) { el.disabled = true; BE.staffRemove(ds.id).then(function () { toast(msg); render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
+        store.set(KSTA, demoStaff().filter(function (x) { return x.id !== ds.id; })); toast(msg); render(true); return;
+      }
+    }
+    if (ds.inv) {
+      var yes = ds.inv === "yes", iu = me();
+      if (BE) { el.disabled = true; BE.staffAnswer(ds.id, yes).then(function () { toast(yes ? t.cl_inv_joined : t.cl_inv_declined); render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
+      var sl = demoStaff(), sx = sl.filter(function (x) { return x.id === ds.id; })[0];
+      if (sx && iu) { if (yes) { sx.status = "active"; sx.doctorId = iu.id; } else sl = sl.filter(function (x) { return x !== sx; }); store.set(KSTA, sl); }
+      toast(yes ? t.cl_inv_joined : t.cl_inv_declined); render(true); return;
+    }
     if (ds.mos) {
       if (BE) { el.disabled = true; BE.adminMedStatus(ds.id, ds.mos).then(function () { MO.list = null; render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
       var mol2 = medOrders(); mol2.forEach(function (o) { if (o.id === ds.id) o.status = ds.mos; }); store.set(KMO, mol2); render(true); return;
@@ -2384,6 +2491,26 @@
       S.mode = mode; Object.keys(t.sp).forEach(function (k) { if (t.sp[k].toLowerCase() === raw.toLowerCase()) { o.s = k; o.q = ""; } });
       Object.keys(t.sv).forEach(function (k) { if (t.sv[k].toLowerCase() === raw.toLowerCase()) { o.v = k; o.q = ""; } });
       F.max = 0; F.lang = ""; go("#/search?" + qs(o)); return;
+    }
+    if (id === "brform") {
+      var berr = $("br-err"), bo = { id: e.target.dataset.id || undefined, name: $("br-name").value.trim(), region: $("br-region").value, address: $("br-addr").value.trim(), phone: digits($("br-phone").value), hours: $("br-hours").value.trim() };
+      if (!bo.name) { berr.textContent = t.cl_br_err_name; $("br-name").focus(); return; }
+      if (bo.phone && !okPhone(bo.phone)) { berr.textContent = t.e_phone; $("br-phone").focus(); return; }
+      if (BE) { var bbtn = e.target.querySelector("[type=submit]"); bbtn.disabled = true; BE.branchSave(bo).then(function () { BRF = null; toast(t.cl_br_saved); render(true); }, function (x) { bbtn.disabled = false; berr.textContent = beMsg(t, x); }); return; }
+      var bl = branches(), bme = me();
+      if (bo.id) bl.forEach(function (b) { if (b.id === bo.id) Object.assign(b, bo); });
+      else { if (branchesOf(bme.id).length >= 50) { berr.textContent = t.e_ap_limit; return; } bl.push(Object.assign({}, bo, { id: "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), clinicId: bme.id })); }
+      store.set(KBR, bl); BRF = null; toast(t.cl_br_saved); render(true); return;
+    }
+    if (id === "stform") {
+      var serr = $("st-err"), sph = digits($("st-phone").value), sbr = $("st-branch").value;
+      if (!okPhone(sph)) { serr.textContent = t.e_phone; $("st-phone").focus(); return; }
+      if (BE) { var sbtn = e.target.querySelector("[type=submit]"); sbtn.disabled = true; BE.staffInvite({ phone: sph, branch: sbr || null }).then(function (j) { toast(j && j.found ? t.cl_inv_sent : t.cl_inv_sent_wait); render(true); }, function (x) { sbtn.disabled = false; serr.textContent = x && x.code === "not_doctor" ? t.cl_err_not_doc : x && x.code === "exists" ? t.cl_err_exists : beMsg(t, x); }); return; }
+      var cme = me(), all = demoStaff(), who = users().filter(function (x) { return x.phone && digits(x.phone) === sph; })[0];
+      if (who && who.role !== "doctor") { serr.textContent = t.cl_err_not_doc; return; }
+      if (all.some(function (x) { return x.clinicId === cme.id && x.phone === sph; })) { serr.textContent = t.cl_err_exists; return; }
+      all.push({ id: "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), clinicId: cme.id, doctorId: who ? who.id : "", phone: sph, branchId: sbr, status: "invited" });
+      store.set(KSTA, all); toast(who ? t.cl_inv_sent : t.cl_inv_sent_wait); render(true); return;
     }
     if (id === "form") { submitJoin(); return; }
     if (id === "csform") {
@@ -2632,6 +2759,12 @@
 
   document.addEventListener("change", function (e) {
     var id = e.target.id;
+    if (id === "cal-b") { var cq = Object.assign({}, current.q); if (e.target.value) cq.b = e.target.value; else delete cq.b; go(acc("/calendar") + (Object.keys(cq).length ? "?" + qs(cq) : "")); return; }
+    if (id.indexOf("st-br-") === 0) {
+      var sid = id.slice(6), nb = e.target.value;
+      if (BE) { e.target.disabled = true; BE.staffBranch(sid, nb).then(function () { toast(L().cl_br_set); render(true); }, function (x) { e.target.disabled = false; toast(beMsg(L(), x)); }); return; }
+      store.set(KSTA, demoStaff().map(function (x) { return x.id === sid ? Object.assign({}, x, { branchId: nb }) : x; })); toast(L().cl_br_set); render(true); return;
+    }
     if (id === "im-agree") { IM.agree = e.target.checked; return; }
     if (id === "im-file" && e.target.files && e.target.files[0]) { imRead(e.target.files[0]).then(function (txt) { IM.text = txt; IM.rows = imRows(txt); IM.results = null; IM.err = ""; render(true); }, function () { toast(L().be_err); }); return; }
     if (id === "cs-region") { csCollect(); CS.district = ""; render(true); return; }

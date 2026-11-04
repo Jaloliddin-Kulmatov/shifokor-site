@@ -80,6 +80,11 @@
       set("shifokor-appts", (j.appts || []).map(toAppt));
       set("shifokor-reviews", (j.reviews || []).map(toReview));
       set("shifokor-medorders", (j.med_orders || []).map(toMedOrder));
+      var cl = j.clinics || {};
+      set("shifokor-branches", (cl.branches || []).map(function (b) { return { id: b.id, clinicId: b.clinic_id, name: b.name, region: b.region || "", address: b.address || "", phone: b.phone || "", hours: b.hours || "" }; }));
+      set("shifokor-staff", (cl.staff || []).map(function (x) { return { id: x.id, clinicId: x.clinic_id, doctorId: x.doctor_id, branchId: x.branch_id || "", status: "active" }; }));
+      set("shifokor-mystaff", (cl.mine || []).map(function (x) { return { id: x.id, doctorId: x.doctor_id || "", phone: x.phone, branchId: x.branch_id || "", status: x.status, doctorName: x.doctor_name || "" }; }));
+      set("shifokor-invites", (cl.invites || []).map(function (x) { return { id: x.id, clinicId: x.clinic_id, branchId: x.branch_id || "", clinicName: x.clinic_name, branchName: x.branch_name || "" }; }));
       ready = true;
       var raw = JSON.stringify(j), changed = raw !== last; last = raw;
       if (changed) listeners.forEach(function (f) { try { f(); } catch (e) { console.warn(e); } });   /* polls that bring nothing new don't redraw the page */
@@ -149,6 +154,13 @@
     reschedule: async function (cid, slot, note) { await call("reschedule", { id: cid, slot: slot, note: note }); await refresh(); },
     consultRx: async function (cid, rx) { await call("consult_rx", { id: cid, rx: rx }); await refresh(); },
     medOrder: async function (o) { var j = await call("med_order", o); await refresh(); return j; },
+    branchSave: async function (o) { var j = await call("branch_save", o); await refresh(); return j; },
+    branchDelete: async function (id) { await call("branch_delete", { id: id }); await refresh(); },
+    staffInvite: async function (o) { var j = await call("staff_invite", o); await refresh(); return j; },
+    staffAnswer: async function (id, accept) { await call("staff_answer", { id: id, accept: accept }); await refresh(); },
+    staffRemove: async function (id) { await call("staff_remove", { id: id }); await refresh(); },
+    staffBranch: async function (id, branch) { await call("staff_branch", { id: id, branch: branch || null }); await refresh(); },
+    clinicCalendar: function () { return call("clinic_calendar"); },
     medOrderCancel: async function (id) { await call("med_order_cancel", { id: id }); await refresh(); },
     adminMedOrders: function () { return call("admin_med_orders"); },
     adminMedStatus: function (id, status) { return call("admin_med_status", { id: id, status: status }); },

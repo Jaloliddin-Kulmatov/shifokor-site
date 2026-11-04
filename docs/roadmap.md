@@ -1,6 +1,6 @@
 # Shifokor: what we learned from other platforms, and the plan
 
-Last updated 3 November 2026.
+Last updated 4 November 2026.
 
 ## What the best platforms do, and where Shifokor stands
 
@@ -19,6 +19,7 @@ Last updated 3 November 2026.
 | Medicine delivery after the consultation | Doctor Anywhere, Halodoc | Trial (needs a partner pharmacy) |
 | Reviews only from real patients | Zocdoc | Done (only after a consultation or visit) |
 | A separate workspace for doctors | Practo Ray, Doctolib Pro | Done (Shifokor paneli) |
+| Clinic accounts with branches, staff doctors and a shared calendar | Doctolib Pro, Practo Ray | Done (Nov 2026) |
 | Prices up front | Doctor Anywhere, Practo | Done |
 | Health records the patient keeps (past visits, documents) | Doctolib, Doctor Anywhere | **Next** |
 | Consultation summary / sick note as a PDF | Doctor Anywhere, Kry/Livi | **Next** |
@@ -47,7 +48,7 @@ Last updated 3 November 2026.
 6. **Telegram Mini App:** the same site inside Telegram, so villages don't need to install anything.
 
 ### 3–12 months
-1. Clinic accounts with several doctors and one shared calendar.
+1. ~~Clinic accounts with several doctors and one shared calendar.~~ Done in November 2026: branches, doctors invited by phone, a weekly calendar.
 2. Lab test booking with partner labs, results in the health record.
 3. Employer plans (B2B) and the first insurance partner.
 4. Karakalpak and Tajik languages; voice-first help for people who don't read well.

@@ -117,3 +117,35 @@ body.panelapp .top, body.panelapp .foot, body.panelapp .skip { display: none; }
 .pbrandrow .pbrand { flex: 1; min-width: 0; }
 .pclose { display: none; }
 @media (max-width: 900px) { .pclose { display: grid; } }
+
+/* clinic: branches, staff, invitations */
+.brgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.brgrid .brform { grid-column: 1 / -1; }
+.brcard .pcardh h2 { display: flex; align-items: center; gap: 8px; }
+.brcard .pcardh h2 svg { width: 18px; height: 18px; color: var(--accent); }
+.brcard .kv { grid-template-columns: 110px minmax(0, 1fr); font-size: 0.92rem; margin: 0 0 12px; }
+.brcard .btns, .brform .btns { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.brform { margin-bottom: 16px; }
+.stinv { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto; gap: 12px; align-items: end; }
+.stinv .fld { margin: 0; }
+.stinv select, .strow select { width: 100%; }
+.stlist { display: grid; gap: 4px; }
+.strow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto minmax(120px, 180px) auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.strow:first-child { border-top: 0; }
+.strow .pav.sm { width: 40px; height: 40px; }
+.strow .pav svg { width: 18px; height: 18px; }
+.stmain { display: grid; min-width: 0; }
+.stmain b, .stmain small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pcard.invcard { display: flex; justify-content: space-between; align-items: center; gap: 16px; border: 1px solid var(--accent); background: var(--accent-soft); margin-bottom: 16px; }
+.invcard p { margin: 4px 0 0; }
+.invcard .btns { display: flex; gap: 8px; flex: none; }
+.phead label.sel { display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--muted); }
+@media (max-width: 760px) {
+  .brgrid { grid-template-columns: minmax(0, 1fr); }
+  .stinv { grid-template-columns: minmax(0, 1fr); }
+  .strow { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .strow select { grid-column: 2 / -1; }
+  .strow > .linkbtn, .strow > .btn { grid-column: 2 / -1; justify-self: start; }
+  .pcard.invcard { flex-direction: column; align-items: stretch; }
+}
+.strow select, .phead label.sel select { padding: 7px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); font: 500 0.9rem var(--font-body); }

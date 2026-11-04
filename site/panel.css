@@ -101,3 +101,14 @@ a.pstat:hover { transform: translateY(-3px); }
 .pcontent .band .bhead { padding-block: 28px 30px; }
 .pcontent .band h1 { font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2.1rem); }
 .ptitle { text-shadow: none; }
+
+/* one site: on account pages the site's own header and footer step aside */
+body.panelapp .top, body.panelapp .foot, body.panelapp .skip { display: none; }
+/* sign out and "back to site" live in the menu, so they're always reachable (also behind Safari's bottom bar) */
+.pside nav .pnavout { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border: 0; border-radius: 14px; background: none; color: var(--risk); font: 600 0.92rem var(--font-body); cursor: pointer; text-align: left; }
+.pside nav .pnavout .ic { width: 18px; height: 18px; flex: none; }
+.pside nav .pnavout:hover { background: var(--risk-soft); }
+.pgroup:empty { margin: 10px 12px 6px; border-top: 1px solid var(--line); }
+@media (max-width: 900px) { .pside { height: auto; } .pside nav { padding-bottom: 16px; } }
+.pside { height: 100dvh; }
+@media (max-width: 900px) { .pside { height: auto; } }

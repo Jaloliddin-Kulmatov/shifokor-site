@@ -1573,3 +1573,5 @@ audio.voice { display: block; width: 240px; max-width: 100%; height: 36px; margi
 .admrlrow { display: flex; gap: 8px; flex-wrap: wrap; }
 .admrlrow input { flex: 1; min-width: 200px; }
 .copyin { width: 100%; margin-top: 6px; font: 0.85rem ui-monospace, monospace; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.sharebtn { margin-left: auto; align-self: flex-start; display: inline-flex; gap: 6px; }
+.who { flex-wrap: wrap; }

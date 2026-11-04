@@ -19,6 +19,7 @@
     nav: '<path d="M3 11l18-8-8 18-2-8z"/>',
     copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 00-1-1H5a1 1 0 00-1 1v10a1 1 0 001 1h3"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
+    share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>',
     gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/>',
     book: '<path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 21V5M8 7h7"/>',
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/>',
@@ -150,7 +151,8 @@
 
   /* ---------------- search ---------------- */
   function parseHash() {
-    var h = location.hash.replace(/^#/, "") || "/", q = {}, i = h.indexOf("?");
+    var deep = !location.hash && /^\/(shifokor|klinika)\/([A-Za-z0-9_-]+)\/?$/.exec(location.pathname);
+    var h = deep ? (deep[1] === "shifokor" ? "/doc/" : "/c/") + deep[2] : location.hash.replace(/^#/, "") || "/", q = {}, i = h.indexOf("?");
     if (i > -1) { h.slice(i + 1).split("&").forEach(function (kv) { var a = kv.split("="); if (a[0]) q[decodeURIComponent(a[0])] = decodeURIComponent((a[1] || "").replace(/\+/g, " ")); }); h = h.slice(0, i); }
     return { path: h, q: q };
   }
@@ -878,7 +880,7 @@
     var t = L(), u = userById(id); if (!u || u.role !== "doctor") return '<div class="wrap pad"><div class="empty">' + t.not_found + "</div></div>";
     var pr = u.profile || {}, langs = (pr.langs || []).map(function (l) { return { kaa: "Qaraqalpaq", tg: "Tojik" }[l] || t.lg[l]; }).join(", ");
     var region = pr.district && disByCode[pr.district] ? nmL(disByCode[pr.district]) + ", " + nmL(REG[disByCode[pr.district].r]) : pr.region && regByCode[pr.region] ? nmL(regByCode[pr.region]) : "";
-    return '<div class="wrap"><a class="back" href="#/doctors">‹ ' + t.nav_doctors + '</a><div class="pf"><div><div class="who">' + personAv(u) + "<div><h1>" + esc(u.name) + '</h1><div class="spec">' + esc(specName(pr)) + (pr.years ? " · " + t.exp(pr.years) : "") + '</div><div class="badges">' + (u.sample ? smpBadge() : '<span class="badge">' + t.on_sh + "</span>" + vBadge(u)) + (ratingOf(u.id).n ? '<a href="#reviews" data-scroll="reviews" class="badge plain rbadge">' + ratingLine(u.id) + "</a>" : "") + (isOnline(u) ? '<span class="badge plain">' + ic("video") + t.online_b + "</span>" : "") + "</div></div></div>" +
+    return '<div class="wrap"><a class="back" href="#/doctors">‹ ' + t.nav_doctors + '</a><div class="pf"><div><div class="who">' + personAv(u) + "<div><h1>" + esc(u.name) + '</h1><div class="spec">' + esc(specName(pr)) + (pr.years ? " · " + t.exp(pr.years) : "") + '</div><div class="badges">' + (u.sample ? smpBadge() : '<span class="badge">' + t.on_sh + "</span>" + vBadge(u)) + (ratingOf(u.id).n ? '<a href="#reviews" data-scroll="reviews" class="badge plain rbadge">' + ratingLine(u.id) + "</a>" : "") + (isOnline(u) ? '<span class="badge plain">' + ic("video") + t.online_b + "</span>" : "") + "</div>" + (u.sample ? "" : shareBtn("/shifokor/" + u.id, u.name)) + "</div></div>" +
       (u.pending ? '<p class="note-box">' + t.im_pending_note + "</p>" : "") + (u.sample ? '<p class="note-box">' + t.smp_note + ' <a href="#/doctors?' + qs({ s: pr.spec }) + '">' + t.smp_real + "</a></p>" : "") +
       (pr.bio ? '<div class="sect"><p class="lead" style="margin:0">' + esc(pr.bio) + "</p></div>" : "") +
       (function () { var wl = (pr.work || []).slice(); clinicsOfDoctor(u.id).forEach(function (x) { if (!wl.some(function (w) { return w.t === "c" && w.id === x.clinicId; }) && userById(x.clinicId)) wl.push({ t: "c", id: x.clinicId }); });
@@ -902,7 +904,7 @@
     if (f) pendingMap = { fac: [f], single: true };
     var place = d ? nmL(d) + ", " + nmL(REG[d.r]) : f ? placeOf(f) : "";
     var dl = f ? dirLinks(f) : null;
-    return '<div class="wrap"><a class="back" href="#/doctors">‹ ' + t.clinics_reg_h + '</a><div class="pf"><div><div class="who"><div class="ficon big c-' + (pr.ctype || "clinic") + '">' + ic(CAT_IC[pr.ctype || "clinic"]) + "</div><div><h1>" + esc(u.name) + '</h1><div class="spec">' + t.cat[pr.ctype || "clinic"] + '</div><div class="badges"><span class="badge">' + t.on_sh + "</span>" + (pr.own ? '<span class="badge ' + (pr.own === "s" ? "ok" : "plain") + '">' + t.own[pr.own] + "</span>" : "") + vBadge(u) + (ratingOf(u.id).n ? '<span class="badge plain rbadge">' + ratingLine(u.id) + "</span>" : "") + "</div></div></div>" +
+    return '<div class="wrap"><a class="back" href="#/doctors">‹ ' + t.clinics_reg_h + '</a><div class="pf"><div><div class="who"><div class="ficon big c-' + (pr.ctype || "clinic") + '">' + ic(CAT_IC[pr.ctype || "clinic"]) + "</div><div><h1>" + esc(u.name) + '</h1><div class="spec">' + t.cat[pr.ctype || "clinic"] + '</div><div class="badges"><span class="badge">' + t.on_sh + "</span>" + (pr.own ? '<span class="badge ' + (pr.own === "s" ? "ok" : "plain") + '">' + t.own[pr.own] + "</span>" : "") + vBadge(u) + (ratingOf(u.id).n ? '<span class="badge plain rbadge">' + ratingLine(u.id) + "</span>" : "") + "</div>" + shareBtn("/klinika/" + u.id, u.name) + "</div></div>" +
       (pr.about ? '<div class="sect"><p class="lead" style="margin:0">' + esc(pr.about) + "</p></div>" : "") +
       '<div class="sect"><dl class="kv">' + (place ? "<dt>" + t.fac_where + "</dt><dd>" + esc(place) + "</dd>" : "") + (pr.addr ? "<dt>" + t.fac_addr + "</dt><dd>" + esc(pr.addr) + "</dd>" : "") + (pr.hours ? "<dt>" + t.fac_hours + "</dt><dd>" + esc(pr.hours) + "</dd>" : "") + (u.phone ? "<dt>" + t.fac_phone + '</dt><dd class="nums">' + esc(fmtPhone(u.phone)) + "</dd>" : "") + (pr.lic ? "<dt>" + t.c_lic + "</dt><dd>" + esc(pr.lic) + "</dd>" : "") + "</dl></div>" +
       ((pr.svc || []).some(function (x) { return x.name; }) ? '<div class="sect"><h2>' + t.svc_h + "</h2>" + svcTable(pr.svc, false) + (u.updated ? '<p style="margin-top:10px"><span class="confline">' + t.updated(fmt(fromIso(u.updated), { day: "numeric", month: "short" })) + "</span></p>" : "") + "</div>" : "") +
@@ -913,6 +915,9 @@
       '<p class="fine" style="margin-top:20px">' + t.acc_demo + "</p></div>" +
       '<aside class="stick"><h2>' + t.fac_map + "</h2>" + (f ? '<div id="map" class="map small" role="region" aria-label="' + t.p_loc + '"></div>' : "") + '<div class="stack" style="margin-top:12px">' + (canBook(u) ? '<a class="btn block" href="#book" data-scroll="book">' + ic("cal") + t.ap_h + "</a>" : "") + tgBtn(u) + (dl ? '<a class="btn ghost block" href="' + dl.y + '" target="_blank" rel="noopener">' + ic("nav") + t.fac_dir_y + "</a>" : "") + "</div></aside></div></div>";
   }
+  /* sharing a profile: the phone's share sheet, or the address copied */
+  var pageUrl = function (path) { return location.origin + path; };
+  function shareBtn(path, name) { return '<button class="btn ghost sm sharebtn" type="button" data-act="share" data-url="' + esc(pageUrl(path)) + '" data-name="' + esc(name) + '">' + ic("share") + L().sh_share + "</button>"; }
   /* consultation prices on a doctor's profile: { text, audio, video }, null when not offered, 0 when free */
   function cpOf(pr) { var c = (pr && pr.cp) || {}, o = {}; ["text", "audio", "video"].forEach(function (k) { o[k] = c[k] === "" || c[k] == null ? null : Math.max(0, +c[k] || 0); }); return o; }
   /* an imported doctor who hasn't claimed their profile can't answer, so they take no online consultations yet */
@@ -2316,7 +2321,8 @@
     all("[data-r]").forEach(function (a) { if (a.dataset.r === route) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
     all(".ddbtn[data-routes]").forEach(function (b) { if (b.dataset.routes && (" " + b.dataset.routes + " ").indexOf(" " + route + " ") > -1) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
     all("#lang button, .plang button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.l === lang)); });
-    document.title = "Shifokor: " + (lang === "ru" ? "ближайшая больница и врач" : lang === "uz" ? "sizga yaqin shifoxona va shifokor" : "nearby hospital and doctor");
+    var tu = /^\/(doc|c)\/(.+)$/.exec(path), tw = tu && userById(tu[2]);
+    document.title = tw && (tw.role === "doctor" || tw.role === "clinic") ? tw.name + (tw.role === "doctor" ? " — " + specName(tw.profile || {}) : "") + " | Shifokor" : "Shifokor: " + (lang === "ru" ? "найдите хорошего врача и проконсультируйтесь онлайн" : lang === "uz" ? "yaxshi shifokorni toping va onlayn maslahat oling" : "find a good doctor and consult online");
     hdr();
     closeMenu();
     if (keepScroll) window.scrollTo(0, y); else { window.scrollTo(0, 0); $("app").focus({ preventScroll: true }); }
@@ -2604,6 +2610,12 @@
       var al = appts(); al.forEach(function (x) { if (x.id === aid && apOpen(x)) x.status = "cancelled"; }); saveAppts(al); toast(t.ap_cancelled); render(true); return;
     }
     if (ds.regrole) { REGROLE = ds.regrole; var keep = regKeep(); if (current.q.role) { try { history.replaceState(null, "", location.pathname + location.search + "#/register"); } catch (x) {} } render(true); regPut(keep); return; }
+    if (ds.act === "share") {
+      var shu = ds.url, shn = ds.name;
+      if (navigator.share) { navigator.share({ title: shn + " | Shifokor", url: shu }).catch(function () {}); return; }
+      (navigator.clipboard ? navigator.clipboard.writeText(shu) : Promise.reject()).then(function () { toast(t.sh_copied); }, function () { window.prompt(t.sh_copy, shu); });
+      return;
+    }
     if (ds.act === "fgagain") { FG = { step: 1, id: FG.id, sent: [], code: "", at: 0 }; render(true); return; }
     if (ds.act === "evresend") { el.disabled = true; verSend(true); render(true); return; }
     if (ds.regroleLink) { REGROLE = ds.regroleLink; return; }

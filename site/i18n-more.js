@@ -4,6 +4,7 @@
   var add = function (lang, o) { Object.keys(o).forEach(function (k) { T[lang][k] = o[k]; }); };
 
   add("uz", {
+    sh_share: "Ulashish", sh_copied: "Havola nusxalandi.", sh_copy: "Havolani nusxalang:",
     fg_e_id: "Telefon raqami (+998 …) yoki emailni to‘g‘ri yozing.",
     fg_link: "Parolni unutdingizmi?", fg_h: "Parolni tiklash", fg_p: "Ro‘yxatdan o‘tgan telefon raqamingiz yoki emailingizni yozing. Sizga 6 xonali kod yuboramiz.",
     fg_send: "Kod yuborish", fg_back: "Kirishga qaytish", fg_other: "Boshqa raqam yoki email",
@@ -17,6 +18,7 @@
   });
 
   add("ru", {
+    sh_share: "Поделиться", sh_copied: "Ссылка скопирована.", sh_copy: "Скопируйте ссылку:",
     fg_e_id: "Укажите телефон (+998 …) или email правильно.",
     fg_link: "Забыли пароль?", fg_h: "Восстановление пароля", fg_p: "Укажите телефон или email, с которым вы регистрировались. Мы пришлём 6-значный код.",
     fg_send: "Отправить код", fg_back: "Вернуться ко входу", fg_other: "Другой номер или email",
@@ -30,6 +32,7 @@
   });
 
   add("en", {
+    sh_share: "Share", sh_copied: "Link copied.", sh_copy: "Copy the link:",
     fg_e_id: "Enter a valid phone number (+998 …) or email.",
     fg_link: "Forgot your password?", fg_h: "Reset your password", fg_p: "Enter the phone number or email you registered with. We'll send you a 6-digit code.",
     fg_send: "Send code", fg_back: "Back to sign in", fg_other: "Another number or email",

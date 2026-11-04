@@ -10,6 +10,11 @@
     { "source": "/panel/", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
     { "source": "/panel/index.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
   ],
-  "rewrites": [{ "source": "/api/v1/:path*", "destination": "/api/app?v1=:path*" }],
+  "rewrites": [
+    { "source": "/api/v1/:path*", "destination": "/api/app?v1=:path*" },
+    { "source": "/shifokor/:id", "destination": "/api/app?page=doctor&id=:id" },
+    { "source": "/klinika/:id", "destination": "/api/app?page=clinic&id=:id" },
+    { "source": "/sitemap.xml", "destination": "/api/app?sitemap=1" }
+  ],
   "crons": [{ "path": "/api/daily", "schedule": "0 5 * * *" }]
 }

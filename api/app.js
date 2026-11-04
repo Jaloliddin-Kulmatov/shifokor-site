@@ -22,6 +22,7 @@ const { telegramHook } = require("./_modules/telegram");
 const jobs = require("./_worker/jobs");
 require("./_worker/reminders");   // registers its jobs
 const v1 = require("./_webapi/routes");
+const pages = require("./_modules/pages");
 
 // every use case by name, from each module
 const ACTIONS = Object.assign({},
@@ -76,6 +77,10 @@ module.exports = async function handler(req, res) {
     return restApi(req, res, "/" + decodeURIComponent(rest[1]).replace(/^\/+/, ""));
   }
   if (req.method === "GET") {
+    // a doctor's or clinic's own page (/shifokor/<id>, /klinika/<id>) and the sitemap, through the rewrites in vercel.json
+    const page = /[?&]page=(doctor|clinic)&id=([^&]*)/.exec(url);
+    if (page && CONN) { site.fromRequest(req); try { await migrate(); return await pages.profilePage(res, page[1], decodeURIComponent(page[2])); } catch (e) { console.error("page", e && e.message); return send(res, 500, { error: "server" }); } }
+    if (/[?&]sitemap=1\b/.test(url) && CONN) { site.fromRequest(req); try { await migrate(); return await pages.sitemap(res); } catch (e) { console.error("sitemap", e && e.message); return send(res, 500, { error: "server" }); } }
     const photo = /[?&]photo=([0-9a-f-]{36})\b/i.exec(url);
     if (photo && CONN) return users.doctorPhoto(res, photo[1]);
     // Vercel runs this once a day (vercel.json). It only sends what's due, so an extra call does no harm.

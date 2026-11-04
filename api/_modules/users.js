@@ -30,6 +30,19 @@ const userOut = (u) => ({ id: u.id, role: u.role, name: u.name, phone: u.phone |
 // An invite link's doctor: imported, not yet claimed, and the link is under 30 days old.
 const INVITE_DAYS = 30;
 const newInvite = () => crypto.randomBytes(24).toString("base64url");
+async function resetLink(token) {
+  const t = String(token || "");
+  if (!/^[A-Za-z0-9_-]{30,40}$/.test(t)) throw new Fail(404, "reset");
+  const u = (await q("select u.id, u.name from app_pw_resets r join app_users u on u.id = r.user_id where r.link_hash = $1 and r.expires_at > now()", [sha(t)])).rows[0];
+  if (!u) throw new Fail(404, "reset");
+  return u;
+}
+async function setNewPassword(userId, pw) {
+  await q("update app_users set pw_hash = $2, updated_at = now() where id = $1", [userId, hashPw(pw)]);
+  await q("delete from app_sessions where user_id = $1", [userId]);
+  await q("delete from app_pw_resets where user_id = $1", [userId]);
+  return { token: await newSession(userId) };
+}
 async function invited(token) {
   const t = String(token || "");
   if (!/^[A-Za-z0-9_-]{30,40}$/.test(t)) throw new Fail(404, "invite");
@@ -102,6 +115,52 @@ const actions = {
     const ok = checkPw(b.password, row && row.pw_hash);   // always runs scrypt, so timing doesn't reveal unknown accounts
     if (!row || !ok) throw new Fail(401, "login");
     return { token: await newSession(row.id) };
+  },
+
+  // ---------- a forgotten password ----------
+  // { id: phone or email } → a code by every channel this account has; { sent: [...] } names them (empty for an
+  // unknown account too, so the answer doesn't tell who is registered)
+  async pw_forgot(b) {
+    const id = str(b.id, 254);
+    let u = null;
+    if (id.includes("@")) u = (await q("select id, email, phone, tg_chat from app_users where email = $1", [id.toLowerCase()])).rows[0];
+    else { let d = id.replace(/\D/g, ""); if (d.length === 9) d = "998" + d; if (/^998\d{9}$/.test(d)) u = (await q("select id, email, phone, tg_chat from app_users where phone = $1", [d])).rows[0]; else bad("id"); }
+    if (!u) return { sent: [] };
+    const last = (await q("select sent_at from app_pw_resets where user_id = $1 and code_hash is not null", [u.id])).rows[0];
+    if (last && Date.now() - new Date(last.sent_at).getTime() < 60e3) throw new Fail(429, "wait");
+    const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
+    await q("insert into app_pw_resets (user_id, code_hash, expires_at) values ($1, $2, now() + interval '30 minutes') on conflict (user_id) do update set code_hash = excluded.code_hash, link_hash = null, expires_at = excluded.expires_at, tries = 0, sent_at = now()", [u.id, sha(u.id + ":" + code)]);
+    const text = "Shifokor: parolni tiklash kodi " + code + " (30 daqiqa). Код для смены пароля: " + code + ". Agar siz so‘ramagan bo‘lsangiz, e’tibor bermang.";
+    const sent = [];
+    if (u.tg_chat && (await N.tgSend(u.tg_chat, text))) sent.push("tg");
+    if (u.email && (await N.mail(u.email, "Shifokor: parolni tiklash kodi " + code, text, '<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px;color:#14302f"><h2 style="margin:0 0 12px">Shifokor</h2><p>Parolni tiklash kodi / Код для смены пароля / Password reset code:</p><p style="font-size:32px;letter-spacing:8px;font-weight:700;margin:16px 0">' + code + '</p><p style="color:#5b6b6a">Kod 30 daqiqa amal qiladi. Agar siz so‘ramagan bo‘lsangiz, bu xatga e’tibor bermang.</p></div>'))) sent.push("email");
+    if (!sent.length && u.phone && N.SMS && (await N.sms(u.phone, text))) sent.push("sms");
+    if (!sent.length) await q("delete from app_pw_resets where user_id = $1", [u.id]);
+    return { sent };
+  },
+  // { id, code, password } → signed in with the new password; every other session ends
+  async pw_reset(b) {
+    const id = str(b.id, 254), code = String(b.code || "").replace(/\D/g, "");
+    if (code.length !== 6) bad("code");
+    const pw = typeof b.password === "string" ? b.password : "";
+    if (pw.length < 6 || pw.length > 200) bad("password");
+    let u = null;
+    if (id.includes("@")) u = (await q("select id from app_users where email = $1", [id.toLowerCase()])).rows[0];
+    else { let d = id.replace(/\D/g, ""); if (d.length === 9) d = "998" + d; u = (await q("select id from app_users where phone = $1", [d])).rows[0]; }
+    if (!u) throw new Fail(410, "expired");
+    const r = (await q("update app_pw_resets set tries = tries + 1 where user_id = $1 and code_hash is not null returning code_hash, expires_at, tries", [u.id])).rows[0];
+    if (!r || new Date(r.expires_at).getTime() < Date.now()) throw new Fail(410, "expired");
+    if (r.tries > 5) throw new Fail(429, "tries");
+    if (r.code_hash !== sha(u.id + ":" + code)) throw new Fail(400, "code");
+    return setNewPassword(u.id, pw);
+  },
+  // the one-time link an admin made: { token } → who it's for, { token, password } → signed in
+  async pw_link_info(b) { const u = await resetLink(b.token); return { name: u.name }; },
+  async pw_link(b) {
+    const u = await resetLink(b.token);
+    const pw = typeof b.password === "string" ? b.password : "";
+    if (pw.length < 6 || pw.length > 200) bad("password");
+    return setNewPassword(u.id, pw);
   },
 
   async logout(b, me) {

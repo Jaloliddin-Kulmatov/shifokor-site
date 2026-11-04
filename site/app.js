@@ -772,11 +772,39 @@
       (REGROLE !== "patient" ? '<p class="fine regnote">' + ic("shield") + t.rg_note + "</p>" : "") +
       '<div class="err" id="r-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.reg_btn + '</button><p class="muted" style="margin-top:14px;text-align:center">' + t.have_acc + ' <a href="#/login">' + t.go_login + "</a></p></form></div>";
   }
+  /* ---------------- a forgotten password ----------------
+     Step 1: phone or email; a 6-digit code goes out by Telegram, email or SMS (whichever the account has).
+     Step 2: the code and a new password. Without any channel, the person asks us and an admin makes a one-time link. */
+  var FG = { step: 1, id: "", sent: [], code: "", at: 0 }, RL = { token: "", name: "", err: "", loading: false };
+  function viewForgot() {
+    var t = L(), via = FG.sent.map(function (c) { return t.fg_via[c]; }).join(", ");
+    var head = '<div class="wrap pad acc" style="max-width:520px"><h1>' + t.fg_h + "</h1>";
+    if (FG.step === 1) return head + '<p class="lead">' + t.fg_p + '</p><form class="form" id="fgform" novalidate><div class="fld"><label for="fg-id">' + t.login_id + '</label><input id="fg-id" autocomplete="username" value="' + esc(FG.id) + '"></div>' +
+      '<div class="err" id="fg-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.fg_send + '</button><p class="muted" style="margin-top:14px;text-align:center"><a href="#/login">' + t.fg_back + "</a></p></form></div>";
+    if (!FG.sent.length) return head + '<div class="note-box">' + t.fg_none + '</div><p style="margin-top:16px"><button class="linkbtn" type="button" data-act="fgagain">' + t.fg_other + '</button> · <a href="#/login">' + t.fg_back + "</a></p></div>";
+    return head + '<p class="lead">' + t.fg_sent(esc(via)) + "</p>" + (!BE && FG.code ? '<div class="demo" style="margin:0 0 16px">' + t.ev_demo(FG.code) + "</div>" : "") +
+      '<form class="form" id="fg2form" novalidate><div class="fld"><label for="fg-code">' + t.ev_code + '</label><input id="fg-code" class="evcode nums" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••"></div>' +
+      '<div class="two"><div class="fld"><label for="fg-pw">' + t.fg_new + '</label><input id="fg-pw" type="password" autocomplete="new-password"></div><div class="fld"><label for="fg-pw2">' + t.f_pw2 + '</label><input id="fg-pw2" type="password" autocomplete="new-password"></div></div>' +
+      '<div class="err" id="fg2-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.fg_save + '</button><p class="muted" style="margin-top:14px;text-align:center"><button class="linkbtn" type="button" data-act="fgagain">' + t.fg_other + "</button></p></form></div>";
+  }
+  function viewResetLink(token) {
+    var t = L();
+    if (!BE) return '<div class="wrap pad" style="max-width:560px"><div class="empty">' + t.im_claim_demo + "</div></div>";
+    if (RL.token !== token) {
+      RL = { token: token, name: "", err: "", loading: true };
+      BE.pwLinkInfo(token).then(function (j) { RL.name = j.name; }, function (x) { RL.err = x.code === "reset" ? t.fg_bad_link : beMsg(t, x); }).then(function () { RL.loading = false; if (current.path === "/reset/" + token) render(true); });
+    }
+    if (RL.loading) return '<div class="wrap pad"><p class="muted">…</p></div>';
+    if (!RL.name) return '<div class="wrap pad" style="max-width:560px"><div class="empty">' + esc(RL.err) + '<p style="margin-top:12px"><a href="#/forgot">' + t.fg_link + "</a></p></div></div>";
+    return '<div class="wrap pad acc" style="max-width:520px"><h1>' + t.fg_h + '</h1><p class="lead">' + t.fg_link_p(esc(RL.name)) + '</p><form class="form" id="rlform" novalidate>' +
+      '<div class="two"><div class="fld"><label for="rl-pw">' + t.fg_new + '</label><input id="rl-pw" type="password" autocomplete="new-password"></div><div class="fld"><label for="rl-pw2">' + t.f_pw2 + '</label><input id="rl-pw2" type="password" autocomplete="new-password"></div></div>' +
+      '<div class="err" id="rl-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.fg_save + "</button></form></div>";
+  }
   function viewLogin() {
     var t = L();
     return '<div class="wrap pad acc" style="max-width:520px"><h1>' + t.login_h + '</h1><div class="demo" style="margin:16px 0 22px">' + t.acc_demo + '</div><form class="form" id="loginform" novalidate>' +
       '<div class="fld"><label for="l-id">' + t.login_id + '</label><input id="l-id" autocomplete="username"></div><div class="fld"><label for="l-pw">' + t.f_pw + '</label><input id="l-pw" type="password" autocomplete="current-password"></div>' +
-      '<div class="err" id="l-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.login_btn + '</button><div class="authalt"><span>' + t.no_acc + '</span><a class="btn ghost block" href="#/register">' + t.go_reg + "</a></div></form></div>";
+      '<p class="fgline"><a href="#/forgot">' + t.fg_link + '</a></p><div class="err" id="l-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.login_btn + '</button><div class="authalt"><span>' + t.no_acc + '</span><a class="btn ghost block" href="#/register">' + t.go_reg + "</a></div></form></div>";
   }
 
   /* account editor keeps unsaved edits in ACC so adding a row does not lose what was typed */
@@ -1583,7 +1611,7 @@
      The public site (/) shows doctors and takes applications; everything behind a sign-in lives here, with its own
      sidebar, top bar and pages: patients, doctors, clinics, and admins on top of their role. Same API, same session. */
   var PANEL = false;   /* set on each render: true on account pages */
-  var isPanelPath = function (p) { return p === "/account" || p.indexOf("/account/") === 0 || ["/pro", "/visits", "/admin", "/login", "/register"].indexOf(p) > -1 || p.indexOf("/consult/") === 0 || p.indexOf("/claim/") === 0; };
+  var isPanelPath = function (p) { return p === "/account" || p.indexOf("/account/") === 0 || ["/pro", "/visits", "/admin", "/login", "/register", "/forgot"].indexOf(p) > -1 || p.indexOf("/consult/") === 0 || p.indexOf("/claim/") === 0 || p.indexOf("/reset/") === 0; };
   var acc = function (p) { return "#/account" + (p && p !== "/" ? p : ""); };
   var PRO_FORM = false;   /* viewAccount() returns just the profile form, for the panel's settings page */
   var PNAV = {
@@ -1722,6 +1750,8 @@
     if (path === "/login") return { body: '<div class="pauth">' + viewLogin() + "</div>", bare: true };
     if (path === "/register") { if (q.role && ["patient", "doctor", "clinic"].indexOf(q.role) > -1) REGROLE = q.role; return { body: '<div class="pauth">' + viewRegister() + "</div>", bare: true }; }
     if (path.indexOf("/claim/") === 0) return { body: '<div class="pauth">' + viewClaim(path.slice(7)) + "</div>", bare: true };
+    if (path === "/forgot") return { body: '<div class="pauth">' + viewForgot() + "</div>", bare: true };
+    if (path.indexOf("/reset/") === 0) return { body: '<div class="pauth">' + viewResetLink(path.slice(7)) + "</div>", bare: true };
     if (!u) return { redirect: "#/login" };
     /* links written for the old one-page site, and public pages opened from the panel */
     if (path === "/pro") path = q.tab === "profile" ? "/settings" : "/" + (q.tab && q.tab !== "home" ? q.tab : "");
@@ -2101,6 +2131,7 @@
     };
     var pend = ADM.list.filter(function (x) { return !x.verified; }), done = ADM.list.filter(function (x) { return x.verified; });
     return '<div class="wrap pad" style="max-width:900px">' + admTabs("chk") + '<h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.adm_h + '</h1><p class="lead">' + t.adm_p + "</p>" + (ADM.err ? '<p class="err">' + esc(ADM.err) + "</p>" : "") +
+      '<form class="dcard admrl" id="admrlform" novalidate><b>' + t.fg_adm_h + '</b><p class="muted" style="margin:4px 0 10px">' + t.fg_adm_p + '</p><div class="admrlrow"><input id="adm-rl" placeholder="+998 … / email" aria-label="' + esc(t.login_id) + '"><button class="btn sm" type="submit">' + t.fg_adm_btn + '</button></div><p class="fine" id="adm-rl-out" aria-live="polite"></p></form>' +
       '<h2 class="subh" style="margin-top:24px">' + t.adm_pending + " (" + pend.length + ")</h2>" + (pend.length ? pend.map(row).join("") : '<p class="muted">' + t.adm_none + "</p>") +
       '<h2 class="subh" style="margin-top:28px">' + t.adm_done + " (" + done.length + ")</h2>" + (done.length ? done.map(row).join("") : '<p class="muted">' + t.adm_none + "</p>") +
       '<h2 class="subh" style="margin-top:28px">' + t.adm_rv_h + " (" + (ADM.reviews || []).length + ')</h2><p class="muted">' + t.adm_rv_p + "</p>" + ((ADM.reviews || []).length ? (ADM.reviews || []).map(function (r) { return '<div class="dcard admrow' + (r.hidden ? " past" : "") + '"><div class="rvtop">' + starsTxt(r.stars) + " <b>" + esc(r.author || t.rv_anon_name) + '</b><span class="muted"> · ' + t.adm_rv_about + ": " + esc(r.target_name) + " · " + fmt(new Date(r.created_at), { day: "numeric", month: "short" }) + (r.hidden ? " · " + t.rv_hidden : "") + "</span></div>" + (r.body ? '<p class="pre">' + esc(r.body) + "</p>" : "") + '<button class="btn ghost sm" type="button" data-admrv="' + (r.hidden ? "show" : "hide") + '" data-id="' + r.id + '">' + (r.hidden ? t.adm_rv_show : t.adm_rv_hide) + "</button></div>"; }).join("") : '<p class="muted">' + t.adm_none + "</p>") +
@@ -2573,6 +2604,7 @@
       var al = appts(); al.forEach(function (x) { if (x.id === aid && apOpen(x)) x.status = "cancelled"; }); saveAppts(al); toast(t.ap_cancelled); render(true); return;
     }
     if (ds.regrole) { REGROLE = ds.regrole; var keep = regKeep(); if (current.q.role) { try { history.replaceState(null, "", location.pathname + location.search + "#/register"); } catch (x) {} } render(true); regPut(keep); return; }
+    if (ds.act === "fgagain") { FG = { step: 1, id: FG.id, sent: [], code: "", at: 0 }; render(true); return; }
     if (ds.act === "evresend") { el.disabled = true; verSend(true); render(true); return; }
     if (ds.regroleLink) { REGROLE = ds.regroleLink; return; }
     if (ds.act === "svcadd") { accCollect(); ACC.pr.svc.push({ name: "", price: "", online: false }); render(true); var rows = all("#svc-list .s-n"); if (rows.length) rows[rows.length - 1].focus(); return; }
@@ -2817,6 +2849,38 @@
       if (BE) { var evb = e.target.querySelector("[type=submit]"); evb.disabled = true; BE.emailVerify(code).then(function () { toast(t.ev_ok); render(true); }, function (x) { evb.disabled = false; var c = x && x.code; everr.textContent = c === "code" ? t.ev_e_code : c === "expired" ? t.ev_e_exp : c === "tries" ? t.ev_e_tries : beMsg(t, x); }); return; }
       if (code !== VER.code) { everr.textContent = t.ev_e_code; return; }
       var lv = users(), cuv = me(); lv.forEach(function (x) { if (x.id === cuv.id) x.emailVerified = true; }); saveUsers(lv); VER.code = ""; toast(t.ev_ok); render(true); return;
+    }
+    if (id === "fgform") {
+      var fid = $("fg-id").value.trim(), ferr = $("fg-err"), fmail = fid.indexOf("@") > 0;
+      if (!fid || (fmail ? !okEmail(fid) : !okPhone(fid))) { ferr.textContent = t.fg_e_id; return; }
+      FG.id = fid;
+      if (BE) { var fb = e.target.querySelector("[type=submit]"); fb.disabled = true; BE.pwForgot(fid).then(function (j) { FG.sent = j.sent || []; FG.step = 2; FG.at = Date.now(); render(true); }, function (x) { fb.disabled = false; ferr.textContent = x && x.code === "wait" ? t.fg_wait : beMsg(t, x); }); return; }
+      var fu = findByContact(fmail ? fid.toLowerCase() : "", fmail ? "" : fid);
+      FG.sent = fu ? [fu.email ? "email" : "sms"] : []; FG.code = fu ? String(Math.floor(Math.random() * 1e6)).padStart(6, "0") : ""; FG.uid = fu ? fu.id : ""; FG.step = 2; render(true); return;
+    }
+    if (id === "fg2form") {
+      var fc = String($("fg-code").value).replace(/\D/g, ""), fp = $("fg-pw").value, f2 = $("fg2-err");
+      if (fc.length !== 6) { f2.textContent = t.ev_e_len; return; }
+      if (fp.length < 6) { f2.textContent = t.e_pw; return; }
+      if (fp !== $("fg-pw2").value) { f2.textContent = t.e_pw2; return; }
+      if (BE) { var fb2 = e.target.querySelector("[type=submit]"); fb2.disabled = true; BE.pwReset(FG.id, fc, fp).then(function () { FG = { step: 1, id: "", sent: [], code: "", at: 0 }; ACC = null; toast(t.fg_done); go("#/account"); }, function (x) { fb2.disabled = false; var c = x && x.code; f2.textContent = c === "code" ? t.ev_e_code : c === "expired" ? t.ev_e_exp : c === "tries" ? t.ev_e_tries : beMsg(t, x); }); return; }
+      if (fc !== FG.code) { f2.textContent = t.ev_e_code; return; }
+      hashPw(fp, FG.uid).then(function (h) { var lf = users(); lf.forEach(function (x) { if (x.id === FG.uid) x.pw = h; }); saveUsers(lf); store.set(KS, FG.uid); FG = { step: 1, id: "", sent: [], code: "", at: 0 }; ACC = null; toast(t.fg_done); go("#/account"); });
+      return;
+    }
+    if (id === "rlform" && BE) {
+      var rp = $("rl-pw").value, rerr = $("rl-err");
+      if (rp.length < 6) { rerr.textContent = t.e_pw; return; }
+      if (rp !== $("rl-pw2").value) { rerr.textContent = t.e_pw2; return; }
+      var rb2 = e.target.querySelector("[type=submit]"); rb2.disabled = true;
+      BE.pwLink(RL.token, rp).then(function () { RL = { token: "", name: "", err: "", loading: false }; ACC = null; toast(t.fg_done); go("#/account"); }, function (x) { rb2.disabled = false; rerr.textContent = x && x.code === "reset" ? t.fg_bad_link : beMsg(t, x); });
+      return;
+    }
+    if (id === "admrlform") {
+      var ac = $("adm-rl").value.trim(), aerr = $("adm-rl-out");
+      if (!ac) return;
+      BE.adminResetLink({ contact: ac }).then(function (j) { aerr.innerHTML = t.fg_adm_made + ' <input class="copyin" readonly value="' + esc(j.url) + '" onclick="this.select()">'; }, function (x) { aerr.textContent = x && x.code === "not_found" ? t.fg_adm_none : beMsg(t, x); });
+      return;
     }
     if (id === "loginform") {
       if (BE) {

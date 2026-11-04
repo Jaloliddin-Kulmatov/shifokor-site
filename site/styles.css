@@ -1566,3 +1566,10 @@ audio.voice { display: block; width: 240px; max-width: 100%; height: 36px; margi
 .top .acct[hidden] { display: none !important; }
 .acctdd .menu a, .pacct .menu a { text-decoration: none; color: var(--ink); }
 .acctdd .menu a:hover, .pacct .menu a:hover { color: var(--accent); }
+
+/* a forgotten password */
+.fgline { margin: -4px 0 12px; text-align: right; font-size: 0.92rem; }
+.admrl { margin: 18px 0 8px; }
+.admrlrow { display: flex; gap: 8px; flex-wrap: wrap; }
+.admrlrow input { flex: 1; min-width: 200px; }
+.copyin { width: 100%; margin-top: 6px; font: 0.85rem ui-monospace, monospace; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }

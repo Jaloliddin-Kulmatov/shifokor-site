@@ -311,6 +311,17 @@ create table if not exists app_email_codes (
   sent_at timestamptz not null default now()
 );
 
+-- forgotten passwords: a 6-digit code sent by Telegram, email or SMS, or a one-time link an admin hands over.
+-- Only hashes are kept; a code lasts 30 minutes and 5 tries, a link 3 days.
+create table if not exists app_pw_resets (
+  user_id uuid primary key references app_users (id) on delete cascade,
+  code_hash text,
+  link_hash text unique,
+  expires_at timestamptz not null,
+  tries int not null default 0,
+  sent_at timestamptz not null default now()
+);
+
 create table if not exists app_branches (
   id uuid primary key default gen_random_uuid(),
   clinic_id uuid not null references app_users (id) on delete cascade,
@@ -368,4 +379,5 @@ alter table app_jobs enable row level security;
 alter table app_branches enable row level security;
 alter table app_staff enable row level security;
 alter table app_email_codes enable row level security;
+alter table app_pw_resets enable row level security;
 `;

@@ -65,6 +65,25 @@ const actions = {
     return { url: site.url() + "/#/claim/" + token };
   },
 
+  // a one-time link to set a new password, for someone who can't get a code (no Telegram, email or SMS yet)
+  async admin_reset_link(b, me) {
+    requireAdmin(me);
+    // by account id (the check list) or by phone or email (anyone, patients included)
+    let id = b.id;
+    if (!id && b.contact) {
+      const c = str(b.contact, 254);
+      const row = c.includes("@") ? (await q("select id from app_users where email = $1", [c.toLowerCase()])).rows[0] : (await q("select id from app_users where phone = $1", [phoneOf(c)])).rows[0];
+      if (!row) throw new Fail(404, "not_found");
+      id = row.id;
+    }
+    if (!UUID.test(String(id || ""))) bad("id");
+    if (!(await q("select 1 from app_users where id = $1", [id])).rows[0]) throw new Fail(404, "not_found");
+    b = { id };
+    const token = newInvite();
+    await q("insert into app_pw_resets (user_id, link_hash, expires_at) values ($1, $2, now() + interval '3 days') on conflict (user_id) do update set link_hash = excluded.link_hash, code_hash = null, expires_at = excluded.expires_at, tries = 0, sent_at = now()", [b.id, sha(token)]);
+    return { url: site.url() + "/#/reset/" + token };
+  },
+
   // for a doctor who withdrew consent before claiming the profile
   async admin_remove_pending(b, me) {
     requireAdmin(me);

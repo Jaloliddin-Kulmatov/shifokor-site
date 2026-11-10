@@ -62,7 +62,7 @@
   function open(o) {
     if (cur) { cur.el.classList.remove("mini"); return; }
     var t = o.t, video = o.media === "video";
-    var s = { pc: null, dc: null, gen: "", local: null, ice: [], link: null, started: 0, on: false, closed: false, mic: true, cam: video, facing: "user", cams: 0,
+    var s = { pc: null, dc: null, gen: "", local: null, ice: [], link: null, lk: null, remote: null, started: 0, on: false, closed: false, mic: true, cam: video, facing: "user", cams: 0,
       making: false, offerAt: 0, offerGot: 0, fails: 0, failT: null, tick: null, retry: null, wake: null, them: { mic: true, cam: true } };
 
     var el = document.createElement("div");
@@ -91,8 +91,8 @@
     function btns() {
       var a = s.local && s.local.getAudioTracks()[0], v = s.local && s.local.getVideoTracks()[0];
       var bm = q('[data-c="mic"]'), bc = q('[data-c="cam"]'), bf = q('[data-c="flip"]');
-      bm.innerHTML = ic(s.mic ? "mic" : "micoff"); bm.setAttribute("aria-pressed", String(!s.mic)); bm.title = s.mic ? t.cl_mic_off : t.cl_mic_on; bm.setAttribute("aria-label", bm.title); bm.disabled = !a;
-      if (bc) { bc.innerHTML = ic(s.cam ? "video" : "videooff"); bc.setAttribute("aria-pressed", String(!s.cam)); bc.title = s.cam ? t.cl_cam_off : t.cl_cam_on; bc.setAttribute("aria-label", bc.title); bc.disabled = !v; }
+      bm.innerHTML = ic(s.mic ? "mic" : "micoff"); bm.setAttribute("aria-pressed", String(!s.mic)); bm.title = s.mic ? t.cl_mic_off : t.cl_mic_on; bm.setAttribute("aria-label", bm.title); bm.disabled = !a && !s.lk;
+      if (bc) { bc.innerHTML = ic(s.cam ? "video" : "videooff"); bc.setAttribute("aria-pressed", String(!s.cam)); bc.title = s.cam ? t.cl_cam_off : t.cl_cam_on; bc.setAttribute("aria-label", bc.title); bc.disabled = !v && !s.lk; }
       if (bf) bf.hidden = !(v && s.cam && s.cams > 1);
       el.classList.toggle("me-off", !(v && s.cam));
     }
@@ -189,9 +189,9 @@
     }
     function onState(st) {
       if (st === "connected") {
-        clearTimeout(s.failT); s.fails = 0; s.on = true; status(t.cl_on, "on"); s.link.pace(3000);
+        clearTimeout(s.failT); s.fails = 0; s.on = true; status(t.cl_on, "on"); if (s.link) s.link.pace(3000);
         if (!s.started) { s.started = Date.now(); s.tick = setInterval(function () { timeEl.textContent = mmss(Math.round((Date.now() - s.started) / 1000)); }, 1000); }
-        lightVideo(); tellState(); awake();
+        if (s.pc) { lightVideo(); tellState(); } awake();
       } else if (st === "disconnected") {
         status(video ? t.cl_weak_v : t.cl_weak, "wait");
         clearTimeout(s.failT); s.failT = setTimeout(recover, 6000);
@@ -219,6 +219,7 @@
     function stopAll() {
       clearInterval(s.tick); clearInterval(s.retry); clearTimeout(s.failT);
       if (s.link) s.link.stop();
+      if (s.lk) { try { s.lk.disconnect(); } catch (e) {} s.lk = null; }
       closePc();
       if (s.local) s.local.getTracks().forEach(function (tr) { tr.stop(); });
       if (s.wake) { try { s.wake.release(); } catch (e) {} }
@@ -244,8 +245,9 @@
       else if (c === "retry") { b.remove(); start(); }
       else if (c === "mini") { el.classList.add("mini"); q('[data-c="full"]').focus(); }
       else if (c === "full") { el.classList.remove("mini"); q('[data-c="end"]').focus(); }
-      else if (c === "mic" && a) { s.mic = !s.mic; a.enabled = s.mic; btns(); tellState(); }
-      else if (c === "cam" && v) { s.cam = !s.cam; v.enabled = s.cam; btns(); tellState(); }
+      else if (c === "mic" && (a || s.lk)) { s.mic = !s.mic; if (s.lk) s.lk.localParticipant.setMicrophoneEnabled(s.mic).catch(warn); else { a.enabled = s.mic; tellState(); } btns(); }
+      else if (c === "cam" && (v || s.lk)) { s.cam = !s.cam; if (s.lk) s.lk.localParticipant.setCameraEnabled(s.cam).catch(warn); else { v.enabled = s.cam; tellState(); } btns(); }
+      else if (c === "flip" && s.lk) lkFlip();
       else if (c === "flip" && v) flip(v);
     });
     /* front and back camera on a phone, so the patient can show a rash or a wound. Many phones can't open both
@@ -264,10 +266,69 @@
       cam(next).then(function (ns) { return use(ns, next); }, function (e) { warn(e); return cam(s.facing).then(function (ns) { return use(ns, s.facing); }); }).catch(warn);
     }
 
-    function start() {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.RTCPeerConnection || !window.isSecureContext) { status(t.cl_unsup, "err"); btns(); return; }
-      status(t.cl_asking, "wait");
-      getMedia().then(function (stream) {
+    /* LiveKit: when the server has a media server, the call goes through it instead of straight between the browsers,
+       which also works on strict mobile networks. The server gives a room and a token; the browser library comes from a CDN.
+       Without LiveKit, or if the library won't load, the direct connection below is used as before. */
+    function loadLk() {
+      if (window.LivekitClient) return Promise.resolve(window.LivekitClient);
+      return new Promise(function (res, rej) {
+        var sc = document.createElement("script"); sc.src = "https://cdn.jsdelivr.net/npm/livekit-client@2.23.0/dist/livekit-client.umd.js"; sc.async = true;
+        sc.onload = function () { if (window.LivekitClient) res(window.LivekitClient); else rej(new Error("livekit")); }; sc.onerror = function () { rej(new Error("livekit")); };
+        document.head.appendChild(sc);
+      });
+    }
+    function lkStart(info, LK) {
+      var room = new LK.Room({ adaptiveStream: true, dynacast: true }), E = LK.RoomEvent;
+      s.lk = room; s.remote = new MediaStream(); them.srcObject = s.remote;
+      var syncLocal = function () { var tr = []; room.localParticipant.trackPublications.forEach(function (p) { if (p.track && p.track.mediaStreamTrack) tr.push(p.track.mediaStreamTrack); }); s.local = new MediaStream(tr); btns(); };
+      var peerIn = function () { if (!s.closed && room.remoteParticipants.size) onState("connected"); };
+      room.on(E.TrackSubscribed, function (track) { s.remote.addTrack(track.mediaStreamTrack); them.srcObject = s.remote; view(); play(); peerIn(); });
+      room.on(E.TrackUnsubscribed, function (track) { try { s.remote.removeTrack(track.mediaStreamTrack); } catch (e) {} view(); });
+      var muted = function (pub, p, on) {
+        if (p === room.localParticipant) { if (on && pub.track && pub.kind === "video") pub.track.attach(mine); syncLocal(); return; }
+        if (pub.kind === "video") s.them.cam = on; else s.them.mic = on; view();
+      };
+      room.on(E.TrackMuted, function (pub, p) { muted(pub, p, false); });
+      room.on(E.TrackUnmuted, function (pub, p) { muted(pub, p, true); });
+      room.on(E.ParticipantConnected, peerIn);
+      room.on(E.ParticipantDisconnected, function () { if (s.closed) return; s.on = false; el.classList.remove("them-on"); flag.hidden = true; status(t.cl_left, "wait"); });
+      room.on(E.Reconnecting, function () { if (!s.closed) status(video ? t.cl_weak_v : t.cl_weak, "wait"); });
+      room.on(E.Reconnected, peerIn);
+      room.on(E.Disconnected, function () { if (!s.closed && s.lk === room) { status(t.cl_fail, "err"); btns(); } });
+      room.on(E.LocalTrackPublished, function (pub) { if (pub.track && pub.track.kind === "video") pub.track.attach(mine); syncLocal(); });
+      status(t.cl_connecting, "wait");
+      return room.connect(info.url, info.token).then(function () {
+        return room.localParticipant.setMicrophoneEnabled(true, { echoCancellation: true, noiseSuppression: true, autoGainControl: true });
+      }).then(function () {
+        if (!video) return;
+        return room.localParticipant.setCameraEnabled(true, { facingMode: s.facing, resolution: LK.VideoPresets.h540.resolution }).catch(function (e) { warn(e); s.cam = false; s.noCam = true; });
+      }).then(function () {
+        if (s.closed) { room.disconnect(); return; }
+        syncLocal(); awake();
+        if (room.remoteParticipants.size) onState("connected"); else status(s.noCam ? t.cl_nocam : o.role === "d" ? t.cl_wait_doc : t.cl_wait_pat, "wait");
+        if (video && navigator.mediaDevices.enumerateDevices) navigator.mediaDevices.enumerateDevices().then(function (ds) { s.cams = ds.filter(function (d) { return d.kind === "videoinput"; }).length; btns(); }, function () {});
+      });
+    }
+    /* the other camera on a phone, through LiveKit: the same track restarts with the other facing mode */
+    function lkFlip() {
+      var pub = s.lk && s.lk.localParticipant.getTrackPublication(window.LivekitClient.Track.Source.Camera), next = s.facing === "user" ? "environment" : "user";
+      if (!pub || !pub.track) return;
+      pub.track.restartTrack({ facingMode: next }).then(function () { s.facing = next; pub.track.attach(mine); el.classList.toggle("back", next === "environment"); btns(); }, warn);
+    }
+    function fail(e) {
+      if (s.lk) { try { s.lk.disconnect(); } catch (x) {} s.lk = null; }
+
+        warn(e);
+        if (s.closed) return;
+        if (s.local) { s.local.getTracks().forEach(function (tr) { tr.stop(); }); s.local = null; }
+        if (s.link) { s.link.stop(); s.link = null; }
+        var name = e && e.name;
+        status(name === "NotAllowedError" || name === "SecurityError" ? (video ? t.cl_denied_v : t.cl_denied) : name === "NotFoundError" ? t.cl_nodev : e && e.code === "closed" ? t.cl_closed : t.cl_fail, "err");
+        btns();
+        if (!(e && e.code === "closed") && !q('[data-c="retry"]')) q(".call-bar").insertAdjacentHTML("afterbegin", '<button type="button" class="btn sm call-retry" data-c="retry">' + esc(t.cl_retry) + "</button>");
+    }
+    function direct() {
+      return getMedia().then(function (stream) {
         if (s.closed) { stream.getTracks().forEach(function (tr) { tr.stop(); }); return; }
         s.local = stream; mine.srcObject = stream; btns();
         if (s.noCam) status(t.cl_nocam, "wait");
@@ -282,16 +343,15 @@
             if (o.role === "p") s.retry = setInterval(function () { if (!s.on && !s.closed && Date.now() - s.offerGot > 8000) s.link.send("hello").catch(warn); }, 8000);
           });
         });
-      }).catch(function (e) {
-        warn(e);
-        if (s.closed) return;
-        if (s.local) { s.local.getTracks().forEach(function (tr) { tr.stop(); }); s.local = null; }
-        if (s.link) { s.link.stop(); s.link = null; }
-        var name = e && e.name;
-        status(name === "NotAllowedError" || name === "SecurityError" ? (video ? t.cl_denied_v : t.cl_denied) : name === "NotFoundError" ? t.cl_nodev : e && e.code === "closed" ? t.cl_closed : t.cl_fail, "err");
-        btns();
-        if (!(e && e.code === "closed") && !q('[data-c="retry"]')) q(".call-bar").insertAdjacentHTML("afterbegin", '<button type="button" class="btn sm call-retry" data-c="retry">' + esc(t.cl_retry) + "</button>");
       });
+    }
+    function start() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.RTCPeerConnection || !window.isSecureContext) { status(t.cl_unsup, "err"); btns(); return; }
+      status(t.cl_asking, "wait");
+      var via = !o.demo && window.SB && SB.callRoom
+        ? SB.callRoom(o.cid).then(function (info) { return loadLk().then(function (LK) { return lkStart(info, LK); }, function (e) { warn(e); return direct(); }); }, function (e) { if (e && e.code === "no_livekit") return direct(); throw e; })
+        : direct();
+      via.catch(fail);
     }
     btns();
     q('[data-c="end"]').focus();

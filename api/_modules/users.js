@@ -203,7 +203,7 @@ const actions = {
     await q("insert into app_email_codes (user_id, email, code_hash, expires_at) values ($1, $2, $3, now() + interval '30 minutes') on conflict (user_id) do update set email = excluded.email, code_hash = excluded.code_hash, expires_at = excluded.expires_at, tries = 0, sent_at = now()", [me.id, me.email, sha(me.id + ":" + code)]);
     const text = "Shifokor: emailingizni tasdiqlash kodi " + code + ". Kod 30 daqiqa amal qiladi.\nКод подтверждения email: " + code + "\nYour Shifokor email code: " + code + "\n\nAgar siz ro‘yxatdan o‘tmagan bo‘lsangiz, bu xatni e’tiborsiz qoldiring.";
     const html = '<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px;color:#14302f"><h2 style="margin:0 0 12px">Shifokor</h2><p>Emailingizni tasdiqlash kodi / Код подтверждения / Your code:</p><p style="font-size:32px;letter-spacing:8px;font-weight:700;margin:16px 0">' + code + '</p><p style="color:#5b6b6a">Kod 30 daqiqa amal qiladi. Agar siz ro‘yxatdan o‘tmagan bo‘lsangiz, bu xatni e’tiborsiz qoldiring.</p></div>';
-    if (!(await N.mail(me.email, "Shifokor: tasdiqlash kodi " + code, text, html))) { await q("delete from app_email_codes where user_id = $1", [me.id]); throw new Fail(502, "mail"); }
+    if (!(await N.mail(me.email, "Shifokor: tasdiqlash kodi " + code, text, html))) { await q("delete from app_email_codes where user_id = $1", [me.id]); throw new Fail(N.mailBlocked() ? 503 : 502, N.mailBlocked() ? "no_mail" : "mail"); }
     return { sent: true };
   },
   async email_verify(b, me) {

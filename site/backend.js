@@ -138,6 +138,7 @@
     /* call set-up messages; keep lets a "bye" still go out while the page closes */
     signal: function (cid, kind, body, keep) { return call("signal", { id: cid, kind: kind, body: body || "" }, keep); },
     signals: function (cid, after) { return call("signals", { id: cid, after: after }); },
+    callRoom: function (cid) { return call("call_room", { id: cid }); },
     /* opens the bot in Telegram; pressing Start there links this account */
     tgLink: async function () { return (await call("tg_link")).url; },
     tgUnlink: async function () { await call("tg_unlink"); await refresh(); },

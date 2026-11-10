@@ -37,7 +37,26 @@ function iceServers(userId) {
   return list;
 }
 
+// LiveKit (optional): a media server that carries the call when the two browsers can't reach each other directly,
+// as on many mobile networks. The browser gets a room name and a token signed with the project's secret (2 hours).
+//   LIVEKIT_URL   wss://<project>.livekit.cloud      LIVEKIT_API_KEY, LIVEKIT_API_SECRET   from the LiveKit project's keys
+const LK = { url: (process.env.LIVEKIT_URL || "").trim(), key: (process.env.LIVEKIT_API_KEY || "").trim(), secret: (process.env.LIVEKIT_API_SECRET || "").trim() };
+const b64u = (x) => Buffer.from(x).toString("base64").replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+function lkToken(room, identity, name) {
+  const now = Math.floor(Date.now() / 1000);
+  const head = b64u(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const body = b64u(JSON.stringify({ iss: LK.key, sub: identity, name, nbf: now - 10, exp: now + 2 * 3600, video: { room, roomJoin: true, canPublish: true, canSubscribe: true, canPublishData: true } }));
+  return head + "." + body + "." + b64u(crypto.createHmac("sha256", LK.secret).update(head + "." + body).digest());
+}
+
 const actions = {
+  // the media-server room for this consultation's call, for its patient and doctor only; 503 when LiveKit isn't set up
+  async call_room(b, me) {
+    const c = await callPeer(b, me);
+    if (!LK.url || !LK.key || !LK.secret) throw new Fail(503, "no_livekit");
+    return { url: LK.url, room: "c-" + c.id, token: lkToken("c-" + c.id, me.id, me.name) };
+  },
+
   async call(b, me) {
     need(me);
     const c = await consultFor(me, b.id);
@@ -81,4 +100,4 @@ const actions = {
   }
 };
 
-module.exports = { actions, callPeer, iceServers };
+module.exports = { actions, callPeer, iceServers, lkToken, LIVEKIT: !!(LK.url && LK.key && LK.secret) };

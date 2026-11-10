@@ -292,36 +292,58 @@
     var score = function (r) { return (r.avg * r.n + 4 * 3) / (r.n + 3); };
     var docs = withSamples().filter(function (u) { return u.role === "doctor"; }).map(function (u) { return { u: u, r: ratingOf(u.id) }; }).filter(function (x) { return x.r.n > 0; })
       .sort(function (a, b) { return score(b.r) - score(a.r) || (a.u.sample ? 1 : 0) - (b.u.sample ? 1 : 0); }).slice(0, 6).map(function (x) { return x.u; });
-    /* search by specialty, with how many doctors each has */
-    var specs = DOC_SP.filter(function (k) { return k !== "other"; }).map(function (k) { return { k: k, n: withSamples().filter(function (u) { return u.role === "doctor" && (u.profile || {}).spec === k; }).length }; });
-    var seen = {}, rvs = reviews().filter(function (r) { var d = userById(r.target); return !r.hidden && r.stars >= 4 && r.body && d && d.role === "doctor"; })
-      .sort(function (a, b) { return (userById(a.target).sample ? 1 : 0) - (userById(b.target).sample ? 1 : 0) || b.stars - a.stars || b.body.length - a.body.length; })
-      .filter(function (r) { if (seen[r.target] || seen[r.body]) return false; seen[r.target] = seen[r.body] = 1; return true; }).slice(0, 3);
-    var rvHome = rvs.length ? '<div class="wrap pad" style="padding-top:12px"><div class="sechead"><h2>' + t.hrv_h + "</h2>" + (rvs.some(function (r) { return userById(r.target).sample; }) ? smpBadge() : "") + '</div><div class="hrv">' + rvs.map(function (r) { var d = userById(r.target); return '<figure class="hrvi"><div class="stars" aria-label="' + esc(t.rv_star_l(r.stars)) + '">' + "★★★★★".slice(0, r.stars) + "</div><blockquote>" + esc(r.body) + "</blockquote><figcaption><b>" + esc(r.author || t.rv_anon_name) + '</b><a href="#/doc/' + d.id + '">' + esc(d.name) + " · " + esc(specName(d.profile || {})) + "</a></figcaption></figure>"; }).join("") + "</div></div>" : "";
-    var cats = '<div class="wrap pad" style="padding-top:12px"><h2>' + t.cat_h + '</h2><p class="lead">' + t.cat_p + '</p><div class="specgrid">' + specs.map(function (x) { return '<a class="specbox" href="#/doctors?' + qs({ s: x.k }) + '"><b>' + t.docsp[x.k] + '</b><span class="muted">' + t.cat_n(x.n) + "</span></a>"; }).join("") + "</div></div>";
-    var howSec = '<div class="wrap pad howgrid"><div class="howart"><span class="bignum" aria-hidden="true">01</span>' + phHome() + '</div><div><h2>' + t.how_use_h + '</h2><ol class="howlist">' + t.how_f.map(function (x, i) { return '<li><span class="hn">0' + (i + 1) + "</span><div><b>" + x[0] + "</b><p>" + x[1] + "</p></div></li>"; }).join("") + '</ol><a class="btn" href="#/doctors">' + ic("search") + t.hm_cta_pick + "</a></div></div>";
+    /* how it works: three steps beside a real photo */
+    var howSec = '<div class="wrap pad howgrid"><figure class="howphoto">' + photo("doctor-phone", t.img_how, "(max-width: 760px) 90vw, 420px") + '</figure><div><h2>' + t.how_use_h + '</h2><ol class="howlist">' + t.how_f.map(function (x, i) { return '<li><span class="hn">0' + (i + 1) + "</span><div><b>" + x[0] + "</b><p>" + x[1] + "</p></div></li>"; }).join("") + '</ol><a class="btn" href="#/doctors">' + ic("search") + t.hf_go + "</a></div></div>";
     var prosSec = '<div class="band soft"><div class="wrap pad prosgrid"><figure class="shot prosph">' + photo("doctor-desk", t.pros_img, "(max-width: 760px) 90vw, 560px") + '</figure><div><span class="eyebrow">' + t.nv_pros + "</span><h2>" + t.pros_h + '</h2><p class="lead">' + t.pros_p + '</p><ul class="slex">' + t.pros_pts.map(function (e) { return "<li>" + ic("check") + "<span>" + e + "</span></li>"; }).join("") +
       '</ul><div class="btns"><a class="btn" href="#/register" data-regrole-link="doctor">' + t.reg_doc_cta + '</a><a class="btn ghost" href="#/register" data-regrole-link="clinic">' + t.reg_clinic_cta + "</a></div></div></div></div>";
     return '<div class="band deep homehero"><div class="wrap hero"><div><h1>' + t.hf_h1 + '</h1><p class="herotag">' + t.hero_tag + '</p><p class="sub">' + t.hf_sub + "</p>" + form + "</div>" + heroArt() + "</div></div>" +
-      hcCards() + careCards() +
+      svcSection(8, true) +
       (live.length ? '<div class="wrap pad" style="padding-top:12px"><div class="sechead"><h2>' + t.hm_online_h + '</h2><a class="btn sm" href="#/consult?now=1">' + ic("chat") + t.hm_cta_now + '</a></div><div class="results" style="padding:14px 0 0">' + live.slice(0, 4).map(docCard).join("") + "</div></div>" : "") +
       '<div class="wrap pad" style="padding-top:12px"><div class="sechead"><div><h2>' + t.top_docs_h + '</h2><p class="lead" style="margin:4px 0 0">' + t.top_p + '</p></div><a class="btn ghost sm" href="#/doctors">' + t.new_docs_all + "</a></div>" +
         (docs.length ? '<div class="dtgrid">' + docs.map(docTile).join("") + "</div>" + (docs.some(function (u) { return u.sample; }) ? '<p class="fine" style="margin-top:10px">' + t.smp_dir + "</p>" : "") : '<p class="muted">' + t.top_none + "</p>") + "</div>" +
+      howSec +
       '<div class="wrap tcards homepromise">' + t.tc.map(function (x, i) { return '<div class="tcard"><div class="tcimg t' + i + '">' + ic(["shield", "free", "check"][i]) + "</div><div><b>" + x[0] + "</b><p>" + x[1] + "</p></div></div>"; }).join("") + "</div>" +
-      howSec + rvHome + cats +
-      '<div class="wrap pad"><h2>' + t.oc_h + '</h2><p class="lead">' + t.oc_p + "</p>" + ocLists(false) + "</div>" +
       prosSec +
       '<div class="wrap pad"><h2>' + t.faq_short_h + '</h2><div class="faq">' + t.faq_f.map(function (q) { return "<details><summary>" + q[0] + "</summary><p>" + q[1] + "</p></details>"; }).join("") + "</div>" +
       '<p class="fine credits">' + t.ph_credit + "</p></div>";
   }
-  /* who needs help: four groups with a real photo each (the old slider, laid out as cards) */
-  function careCards() {
-    var t = L(), links = ["#/doctors?" + qs({ s: "pediatrics" }), "#/doctors?" + qs({ s: "therapist" }), "#/ona", "#/doctors?" + qs({ s: "psych" })], imgs = ["ped-baby", "elderly-visit", "pregnancy", "psychologist"];
-    return '<div class="wrap pad" style="padding-top:12px"><h2>' + t.sl_h + '</h2><p class="lead">' + t.care_p + '</p><div class="caregrid">' + t.sl.map(function (x, i) {
-      return '<a class="carecard" href="' + links[i] + '"><div class="carephoto">' + photo(imgs[i], x[5], "(max-width: 600px) 92vw, (max-width: 1100px) 45vw, 300px") + '<span class="eyebrow">' + x[0] + '</span></div><div class="caretext"><h3>' + x[1] + "</h3><p>" + x[2] + '</p><span class="carego">' + x[4] + " →</span></div></a>";
-    }).join("") + '</div><p class="fine" style="margin-top:12px">' + t.sl_em + "</p></div>";
+  /* ---------------- health services: one card per thing an ordinary person comes for ----------------
+     Each card links to real content: the application form, the price list filtered to that service, or the clinics.
+     The price is the lowest matching price, real doctors first; sample doctors only when there's no real one. */
+  var SV = [
+    { k: "online", img: "doctor-video-call", href: "#/consult", cp: true },
+    { k: "results", img: "doctor-desk", href: "#/prices?q=natijasini", q: "natijasini" },
+    { k: "pediatrics", img: "ped-baby", href: "#/consult?s=pediatrics", spec: "pediatrics" },
+    { k: "pregnancy", img: "pregnancy", href: "#/ona", spec: "gyn" },
+    { k: "chronic", img: "elderly-visit", href: "#/prices?q=nazorat", q: "nazorat" },
+    { k: "meds", img: "doctor-phone", href: "#/prices?q=dorilarni", q: "dorilarni" },
+    { k: "mental", img: "psychologist", href: "#/consult?s=psych", spec: "psych" },
+    { k: "clinic", img: "nukus-phone", href: "#/find" }
+  ];
+  function svPrice(it, rows) {
+    var l = rows.filter(function (x) { return x.price != null && (it.cp ? x.cp : it.q ? pMatch(x.name, norm(it.q)) : it.spec ? x.cp && (x.u.profile || {}).spec === it.spec : false); });
+    var real = l.filter(function (x) { return !x.u.sample; }); if (real.length) l = real;
+    if (!l.length) return null;
+    return { min: Math.min.apply(null, l.map(function (x) { return x.price; })), sample: !!l[0].u.sample };
   }
-
+  function svCard(it, rows) {
+    var t = L(), c = t.sv_items[it.k], p = it.cp || it.q || it.spec ? svPrice(it, rows) : null;
+    return '<a class="svcard" href="' + it.href + '"><div class="svphoto">' + photo(it.img, c[3], "(max-width: 600px) 40vw, (max-width: 1100px) 45vw, 300px") + '</div><div class="svtext"><h3>' + c[0] + "</h3><p>" + c[1] + '</p><span class="svfoot">' +
+      (p ? '<b class="nums">' + (p.min === 0 ? t.free_c : esc(t.sv_from(num(p.min) + " " + unit()))) + "</b>" : "<span></span>") + '<span class="carego">' + c[2] + " →</span></span></div></a>";
+  }
+  function svcSection(n, home) {
+    var t = L(), rows = priceRows(), list = SV.slice(0, n), smp = false;
+    var cards = list.map(function (it) { var p = it.cp || it.q || it.spec ? svPrice(it, rows) : null; if (p && p.sample) smp = true; return svCard(it, rows); }).join("");
+    return '<div class="wrap pad svwrap"><div class="sechead"><div><h2>' + t.sv_h + '</h2><p class="lead" style="margin:4px 0 0">' + t.sv_p + '</p></div><a class="btn ghost sm" href="' + (home ? "#/services" : "#/prices") + '">' + (home ? t.sv_more : t.sv_all) + '</a></div><div class="svgrid">' + cards + "</div>" +
+      (smp ? '<p class="fine" style="margin-top:12px">' + t.smp_dir + "</p>" : "") + "</div>";
+  }
+  function viewServices() {
+    var t = L();
+    return pageHead(t.nv_services, t.sv_page_h, t.sv_page_p) + svcSection(SV.length, false) +
+      '<div class="wrap pad" style="padding-top:8px"><h2>' + t.sv_spec_h + '</h2><div class="hfquick" style="margin-top:12px">' + DOC_SP.filter(function (k) { return k !== "other"; }).map(function (k) { return '<a href="#/doctors?' + qs({ s: k }) + '">' + t.docsp[k] + "</a>"; }).join("") + "</div>" +
+      '<p class="note-box" style="margin-top:24px">' + t.sl_em + '</p><p class="fine credits">' + t.ph_credit + "</p></div>";
+  }
+  /* who needs help: four groups with a real photo each (the old slider, laid out as cards) */
   /* ---------------- results ---------------- */
   function card(r) {
     var t = L(), p = r.p, lead = r.lead, nf = r.nf, link = "#/p/" + p.id + (r.mode === "on" ? "?m=on" : "");
@@ -627,6 +649,11 @@
   var userById = function (id) { return withSamples().filter(function (u) { return u.id === id; })[0] || null; };
   /* real doctors first, then samples, each group in the chosen order */
   var realFirst = function (list, how) { return sortDocs(list.filter(function (u) { return !u.sample; }), how).concat(sortDocs(list.filter(function (u) { return u.sample; }), how)); };
+  /* up to three services with prices under a doctor's name in lists */
+  function svcChips(u) {
+    var l = ((u.profile || {}).svc || []).filter(function (x) { return x.name; }), t = L(); if (!l.length) return "";
+    return '<ul class="svcchips" aria-label="' + esc(t.svc_h) + '">' + l.slice(0, 3).map(function (x) { return '<li class="svcchip"><span>' + esc(x.name) + "</span>" + (x.price === "" || x.price == null ? "" : '<b class="nums">' + esc(money(+x.price)) + "</b>") + "</li>"; }).join("") + (l.length > 3 ? '<li class="svcmore">+' + (l.length - 3) + "</li>" : "") + "</ul>";
+  }
   var smpBadge = function () { return '<span class="sample">' + L().smp_badge + "</span>"; };
   var me = function () { var id = store.get(KS, null); return id ? userById(id) : null; };
   var REGROLE = "patient", ACC = null, ACC_DEL = false;
@@ -730,7 +757,7 @@
   /* ---------------- confirming the email with a 6-digit code ---------------- */
   var VER = { uid: "", at: 0, code: "", off: false, msg: "", busy: false }, VER_T = null;
   /* off until Resend has verified shifokor.com: no reminder, no code page after sign-up (the server side is ready) */
-  var EMAIL_CHECK = false;
+  var EMAIL_CHECK = true;
   var needsEmail = function (u) { return EMAIL_CHECK && !!(u && u.email && !u.emailVerified); };
   function verSend(force) {
     var u = me(), t = L(); if (!needsEmail(u) || VER.busy) return;
@@ -965,7 +992,7 @@
     var meta2 = [region, (pr.langs || []).map(langName).join(", ")].filter(Boolean).join(" · ");
     return '<article class="fcard doccard">' + avatarOf(u, "sm") + '<div class="fmain"><h3><a href="#/doc/' + u.id + '">' + esc(u.name) + '</a></h3><div class="spec">' + esc(specName(pr)) + (pr.years ? " · " + t.exp(pr.years) : "") + "</div>" +
       '<div class="badges">' + (onlineNow(u) ? liveBadge() : "") + (ratingOf(u.id).n ? ratingLine(u.id) : "") + (u.verified ? vBadge(u) : "") + (u.sample ? smpBadge() : "") + (on ? '<span class="badge plain">' + ic("video") + t.online_b + "</span>" : "") + "</div>" +
-      (w ? '<div class="meta">' + ic("hosp") + esc(wpLabel(w)) + "</div>" : "") + (meta2 ? '<div class="meta">' + ic("pin") + esc(meta2) + "</div>" : "") + nextChips(u) + "</div>" +
+      (w ? '<div class="meta">' + ic("hosp") + esc(wpLabel(w)) + "</div>" : "") + (meta2 ? '<div class="meta">' + ic("pin") + esc(meta2) + "</div>" : "") + svcChips(u) + nextChips(u) + "</div>" +
       '<div class="facts">' + (m != null ? '<div class="cpfrom"><small>' + t.cp_h + '</small><b class="nums">' + (m === 0 ? t.free_c : esc(t.cp_from(num(m) + " " + unit()))) + "</b></div>" : "") +
       (on ? '<a class="btn sm" href="#/consult?' + qs(Object.assign({}, dfKeep(), { doc: u.id })) + '">' + ic("chat") + t.pr_consult + "</a>" : u.sample && offersCp(u) ? '<a class="btn sm" href="#/consult?' + qs(Object.assign({}, dfKeep(), { s: (u.profile || {}).spec, smp: "1" })) + '">' + ic("chat") + t.pr_consult + "</a>" : "") + '<a class="btn ghost sm" href="#/doc/' + u.id + '">' + t.view + "</a></div></article>";
   }
@@ -1076,7 +1103,7 @@
   }
   function priceRows() {
     var t = L(), out = [];
-    users().forEach(function (u) {
+    withSamples().forEach(function (u) {
       if (u.role !== "doctor" && u.role !== "clinic") return;
       var pr = u.profile || {}, who = u.role === "doctor" ? specName(pr) : t.cat[pr.ctype || "clinic"];
       (pr.svc || []).forEach(function (x) { if (x.name) out.push({ u: u, name: x.name, price: x.price === "" || x.price == null ? null : +x.price, online: !!x.online, who: who }); });
@@ -1088,6 +1115,7 @@
     var t = L(), qq = norm(q.q), max = +q.max || 0, all0 = priceRows();
     var list = all0.filter(function (x) { var pr = x.u.profile || {}; return pMatch(x.name + " " + x.who, qq) && (!q.r || pr.region === q.r) && (!q.on || x.online) && (!max || (x.price != null && x.price <= max)); });
     list.sort(function (a, b) {
+      if (!!a.u.sample !== !!b.u.sample) return a.u.sample ? 1 : -1;
       if (q.sort === "fresh") return (b.u.updated || "") < (a.u.updated || "") ? -1 : (b.u.updated || "") > (a.u.updated || "") ? 1 : 0;
       return (a.price == null ? Infinity : a.price) - (b.price == null ? Infinity : b.price) || (b.u.verified ? 1 : 0) - (a.u.verified ? 1 : 0);
     });
@@ -1100,14 +1128,15 @@
       '<div class="chips" style="margin-top:12px">' + t.pr_quick.map(function (w) { return '<button type="button" class="chip" data-pq="' + esc(w) + '" aria-pressed="' + (norm(w) === qq) + '">' + esc(w) + "</button>"; }).join("") + "</div></form>";
     var row = function (x) {
       var u = x.u, pr = u.profile || {}, reg = pr.region && regByCode[pr.region] ? nmL(regByCode[pr.region]) : "", link = (u.role === "doctor" ? "#/doc/" : "#/c/") + u.id;
-      return '<article class="prow"><div class="prmain"><h3>' + esc(x.name) + (x.online && !x.cp ? ' <span class="badge plain">' + t.online_b + "</span>" : "") + '</h3><div class="meta"><a href="' + link + '">' + esc(u.name) + "</a> · " + esc(x.who) + (reg ? " · " + esc(reg) : "") + " " + (u.verified ? vBadge(u) : "") + "</div>" +
+      return '<article class="prow"><div class="prmain"><h3>' + esc(x.name) + (x.online && !x.cp ? ' <span class="badge plain">' + t.online_b + "</span>" : "") + '</h3><div class="meta"><a href="' + link + '">' + esc(u.name) + "</a> · " + esc(x.who) + (reg ? " · " + esc(reg) : "") + " " + (u.sample ? smpBadge() : u.verified ? vBadge(u) : "") + "</div>" +
         (u.updated ? '<div class="fine">' + t.pr_upd(fmt(fromIso(u.updated), { day: "numeric", month: "short" })) + "</div>" : "") + "</div>" +
         '<div class="prside"><b class="nums">' + (x.price == null ? '<span class="muted">' + t.pr_ask + "</span>" : esc(money(x.price))) + "</b>" + (x.cp ? '<a class="btn sm" href="#/consult?' + qs({ doc: u.id }) + '">' + t.pr_consult + "</a>" : '<a class="btn ghost sm" href="' + link + '">' + t.view + "</a>") + "</div></article>";
     };
+    var smpNote = list.some(function (x) { return x.u.sample; }) ? '<p class="fine prnote">' + t.smp_dir + "</p>" : "";
     var body = !all0.length ? '<div class="empty">' + t.pr_empty + '<p style="margin-top:14px"><a class="btn" href="#/register" data-regrole-link="doctor">' + t.pr_add + "</a></p></div>"
       : list.length ? '<p class="muted" style="margin:0 0 10px">' + t.pr_n(list.length) + '</p><div class="prlist">' + list.map(row).join("") + "</div>" : '<div class="empty">' + t.pr_none + "</div>";
     return '<div class="band deep"><div class="wrap bhead"><div class="eyebrow">' + t.nav_prices + "</div><h1>" + t.pr_h + '</h1><p class="sub">' + t.pr_p + "</p></div></div>" +
-      '<div class="wrap pad" style="padding-top:20px;max-width:980px">' + form + '<div style="margin-top:22px">' + body + "</div></div>";
+      '<div class="wrap pad" style="padding-top:20px;max-width:980px">' + form + '<div style="margin-top:22px">' + smpNote + body + "</div></div>";
   }
   function prQuery(over) { var v = function (id) { var el = $(id); return el ? el.value.trim() : ""; }; return Object.assign({ q: v("pr-q"), r: v("pr-r"), max: v("pr-max"), sort: v("pr-sort") === "cheap" ? "" : v("pr-sort"), on: $("pr-on") && $("pr-on").checked ? "1" : "" }, over || {}); }
 
@@ -1197,14 +1226,15 @@
     var dis = '<div class="two"><div class="fld"><label for="cs-region">' + t.f_region + '</label><select id="cs-region"><option value="">—</option>' + REG.slice().sort(function (a, b) { return nmL(a).localeCompare(nmL(b)); }).map(function (r) { return '<option value="' + r.code + '"' + (c.region === r.code ? " selected" : "") + ">" + esc(nmL(r)) + "</option>"; }).join("") + '</select></div><div class="fld"><label for="cs-district">' + t.f_district + '</label><select id="cs-district">' + districtOptions(c.region, c.district) + "</select></div></div>";
     var docs = onlineDoctors(c.spec);
     var form =
-      '<fieldset class="accsec"><legend>' + t.cs_pat_h + '</legend><div class="seg" role="group" style="margin-bottom:14px">' + ["self", "child", "other"].map(function (k) { return '<button type="button" data-csfor="' + k + '" aria-pressed="' + (c.who === k) + '">' + t.cs_for[k] + "</button>"; }).join("") + "</div>" +
-      '<div class="two">' + fi("cs-name", t.cs_pname, c.name, "text", ' autocomplete="name"') + fi("cs-age", t.cs_age, c.age, "number", ' min="0" max="120" inputmode="numeric"') + "</div>" +
-      '<div class="two"><div class="fld"><label for="cs-sex">' + t.cs_sex + '</label><select id="cs-sex">' + ["f", "m"].map(function (k) { return '<option value="' + k + '"' + (c.sex === k ? " selected" : "") + ">" + t.cs_sexes[k] + "</option>"; }).join("") + "</select></div>" + fi("cs-phone", t.cs_phone, c.phone, "tel", ' inputmode="tel" placeholder="+998" autocomplete="tel"') + "</div>" + dis + "</fieldset>" +
       '<fieldset class="accsec"><legend>' + t.cs_prob_h + '</legend><div class="fld"><label for="cs-complaint">' + t.cs_complaint + '</label><textarea id="cs-complaint" maxlength="1500" placeholder="' + esc(t.cs_complaint_ph) + '">' + esc(c.complaint) + "</textarea></div>" +
-      '<div class="fld"><label for="cs-since">' + t.cs_since + '</label><select id="cs-since">' + t.cs_sinces.map(function (x, i) { return '<option value="' + i + '"' + (String(c.since) === String(i) ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></div>" +
       '<div class="phfld"><b>' + t.ph_form + '</b><div class="phrow">' + CSPH.map(function (p, i) { return '<span class="phthumb"><img src="' + p.url + '" alt="' + esc(t.ph_alt) + '"><button type="button" data-phrm="' + i + '" aria-label="' + esc(t.ph_remove) + '">×</button></span>'; }).join("") +
         (CSPH.length < PH_FORM_MAX ? '<label class="phadd"><input type="file" accept="image/*" id="cs-ph" class="vh" multiple>' + ic("camera") + "<span>" + t.ph_add + "</span></label>" : "") + '</div><p class="fine">' + t.ph_form_p(PH_FORM_MAX) + " " + t.ph_privacy + "</p></div>" +
-      fi("cs-chronic", t.cs_chronic, c.chronic) + '<div class="two">' + fi("cs-meds", t.cs_meds, c.meds) + fi("cs-allergy", t.cs_allergy, c.allergy) + "</div></fieldset>" +
+      '</fieldset>' +
+      '<fieldset class="accsec"><legend>' + t.cs_pat_h + '</legend><div class="seg" role="group" style="margin-bottom:14px">' + ["self", "child", "other"].map(function (k) { return '<button type="button" data-csfor="' + k + '" aria-pressed="' + (c.who === k) + '">' + t.cs_for[k] + "</button>"; }).join("") + "</div>" +
+      '<div class="two">' + fi("cs-name", t.cs_pname, c.name, "text", ' autocomplete="name"') + fi("cs-age", t.cs_age, c.age, "number", ' min="0" max="120" inputmode="numeric"') + "</div>" +
+      '<details class="csmore" id="cs-more"' + (c.who !== "self" || !okPhone(c.phone) || ($("cs-more") && $("cs-more").open) ? " open" : "") + '><summary>' + t.cs_more_h + '</summary><div class="two"><div class="fld"><label for="cs-sex">' + t.cs_sex + '</label><select id="cs-sex">' + ["f", "m"].map(function (k) { return '<option value="' + k + '"' + (c.sex === k ? " selected" : "") + ">" + t.cs_sexes[k] + "</option>"; }).join("") + "</select></div>" + fi("cs-phone", t.cs_phone, c.phone, "tel", ' inputmode="tel" placeholder="+998" autocomplete="tel"') + "</div>" + dis +
+      '<div class="fld"><label for="cs-since">' + t.cs_since + '</label><select id="cs-since">' + t.cs_sinces.map(function (x, i) { return '<option value="' + i + '"' + (String(c.since) === String(i) ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></div>" +
+      fi("cs-chronic", t.cs_chronic, c.chronic) + '<div class="two">' + fi("cs-meds", t.cs_meds, c.meds) + fi("cs-allergy", t.cs_allergy, c.allergy) + "</div></details></fieldset>" +
       '<fieldset class="accsec"><legend>' + t.cs_doc_h + '</legend><div class="roles two-roles" role="group" style="margin-bottom:14px">' + [["1", t.asap_now, "chat"], ["0", t.asap_pick, "search"]].map(function (x) { return '<button type="button" class="rolecard" data-csasap="' + x[0] + '" aria-pressed="' + (!!c.asap === (x[0] === "1")) + '"><span class="icobox">' + ic(x[2]) + "</span><b>" + x[1][0] + "</b><span>" + x[1][1] + "</span></button>"; }).join("") + "</div>" +
       (c.asap ? (function () { var n = onlineDoctors(c.spec).filter(onlineNow).length; return '<p class="cpnote">' + (n ? liveBadge() + " " + t.asap_note_on(n) : t.asap_note_off) + "</p>"; })() : "") +
       '<div class="two"><div class="fld"><label for="cs-spec">' + t.d_spec + '</label><select id="cs-spec"><option value="">' + t.cs_spec_any + "</option>" + DOC_SP.filter(function (k) { return k !== "other"; }).map(function (k) { return '<option value="' + k + '"' + (c.spec === k ? " selected" : "") + ">" + t.docsp[k] + "</option>"; }).join("") + '</select></div>' + (c.asap ? "</div>" : "") + '<div class="fld"' + (c.asap ? " hidden" : "") + '><label for="cs-doc">' + t.cs_doc_pick + '</label><select id="cs-doc"><option value="">' + t.cs_doc_any + "</option>" + docs.map(function (d) { var p = cpOf(d.profile)[c.type]; return '<option value="' + d.id + '"' + (c.doc === d.id ? " selected" : "") + ">" + esc(d.name) + " · " + esc(specName(d.profile || {})) + (p != null ? " · " + esc(money(p)) : "") + "</option>"; }).join("") + "</select></div>" + (c.asap ? "" : "</div>") + (function () {
@@ -1219,7 +1249,7 @@
       return '<a class="apov" href="' + apClose() + '" aria-label="' + esc(t.ap_x) + '" tabindex="-1"></a><aside class="applypanel" role="dialog" aria-modal="true" aria-labelledby="ap-h"><div class="aphead"><div><small>' + t.nv_clinic + '</small><h2 id="ap-h">' + esc(ttl) + '</h2></div><a class="apx" href="' + apClose() + '" aria-label="' + esc(t.ap_x) + '">×</a></div><div class="apbody">' +
         (BE && !BE.userId() ? '<div class="authgate"><b>' + t.ag_h + "</b><p>" + t.ag_p + '</p><div class="btns"><a class="btn" href="#/register">' + t.go_reg + '</a><a class="btn ghost" href="#/login">' + t.go_login + "</a></div></div>" : "") + (q.s && !q.doc ? '<p class="note-box">' + (q.smp ? t.ap_smp : t.ap_spec_note) + "</p>" : "") + '<p class="demo">' + t.cs_demo + "</p>" +
         '<form class="form accform" id="csform" novalidate><fieldset class="accsec"><legend>' + t.cs_type + '</legend><div class="roles">' + types + "</div>" +
-        '<details class="ocmini"><summary>' + t.oc_q + "</summary>" + ocLists(true) + "</details></fieldset>" +
+        "</fieldset>" +
         '<p class="emline">' + ic("phone") + "<span>" + t.em_line + ' <a href="tel:103">103</a></span></p>' + form + "</form></div></aside>";
     }
     return '<div class="band deep"><div class="wrap bhead"><div class="eyebrow">' + t.nav_consult + "</div><h1>" + t.cs_h + '</h1><p class="sub">' + t.cs_p + "</p></div></div>" +
@@ -1228,6 +1258,8 @@
         '<details class="ocmini"><summary>' + t.oc_q + "</summary>" + ocLists(true) + "</details></fieldset>" +
       '<p class="emline">' + ic("phone") + "<span>" + t.em_line + ' <a href="tel:103">103</a></span></p>' + form + "</form></div>";
   }
+  /* after accepting: straight to that consultation's chat, cursor in the reply box */
+  function csOpen(id) { CS_FOCUS = Date.now(); if (current.path !== "/consult/" + id) go("#/consult/" + id); else render(true); }
   function csBadge(st) { var t = L(); return '<span class="badge ' + (st === "done" ? "ok" : st === "accepted" ? "" : st === "referred" || st === "cancelled" ? "plain" : "warn") + '">' + t.cs_st[st] + "</span>"; }
   function csRow(c) { var t = L(), mu = me(), rate = c.status === "done" && c.doctorId && !(mu && mu.role === "doctor") && !myReview("c", c.id); return '<a class="visit cs-row" href="#/consult/' + c.id + '"><div class="date"><span>' + fmt(c.slotAt ? tkDate(c.slotAt) : new Date(c.at), { month: "short" }) + "</span><b>" + (c.slotAt ? tkDate(c.slotAt) : new Date(c.at)).getDate() + '</b></div><div><h3>' + t.cs_no(c.n) + " " + csBadge(c.status) + (c.slotAt ? ' <span class="badge plain nums">' + ic("cal") + hhmm(c.slotAt) + "</span>" : "") + (c.status === "accepted" && c.payStatus === "due" ? " " + payBadge(c) : "") + (c.asap && c.status === "new" ? ' <span class="badge warn">' + t.asap_badge + "</span>" : "") + (rate ? ' <span class="badge warn">★ ' + t.rv_rate_badge + "</span>" : "") + '</h3><div class="muted" style="font-size:.92rem">' + t.cs_types[c.type][0] + " · " + esc(c.name) + " · " + esc(c.complaint.slice(0, 80)) + (c.complaint.length > 80 ? "…" : "") + '</div></div><div class="acts">' + ic(c.type === "text" ? "chat" : c.type === "audio" ? "mic" : "video") + "</div></a>"; }
   function docInbox(u) {
@@ -2023,8 +2055,12 @@
   function hdr() {
     var t = L(), ab = $("acctBtn"), mu = me(), n = unseen();
     var rb = $("regBtn"); if (rb) { rb.hidden = !!mu; rb.setAttribute("href", "#/register"); }
-    var isD = !!(mu && mu.role === "doctor"), nNew = isD ? proMine(mu).filter(function (c) { return c.status === "new"; }).length : 0;
-    all(".navcta, .navcta-m").forEach(function (a) { a.textContent = isD ? t.pro_panel : t.nav_consult; a.setAttribute("href", isD ? "#/account" : "#/consult?now=1"); if (nNew) a.setAttribute("data-n", nNew); else a.removeAttribute("data-n"); });
+    var isD = !!(mu && mu.role === "doctor"), isPro = !!(mu && mu.role !== "patient"), nNew = isD ? proMine(mu).filter(function (c) { return c.status === "new"; }).length : 0;
+    /* "Onlayn maslahat" is for patients and visitors; everyone signed in also gets a link to their own cabinet beside it */
+    all(".navcta, .navcta-m").forEach(function (a) { a.textContent = t.nav_consult; a.setAttribute("href", "#/consult?now=1"); a.hidden = isPro; });
+    all(".nav .desk:not(.navcab):not(.navcta), .nav .dd.mob .menu > *:not(.navcab-m):not(.navcta-m):not(.admlink)").forEach(function (el) { el.hidden = isPro; });
+    var nCab = isD ? nNew : n.c || 0;
+    all(".navcab, .navcab-m").forEach(function (a) { a.hidden = !mu; if (!mu) return; a.textContent = t.nav_cab; if (nCab) a.setAttribute("data-n", nCab); else a.removeAttribute("data-n"); });
     if (ab) { ab.textContent = t.nav_login; ab.hidden = !!mu; }
     /* signed in: the account button opens a menu (panel, profile, settings, sign out) */
     var ad = $("acctDd"), amb = $("acctMenuBtn");
@@ -2213,7 +2249,9 @@
       if (EMAIL_CHECK && x.email) facts.push(["Email", x.email_verified ? '<span class="badge ok">' + t.adm_email_ok + "</span>" : '<span class="badge warn">' + t.adm_email_no + "</span>"]);
       if (x.role === "clinic" && pr.contact) facts.push([t.adm_cperson, esc(pr.contact) + (pr.contact_role ? " · " + esc(pr.contact_role) : "")]);
       if (x.role === "clinic") facts.push([t.adm_fac, f ? '<a href="#/f/' + f.key + '">' + esc(facLabel(f)) + "</a>" : pr.claim ? esc(pr.claim) : "—"]);
-      if (x.role === "doctor") facts.push([t.d_spec, esc(specName(pr)) || "—"], [t.works_at, (pr.work || []).map(wpLabel).map(esc).join("; ") || "—"]);
+      if (x.role === "doctor") facts.push([t.d_spec, esc(specName(pr)) || "—"], [t.adm_exp, pr.years ? esc(t.exp(pr.years)) : "—"], [t.adm_edu, pr.edu ? esc(pr.edu) : "—"], [t.works_at, (pr.work || []).map(wpLabel).map(esc).join("; ") || "—"], [t.adm_bio, pr.bio ? esc(pr.bio) : "—"]);
+      if (x.role === "clinic") facts.push([t.adm_addr, [pr.region && regByCode[pr.region] ? nmL(regByCode[pr.region]) : "", pr.addr].filter(Boolean).map(esc).join(", ") || "—"], [t.adm_hours, pr.hours ? esc(pr.hours) : "—"], [t.adm_about, pr.about ? esc(pr.about) : "—"]);
+      if (x.role === "doctor" && pr.region && regByCode[pr.region]) facts.push([t.f_region, esc(nmL(regByCode[pr.region]))]);
       facts.push([t.adm_since, esc(fmt(new Date(x.created_at), { day: "numeric", month: "short" }))]);
       return '<div class="dcard admrow"><div class="sechead" style="margin:0"><div><div class="eyebrow">' + t.role[x.role] + "</div><h3>" + '<a href="#/' + (x.role === "clinic" ? "c/" : "doc/") + x.id + '">' + esc(x.name) + "</a> " + vBadge(x) + "</h3></div>" +
         '<div class="btns">' + (x.verified ? "" : '<button class="btn sm" type="button" data-adm="ok" data-id="' + x.id + '">' + ic("check") + t.adm_ok + "</button>") + '<button class="btn ghost sm" type="button" data-adm="no" data-id="' + x.id + '">' + (x.verified ? t.adm_revoke : t.adm_no) + "</button></div></div>" +
@@ -2371,11 +2409,15 @@
 
   /* ---------------- router ---------------- */
   var current = { path: "/", q: {} };
+  var PRO_NO = ["/", "/doctors", "/search", "/services", "/find", "/specialists", "/family", "/prices", "/ona", "/wellness", "/consult"], CS_FOCUS = 0;
   function render(keepScroll) {
     var t = L(), h = parseHash(), path = h.path, q = h.q, html, route = "home";
     current = h; document.documentElement.lang = lang === "uz" ? "uz-Latn" : lang;
     /* pages behind a sign-in (#/account/...) use the panel layout: each role's own sidebar, no site header or footer */
     PANEL = isPanelPath(path);
+    /* doctors and clinics work in their own panel: the patient pages (finding a doctor, services, clinics...) send them there */
+    var mu0 = me();
+    if (!PANEL && mu0 && mu0.role !== "patient" && (PRO_NO.indexOf(path) > -1 || path.indexOf("/browse") === 0)) { location.replace(location.pathname + location.search + "#/account"); return; }
     document.body.classList.toggle("panelapp", PANEL);
     if (PANEL) {
       var pg = panelPage(path, q);
@@ -2395,6 +2437,7 @@
     else if (path === "/consult") { html = viewDoctors(q) + viewConsult(q, true); route = "consult"; }
     else if (path === "/about") { html = viewAbout(); route = "about"; }
     else if (path === "/specialists") { html = viewSpecialists(); route = "specialists"; }
+    else if (path === "/services") { html = viewServices(); route = "services"; }
     else if (path === "/family") { html = viewFamily(); route = "family"; }
     else if (path === "/wellness") { html = viewWellness(); route = "wellness"; }
     else if (path.indexOf("/consult/") === 0) { html = viewConsultThread(path.slice(9)); route = "consult"; }
@@ -2422,6 +2465,7 @@
     hdr();
     closeMenu();
     if (keepScroll) window.scrollTo(0, y); else { window.scrollTo(0, 0); $("app").focus({ preventScroll: true }); }
+    if (Date.now() - CS_FOCUS < 1500) { var csTa = $("csmsg-in"); if (csTa) csTa.focus(); }   /* a page can draw twice after a move, so this holds briefly */
     if (!keepScroll && $("ap-h")) { $("ap-h").setAttribute("tabindex", "-1"); $("ap-h").focus({ preventScroll: true }); }
     if (!keepScroll && path === "/about" && q.s && $("ab-" + q.s)) { $("ab-" + q.s).scrollIntoView(); setTimeout(function () { var el = $("ab-" + q.s); if (el) el.scrollIntoView(); }, 350); }
   }
@@ -2625,9 +2669,9 @@
     }
     if (ds.cs) {
       var cl = consults(), cc = cl.filter(function (x) { return x.id === ds.id; })[0], du = me(); if (!cc) return;
-      if (BE && ds.cs === "accept") { if (!du || du.role !== "doctor") { toast(t.cs_only_doc); return; } BE.updateConsult(cc.id, { status: "accepted", doctor_id: du.id, doctor_name: du.name }, t.cs_accepted(du.name)).then(function () { render(true); }, function () { toast(t.be_err); }); return; }
+      if (BE && ds.cs === "accept") { if (!du || du.role !== "doctor") { toast(t.cs_only_doc); return; } BE.updateConsult(cc.id, { status: "accepted", doctor_id: du.id, doctor_name: du.name }, t.cs_accepted(du.name)).then(function () { csOpen(cc.id); }, function () { toast(t.be_err); }); return; }
       if (BE && ds.cs === "call") { BE.updateConsult(cc.id, { call: true }, t.cs_call_msg(cc.type)).then(function () { render(true); }, function (x) { toast(beMsg(t, x)); }); openCall(cc, "d"); return; }
-      if (ds.cs === "accept") { if (!du || du.role !== "doctor") { toast(t.cs_only_doc); return; } cc.status = "accepted"; cc.doctorId = du.id; cc.doctorName = du.name; cc.price = cpOf(du.profile)[cc.type]; cc.payStatus = cc.price > 0 ? "due" : "none"; cc.msgs.push({ from: "s", text: t.cs_accepted(du.name), at: Date.now() }); saveConsults(cl); render(true); return; }
+      if (ds.cs === "accept") { if (!du || du.role !== "doctor") { toast(t.cs_only_doc); return; } cc.status = "accepted"; cc.doctorId = du.id; cc.doctorName = du.name; cc.price = cpOf(du.profile)[cc.type]; cc.payStatus = cc.price > 0 ? "due" : "none"; cc.msgs.push({ from: "s", text: t.cs_accepted(du.name), at: Date.now() }); saveConsults(cl); csOpen(cc.id); return; }
       if (ds.cs === "call") { if (!ringNow(cc)) cc.msgs.push({ from: "s", text: t.cs_call_msg(cc.type), at: Date.now() }); cc.callBy = ringNow(cc) && cc.callBy === "p" ? "p" : "d"; cc.call = true; cc.callAt = Date.now(); saveConsults(cl); render(true); openCall(cc, "d"); return; }
       if (ds.cs === "join") { openCall(cc, "p"); return; }
       if (ds.cs === "pcall") {
@@ -2793,7 +2837,7 @@
     if (id === "form") { submitJoin(); return; }
     if (id === "csform") {
       csCollect(); var C = CS, err = $("cs-err");
-      if (!C.name || !(+C.age >= 0 && C.age !== "") || !okPhone(C.phone) || C.complaint.length < 10) { err.textContent = t.cs_err_fill; return; }
+      if (!C.name || !(+C.age >= 0 && C.age !== "") || !okPhone(C.phone) || C.complaint.length < 10) { err.textContent = t.cs_err_fill; var dm = $("cs-more"); if (dm && !okPhone(C.phone)) dm.open = true; return; }
       if (!C.consent) { err.textContent = t.cs_err_consent; return; }
       var sd = !C.asap && C.doc ? userById(C.doc) : null, sf = sd && !sd.sample ? freeDays(sd) : null;
       if (sf && sf.days && sf.days.length && !C.slot) { err.textContent = t.sl_err; return; }

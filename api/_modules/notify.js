@@ -58,13 +58,15 @@ const MONTHS = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avg
 const dayUz = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || "")); return m ? Number(m[3]) + "-" + MONTHS[Number(m[2]) - 1] : String(iso || ""); };
 
 // an email; false when email isn't set up or the send failed
+let mailBlocked = false;   // the last send was refused because the sender isn't set up (domain not verified at Resend, or the test sender)
 async function mail(to, subject, text, html) {
   if (!MAIL || !to) return false;
   try {
     const r = await within(fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: "Bearer " + MAIL, "Content-Type": "application/json" }, body: JSON.stringify({ from: MAIL_FROM, to: [to], subject, text, html }) }), 6000);
-    if (!r || !r.ok) { console.error("mail send", r && r.status, r && (await r.text().catch(() => ""))); return false; }
+    if (!r || !r.ok) { const body = r ? await r.text().catch(() => "") : ""; mailBlocked = !!r && (r.status === 403 || r.status === 422) && /domain|testing|verif/i.test(body); console.error("mail send", r && r.status, body); return false; }
+    mailBlocked = false;
     return true;
   } catch (e) { console.error("mail send", e.message); return false; }
 }
 
-module.exports = { TG: !!TG, SMS: !!SMS, MAIL: !!MAIL, mail, TG_SECRET, tgApi, tgBotName, tgSend, sms, dayUz };
+module.exports = { TG: !!TG, SMS: !!SMS, MAIL: !!MAIL, mail, mailBlocked: () => mailBlocked, TG_SECRET, tgApi, tgBotName, tgSend, sms, dayUz };

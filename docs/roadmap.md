@@ -56,6 +56,13 @@ top-rated doctors (only doctors with reviews) → promises → how to use → re
 for doctors and clinics → questions. Removed from the home page (still on their own pages): the region lists, the
 mission comparison, the second call-to-action band and the DMED box (it's in the questions).
 
+## November 2026 additions
+
+- **Services grid** on the home page and `#/services`: the site's promise, "the best doctors and the best services for an ordinary person", as eight photo cards with prices. The home page is shorter: hero, services, top doctors, how it works, promises, for doctors and clinics, FAQ.
+- **Cabinet link** in the header for every signed-in role; the application form asks for the complaint first and folds the optional details away; a doctor who accepts lands in the chat with the reply box focused.
+- **Email confirmation** is on; the admin check page shows experience, education, bio, address and hours.
+- **LiveKit calls** (optional, `LIVEKIT_*` settings): the call goes through a media server when configured, otherwise straight between browsers as before. Webhooks and the React `meet` template weren't used: the site has its own call screen (`site/call.js`), so only the browser library and a server-signed token were needed.
+
 ## The plan
 
 ### Now (before real patients)

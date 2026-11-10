@@ -1584,3 +1584,65 @@ audio.voice { display: block; width: 240px; max-width: 100%; height: 36px; margi
 .rvsumrow { display: grid; grid-template-columns: 130px minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 0.92rem; }
 .rvbar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
 .rvbar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+
+/* ---- Services on doctor cards + design polish (2026-11) ---- */
+.svcchips { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.svcchips li::before { content: none; }
+.svcchip { display: inline-flex; align-items: baseline; gap: 8px; max-width: 100%; padding: 5px 11px; border-radius: 999px; background: var(--accent-soft); color: var(--ink); font-size: 0.84rem; line-height: 1.25; }
+.svcchip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.svcchip b { color: var(--accent); font-weight: 700; white-space: nowrap; }
+.svcmore { display: inline-flex; align-items: center; padding: 5px 10px; border-radius: 999px; border: 1px dashed var(--line); color: var(--muted, #5b6b6e); font-size: 0.84rem; }
+.prnote { margin: 0 0 14px; }
+.fcard { align-items: start; }
+.fcard > .avatar, .fcard > :first-child.avatar { width: 64px; height: 64px; font-size: 1.2rem; box-shadow: inset 0 0 0 2px var(--accent-soft); }
+.doccard { border-radius: 20px; }
+.doccard:hover { border-color: var(--accent); }
+.doccard .facts { align-self: stretch; justify-content: center; }
+.doccard .btn { white-space: nowrap; }
+@media (max-width: 640px) {
+  .fcard { grid-template-columns: auto minmax(0, 1fr); padding: 16px; }
+  .fcard > .facts { grid-column: 1 / -1; align-items: stretch !important; }
+  .fcard > .avatar { width: 52px; height: 52px; }
+  .svcchip span { white-space: normal; }
+}
+
+/* ---- Health services grid (home + #/services), 2026-11 ---- */
+.svwrap { padding-top: 12px; }
+.svgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; margin-top: 18px; }
+.svcard { display: flex; flex-direction: column; border-radius: 22px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); color: var(--ink); text-decoration: none; box-shadow: var(--sh-sm); transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; }
+.svcard:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: var(--sh-md); }
+@media (prefers-reduced-motion: reduce) { .svcard, .svcard:hover { transition: none; transform: none; } }
+.svphoto img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.svtext { display: flex; flex-direction: column; gap: 6px; padding: 16px 18px 18px; flex: 1; }
+.svtext h3 { margin: 0; font: 700 1.08rem/1.3 var(--font-display); }
+.svtext p { margin: 0; color: var(--muted); font-size: 0.92rem; flex: 1; }
+.svfoot { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-top: 8px; }
+.svfoot b { color: var(--accent); font-size: 0.95rem; }
+.svfoot .carego { margin-top: 0; white-space: nowrap; }
+@media (max-width: 1100px) { .svgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  .svgrid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .svcard { flex-direction: row; border-radius: 18px; }
+  .svphoto { flex: 0 0 116px; }
+  .svphoto img { height: 100%; min-height: 116px; aspect-ratio: auto; }
+  .svtext { padding: 12px 14px; gap: 4px; }
+  .svtext p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .svfoot { flex-wrap: wrap; }
+}
+/* how it works: a real photo instead of the drawn phone */
+.howphoto { margin: 0; }
+.howphoto img { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 24px; box-shadow: var(--sh-md); }
+@media (max-width: 760px) { .howphoto img { aspect-ratio: 3 / 2; } }
+/* the cabinet link beside "Onlayn maslahat" (November 2026) */
+.nav a[hidden], .menu a[hidden] { display: none !important; }
+.nav a.navcab { margin-left: 6px; font-weight: 600; border: 1.5px solid var(--line); border-radius: 999px; padding: 7px 14px; }
+.nav a.navcab[data-n]::after, .menu a.navcab-m[data-n]::after { content: attr(data-n); display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-left: 6px; padding: 0 5px; border-radius: 99px; background: var(--risk); color: #fff; font: 700 0.76rem/1 var(--font-body); }
+/* the application form: optional details folded away */
+.csmore { margin-top: 4px; }
+.csmore summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 0.95rem; list-style: none; display: inline-flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+.csmore summary::-webkit-details-marker { display: none; }
+.csmore summary::before { content: "+"; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); font-weight: 700; }
+.csmore[open] summary::before { content: "−"; }
+/* the header has more links now: switch to the Menyu button earlier, so the account button always fits */
+@media (max-width: 1180px) { .nav .desk, .nav .dd.desk { display: none !important; } .nav .dd.mob { display: block; } }
+.nav .dd[hidden], .menu [hidden] { display: none !important; }

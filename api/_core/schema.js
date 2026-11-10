@@ -337,6 +337,12 @@ create table if not exists app_docs (
   created_at timestamptz not null default now()
 );
 create index if not exists app_docs_user_idx on app_docs (user_id);
+create table if not exists app_ai_use (
+  key text not null,
+  day date not null,
+  n int not null default 0,
+  primary key (key, day)
+);
 
 create table if not exists app_branches (
   id uuid primary key default gen_random_uuid(),
@@ -397,4 +403,5 @@ alter table app_staff enable row level security;
 alter table app_email_codes enable row level security;
 alter table app_pw_resets enable row level security;
 alter table app_docs enable row level security;
+alter table app_ai_use enable row level security;
 `;

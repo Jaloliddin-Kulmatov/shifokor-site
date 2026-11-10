@@ -1646,3 +1646,24 @@ audio.voice { display: block; width: 240px; max-width: 100%; height: 36px; margi
 /* the header has more links now: switch to the Menyu button earlier, so the account button always fits */
 @media (max-width: 1180px) { .nav .desk, .nav .dd.desk { display: none !important; } .nav .dd.mob { display: block; } }
 .nav .dd[hidden], .menu [hidden] { display: none !important; }
+
+/* ---- AI assistant (#/ai and the home page), 2026-11 ---- */
+.aiband { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: clamp(24px, 5vw, 64px); align-items: center; }
+.aiband h2 { margin-top: 6px; }
+.aiform { display: flex; gap: 10px; align-items: flex-end; margin-top: 14px; }
+.aiform textarea, .aiform input { flex: 1; min-width: 0; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); font: inherit; resize: vertical; }
+.aiform textarea:focus, .aiform input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.aiwrap { max-width: 860px; padding-top: 20px; }
+.aimsgs { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.aimsg { max-width: 82%; padding: 11px 15px; border-radius: 16px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.aimsg.me { align-self: flex-end; background: var(--accent); color: var(--accent-ink); }
+.aimsg.ai { align-self: flex-start; background: var(--surface); border: 1px solid var(--line); }
+.aiwait { color: var(--muted); }
+.aiempty { padding: 18px; border: 1px dashed var(--line); border-radius: 16px; }
+.aihead { margin: 8px 0 0; font-weight: 700; }
+.aidocs { margin-top: 8px; }
+.aibtns { display: flex; flex-wrap: wrap; gap: 8px; }
+.aiem { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 16px; border: 1.5px solid var(--risk); color: var(--risk); font-weight: 600; }
+.aiem span { flex: 1; }
+@media (max-width: 760px) { .aiband { grid-template-columns: minmax(0, 1fr); } .aiband .shot { display: none; } .aimsg { max-width: 92%; } }
+@media (max-width: 520px) { .aiform { flex-direction: column; align-items: stretch; } }

@@ -297,7 +297,7 @@
     var prosSec = '<div class="band soft"><div class="wrap pad prosgrid"><figure class="shot prosph">' + photo("doctor-desk", t.pros_img, "(max-width: 760px) 90vw, 560px") + '</figure><div><span class="eyebrow">' + t.nv_pros + "</span><h2>" + t.pros_h + '</h2><p class="lead">' + t.pros_p + '</p><ul class="slex">' + t.pros_pts.map(function (e) { return "<li>" + ic("check") + "<span>" + e + "</span></li>"; }).join("") +
       '</ul><div class="btns"><a class="btn" href="#/register" data-regrole-link="doctor">' + t.reg_doc_cta + '</a><a class="btn ghost" href="#/register" data-regrole-link="clinic">' + t.reg_clinic_cta + "</a></div></div></div></div>";
     return '<div class="band deep homehero"><div class="wrap hero"><div><h1>' + t.hf_h1 + '</h1><p class="herotag">' + t.hero_tag + '</p><p class="sub">' + t.hf_sub + "</p>" + form + "</div>" + heroArt() + "</div></div>" +
-      svcSection(8, true) +
+      aiBand() + svcSection(8, true) +
       (live.length ? '<div class="wrap pad" style="padding-top:12px"><div class="sechead"><h2>' + t.hm_online_h + '</h2><a class="btn sm" href="#/consult?now=1">' + ic("chat") + t.hm_cta_now + '</a></div><div class="results" style="padding:14px 0 0">' + live.slice(0, 4).map(docCard).join("") + "</div></div>" : "") +
       '<div class="wrap pad" style="padding-top:12px"><div class="sechead"><div><h2>' + t.top_docs_h + '</h2><p class="lead" style="margin:4px 0 0">' + t.top_p + '</p></div><a class="btn ghost sm" href="#/doctors">' + t.new_docs_all + "</a></div>" +
         (docs.length ? '<div class="dtgrid">' + docs.map(docTile).join("") + "</div>" + (docs.some(function (u) { return u.sample; }) ? '<p class="fine" style="margin-top:10px">' + t.smp_dir + "</p>" : "") : '<p class="muted">' + t.top_none + "</p>") + "</div>" +
@@ -344,6 +344,51 @@
       '<p class="note-box" style="margin-top:24px">' + t.sl_em + '</p><p class="fine credits">' + t.ph_credit + "</p></div>";
   }
   /* who needs help: four groups with a real photo each (the old slider, laid out as cards) */
+  /* ---------------- AI yordamchi: from a complaint in the person's own words to the right kind of doctor ----------------
+     The server (Groq) answers with a specialty and a service; the doctors shown come from this site's own list. The chat
+     lives only in this page's memory. With no AI key, or if the AI fails, the everyday-complaint matcher below answers. */
+  var AI = { msgs: [], busy: false, complaint: "" };
+  var AI_EM = /ko.?kra[kg].{0,12}og|nafas.{0,16}qis|hushdan|боль в груд|одышк|обморок|chest pain|short of breath|faint/i;
+  function aiLocal(text) {
+    var t = L(); if (AI_EM.test(text)) return { content: t.ai_em, emergency: true };
+    var k = symSpecs(norm(text))[0] || "";
+    return { content: k ? t.ai_local(t.docsp[k]) : t.ai_local_none, spec: k, local: true };
+  }
+  function aiSend(text) {
+    var t = L(); text = String(text || "").trim(); if (AI.busy || text.length < 3) return;
+    AI.msgs.push({ role: "user", content: text }); AI.busy = true;
+    var done = function (m) { AI.msgs.push(Object.assign({ role: "assistant" }, m)); AI.busy = false; if (current.path === "/ai") { render(true); var f = $("aiform"); if (f) f.scrollIntoView({ block: "nearest" }); } };
+    if (current.path === "/ai") render(true);
+    if (!BE) { done(aiLocal(text)); return; }
+    BE.aiFind(AI.msgs.slice(-8).map(function (m) { return { role: m.role, content: m.content }; }), lang).then(function (a) { done({ content: a.reply, spec: a.spec, service: a.service, inperson: a.inperson, emergency: a.emergency }); },
+      function (x) { done(x && x.code === "limit" ? { content: t.ai_limit } : aiLocal(text)); });
+  }
+  function aiResult(m) {
+    var t = L();
+    if (m.emergency) return '<div class="aiem">' + ic("phone") + "<span>" + t.ai_em_note + '</span><a class="btn danger" href="tel:103">103</a></div>';
+    var sv = m.service && m.service !== "online" && SV.filter(function (x) { return x.k === m.service; })[0], out = "";
+    if (m.spec) {
+      var docs = realFirst(withSamples().filter(function (u) { return u.role === "doctor" && (u.profile || {}).spec === m.spec; }), "rating").slice(0, 3);
+      out += '<p class="aihead">' + esc(t.ai_found(t.docsp[m.spec])) + "</p>" + (docs.length ? '<div class="dtgrid aidocs">' + docs.map(docTile).join("") + "</div>" + (docs.some(function (u) { return u.sample; }) ? '<p class="fine">' + t.smp_dir + "</p>" : "") : "");
+    }
+    var btns = (m.spec ? '<button class="btn sm" type="button" data-aiask="' + m.spec + '">' + ic("chat") + t.ai_ask + '</button><a class="btn ghost sm" href="#/doctors?' + qs({ s: m.spec }) + '">' + t.ai_all + "</a>" : "") +
+      (sv ? '<a class="btn ghost sm" href="' + sv.href + '">' + t.sv_items[sv.k][0] + "</a>" : "") + (m.inperson ? '<a class="btn ghost sm" href="#/find">' + ic("hosp") + t.ai_clinics + "</a>" : "");
+    return out + (btns ? '<div class="btns aibtns">' + btns + "</div>" : "");
+  }
+  function viewAi() {
+    var t = L();
+    var msgs = AI.msgs.map(function (m) { return m.role === "user" ? '<div class="aimsg me">' + esc(m.content) + "</div>" : '<div class="aimsg ai">' + esc(m.content) + "</div>" + aiResult(m); }).join("");
+    var empty = '<div class="aiempty"><b>' + t.ai_try + '</b><div class="hfquick">' + t.ai_tries.map(function (x) { return '<button type="button" class="chip" data-aitry="' + esc(x) + '">' + esc(x) + "</button>"; }).join("") + "</div></div>";
+    return pageHead(t.ai_nav, t.ai_h, t.ai_p) + '<div class="wrap pad aiwrap"><p class="emline">' + ic("phone") + "<span>" + t.em_line + ' <a href="tel:103">103</a></span></p>' +
+      '<div class="aimsgs" aria-live="polite">' + (msgs || empty) + (AI.busy ? '<div class="aimsg ai aiwait">' + t.ai_wait + "</div>" : "") + "</div>" +
+      '<form class="aiform" id="aiform" novalidate><label class="vh" for="ai-in">' + t.ai_label + '</label><textarea id="ai-in" rows="2" maxlength="800" placeholder="' + esc(t.ai_ph) + '"></textarea><button class="btn" type="submit"' + (AI.busy ? " disabled" : "") + ">" + t.ai_send + "</button></form>" +
+      '<p class="fine">' + t.ai_note + (AI.msgs.length ? ' <button class="linkbtn" type="button" data-act="aireset">' + t.ai_new + "</button>" : "") + "</p></div>";
+  }
+  function aiBand() {
+    var t = L();
+    return '<div class="band soft"><div class="wrap pad aiband"><div><span class="eyebrow">' + t.ai_nav + "</span><h2>" + t.ai_home_h + '</h2><p class="lead">' + t.ai_home_p + '</p><form class="aiform" id="aihome" novalidate><label class="vh" for="ai-home">' + t.ai_label + '</label><input id="ai-home" maxlength="800" placeholder="' + esc(t.ai_ph) + '" autocomplete="off"><button class="btn" type="submit">' + t.ai_send + '</button></form><p class="fine">' + t.ai_note + '</p></div><figure class="shot">' + photo("nukus-phone", t.img_nukus, "(max-width: 760px) 90vw, 440px") + "</figure></div></div>";
+  }
+
   /* ---------------- results ---------------- */
   function card(r) {
     var t = L(), p = r.p, lead = r.lead, nf = r.nf, link = "#/p/" + p.id + (r.mode === "on" ? "?m=on" : "");
@@ -1206,6 +1251,7 @@
     var u = me(), pr = (u && u.profile) || {};
     CSPH = [];
     CS = { docQ: csKey(q), asap: (q.now === "1" || !!q.s) && !q.doc, type: "text", who: "self", name: u && u.role === "patient" ? u.name : "", age: "", sex: "f", phone: u && u.phone ? fmtPhone(u.phone) : "", region: pr.region || "", district: pr.district || "", complaint: "", since: "1", chronic: "", meds: "", allergy: "", spec: "", doc: q.doc || "", consent: false };
+    if (AI.complaint) { CS.complaint = AI.complaint; AI.complaint = ""; }
     var d = q.doc ? userById(q.doc) : null; if (d) CS.spec = (d.profile || {}).spec || ""; if (d && d.sample) CS.doc = ""; if (!d && q.s) CS.spec = q.s; if (d && q.slot && +q.slot > Date.now()) { CS.slot = +q.slot; CS.slotDay = Date.UTC(new Date(+q.slot + TK).getUTCFullYear(), new Date(+q.slot + TK).getUTCMonth(), new Date(+q.slot + TK).getUTCDate()) - TK; }
   }
   function csCollect() {
@@ -2409,7 +2455,7 @@
 
   /* ---------------- router ---------------- */
   var current = { path: "/", q: {} };
-  var PRO_NO = ["/", "/doctors", "/search", "/services", "/find", "/specialists", "/family", "/prices", "/ona", "/wellness", "/consult"], CS_FOCUS = 0;
+  var PRO_NO = ["/", "/ai", "/doctors", "/search", "/services", "/find", "/specialists", "/family", "/prices", "/ona", "/wellness", "/consult"], CS_FOCUS = 0;
   function render(keepScroll) {
     var t = L(), h = parseHash(), path = h.path, q = h.q, html, route = "home";
     current = h; document.documentElement.lang = lang === "uz" ? "uz-Latn" : lang;
@@ -2438,6 +2484,7 @@
     else if (path === "/about") { html = viewAbout(); route = "about"; }
     else if (path === "/specialists") { html = viewSpecialists(); route = "specialists"; }
     else if (path === "/services") { html = viewServices(); route = "services"; }
+    else if (path === "/ai") { html = viewAi(); route = "ai"; }
     else if (path === "/family") { html = viewFamily(); route = "family"; }
     else if (path === "/wellness") { html = viewWellness(); route = "wellness"; }
     else if (path.indexOf("/consult/") === 0) { html = viewConsultThread(path.slice(9)); route = "consult"; }
@@ -2679,6 +2726,9 @@
         if (!ringNow(cc)) cc.msgs.push({ from: "s", text: t.cl_pat_msg, at: Date.now() }); cc.call = true; cc.callAt = Date.now(); cc.callBy = "p"; saveConsults(cl); render(true); openCall(cc, "p"); return;
       }
     }
+    if (ds.aitry) { aiSend(ds.aitry); return; }
+    if (ds.aiask) { AI.complaint = AI.msgs.filter(function (m) { return m.role === "user"; }).map(function (m) { return m.content; }).join(". ").slice(0, 1500); CS = null; go("#/consult?" + qs({ s: ds.aiask })); return; }
+    if (ds.act === "aireset") { AI.msgs = []; AI.busy = false; render(true); return; }
     if (ds.pq) { go("#/prices?" + qs(prQuery({ q: ds.pq }))); return; }
     if (ds.apday || ds.appart || ds.apwho) { apCollect(); if (ds.apday) AP.day = ds.apday; if (ds.appart) AP.part = ds.appart; if (ds.apwho) { AP.who = ds.apwho; var mu7 = me(); AP.name = ds.apwho === "self" && mu7 && mu7.role === "patient" ? mu7.name : ""; } render(true); return; }
     if (ds.apx) {
@@ -2978,6 +3028,8 @@
       var rl2 = store.get(KR, []); rl2.forEach(function (x) { if (x.id === rpid) x.reply = rtxt.slice(0, 400); }); store.set(KR, rl2); rpdone(); return;
     }
     if (id === "hfform") { go("#/doctors?" + qs({ s: $("hf-s").value, r: $("hf-r").value, q: $("hf-q").value.trim(), lg: $("hf-lg").value, on: $("hf-on").checked ? "1" : "", fem: $("hf-fem").checked ? "1" : "", sort: $("hf-rate").checked ? "rating" : "" })); return; }
+    if (id === "aiform") { var aiIn = $("ai-in"); aiSend(aiIn.value); return; }
+    if (id === "aihome") { var aiH = $("ai-home").value; if (aiH.trim().length < 3) return; go("#/ai"); aiSend(aiH); return; }
     if (id === "prform") { go("#/prices?" + qs(prQuery())); return; }
     if (id === "docfilter") { go("#/doctors?" + qs(dfQuery())); return; }
     if (id === "docsearch") { go("#/doctors?" + qs({ s: $("hs-s").value, r: $("hs-r").value, q: $("hs-q").value.trim() })); return; }

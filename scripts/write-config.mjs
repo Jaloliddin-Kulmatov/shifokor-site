@@ -21,10 +21,12 @@ if (/@db\.[a-z0-9]+\.supabase\.co/i.test(conn)) {
     "'Transaction pooler' string (host ...pooler.supabase.com, port 6543) from the same Connect window.");
 }
 
+// "Sign in with Google": the OAuth client ID is public (Google shows it to every visitor); the server checks tokens against it
+const google = ((env.GOOGLE_CLIENT_ID || "").split(",")[0] || "").trim();
 writeFileSync(
   "site/config.js",
   "/* Written at build time by scripts/write-config.mjs. No secrets here: the server holds the connection string. */\n" +
-    "window.SHIFOKOR_CONFIG = " + JSON.stringify({ api: conn ? "/api/app" : "" }) + ";\n"
+    "window.SHIFOKOR_CONFIG = " + JSON.stringify({ api: conn ? "/api/app" : "", google: conn ? google : "" }) + ";\n"
 );
 // Telegram notices: on a production deploy, point the bot's webhook at this site. Failing here never fails the build.
 const tg = (env.TELEGRAM_BOT_TOKEN || "").trim(), host = (env.VERCEL_PROJECT_PRODUCTION_URL || "").trim();

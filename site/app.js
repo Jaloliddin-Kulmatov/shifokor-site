@@ -847,6 +847,60 @@
     if ($("r-spec-o")) $("r-spec-o").hidden = $("r-spec").value !== "other";
   }
   function regRegionChanged() { var r = $("r-region").value; if ($("r-district")) $("r-district").innerHTML = districtOptions(r, ""); if ($("r-placelist")) $("r-placelist").innerHTML = placeOptions(r); }
+  /* ---------------- "Sign in with Google" (Google Identity Services) ----------------
+     Google draws its own button in each #gbtn; pressing it opens Google's window and hands back a signed token, which
+     the server checks. data-g on #gbtn says what the token is for: "login", "register" or "link" (account page). */
+  var GOOGLE = BE ? String((window.SHIFOKOR_CONFIG || {}).google || "") : "", GSI = null, GMODE = "";
+  /* Google's sign-in doesn't open inside Telegram's or Instagram's own browser */
+  var inApp = /Telegram|Instagram|FBAN|FBAV|; wv\)/i.test(navigator.userAgent || "");
+  function gsiLoad() {
+    if (!GSI) GSI = new Promise(function (res, rej) {
+      var s = document.createElement("script"); s.src = "https://accounts.google.com/gsi/client"; s.async = true;
+      s.onload = function () { try { google.accounts.id.initialize({ client_id: GOOGLE, callback: onGoogle, ux_mode: "popup", auto_select: false, cancel_on_tap_outside: true }); res(); } catch (e) { rej(e); } };
+      s.onerror = function () { GSI = null; rej(new Error("gsi")); };
+      document.head.appendChild(s);
+    });
+    return GSI;
+  }
+  function gsiMount() {
+    var box = GOOGLE && $("gbtn"); if (!box) return;
+    GMODE = box.dataset.g;
+    gsiLoad().then(function () {
+      var b = $("gbtn"); if (!b || b.firstChild) return;
+      google.accounts.id.renderButton(b, { type: "standard", theme: "outline", size: "large", shape: "pill", text: GMODE === "register" ? "signup_with" : "continue_with", width: Math.min(400, Math.max(220, b.clientWidth || 320)), locale: lang === "uz" ? "uz" : lang });
+    }, function () { var b = $("gbtn"); if (b) b.innerHTML = '<p class="fine">' + L().g_unavailable + "</p>"; });
+  }
+  function gErr(msg, html) { var el = $(GMODE === "register" ? "r-err" : GMODE === "link" ? "g-err" : "l-err"); if (el) { if (html) el.innerHTML = msg; else el.textContent = msg; } else toast(msg); }
+  function gMsg(t, x) { return { google_new: t.g_new, google_exists: t.g_exists, google_taken: t.g_taken, google_only: t.g_only, google: t.g_bad, no_google: t.g_unavailable }[x && x.code] || beMsg(t, x); }
+  function onGoogle(resp) {
+    var t = L(), cred = resp && resp.credential; if (!cred || !BE) return;
+    if (GMODE === "link") { BE.googleLink(cred).then(function () { toast(t.g_linked); render(true); }, function (x) { gErr(gMsg(t, x)); }); return; }
+    var o = { credential: cred };
+    if (GMODE === "register") {
+      var rprof = regProfile(), rbad = regCheck(t, rprof);
+      if (rbad) { gErr(rbad[0]); $(rbad[1]).focus(); return; }
+      var rv = function (x) { return $(x) ? $(x).value.trim() : ""; }, ph = rv("r-phone"), tg = rv("r-tg");
+      if (REGROLE === "clinic" && !rv("r-name")) { gErr(t.g_need_clinic); $("r-name").focus(); return; }
+      if (ph && !/^998\d{9}$/.test(digits(ph))) { gErr(t.e_phone); $("r-phone").focus(); return; }
+      o.role = REGROLE; o.profile = rprof; o.name = rv("r-name"); o.phone = ph ? digits(ph) : ""; o.tg = tg ? "@" + tgName(tg) : "";
+    }
+    gErr("");
+    BE.google(o).then(function () { ACC = null; var mu = me(); toast(t.welcome(mu ? mu.name : "")); go(afterAuth()); },
+      function (x) { gErr(x && x.code === "google_new" ? esc(t.g_new) + ' <a href="#/register">' + t.go_reg + "</a>" : esc(gMsg(t, x)), true); });
+  }
+  /* the button with an "or" line; nothing at all until GOOGLE_CLIENT_ID is set on the server */
+  function googleBlock(mode) {
+    var t = L(); if (!GOOGLE) return "";
+    var btn = '<div class="gsign"><div id="gbtn" data-g="' + mode + '"></div>' + (inApp ? '<p class="fine">' + t.g_inapp + "</p>" : "") + "</div>";
+    return mode === "register" ? '<div class="ordiv"><span>' + t.g_or + "</span></div>" + btn + '<p class="fine" style="text-align:center">' + t.g_reg_note + "</p>" : btn + '<div class="ordiv"><span>' + t.g_or + "</span></div>";
+  }
+  /* account page: add or remove "Sign in with Google" */
+  function googleCard(u) {
+    var t = L(); if (!GOOGLE || !u.remote) return "";
+    var body = u.google ? '<p style="margin:6px 0 10px"><span class="badge ok">' + ic("check") + t.g_on + "</span></p>" + (u.hasPw ? '<button class="btn ghost sm" type="button" data-act="gunlink">' + t.g_unlink + "</button>" : '<p class="fine">' + t.g_only + "</p>")
+      : '<p class="muted" style="margin:6px 0 10px">' + t.g_link_p + '</p><div class="gsign"><div id="gbtn" data-g="link"></div></div><div class="err" id="g-err" aria-live="polite"></div>';
+    return '<div class="dcard" style="margin-bottom:22px"><h2>' + t.g_h + "</h2>" + body + "</div>";
+  }
   function regProfile() {
     var v = function (id) { var el = $(id); return el ? el.value.trim() : ""; };
     if (REGROLE === "doctor") { var w = matchPlace(v("r-work")); return { spec: v("r-spec"), spec_other: v("r-spec") === "other" ? v("r-spec-other") : "", years: v("r-years"), lic: v("r-lic"), sex: v("r-sex"), edu: v("r-edu"), bio: v("r-bio"), region: v("r-region"), district: v("r-district"), langs: all("#r-langs input:checked").map(function (i) { return i.value; }), work: w ? [w] : [] }; }
@@ -905,7 +959,7 @@
       f("r-tg", t.f_tg, "text", ' autocomplete="off" placeholder="' + t.f_tg_ph + '"') + regExtra(t) +
       '<div class="two">' + f("r-pw", t.f_pw, "password", ' autocomplete="new-password"') + f("r-pw2", t.f_pw2, "password", ' autocomplete="new-password"') + "</div>" +
       (REGROLE !== "patient" ? '<p class="fine regnote">' + ic("shield") + t.rg_note + "</p>" : "") +
-      '<div class="err" id="r-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.reg_btn + '</button><p class="muted" style="margin-top:14px;text-align:center">' + t.have_acc + ' <a href="#/login">' + t.go_login + "</a></p></form></div>";
+      '<div class="err" id="r-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.reg_btn + "</button>" + googleBlock("register") + '<p class="muted" style="margin-top:14px;text-align:center">' + t.have_acc + ' <a href="#/login">' + t.go_login + "</a></p></form></div>";
   }
   /* ---------------- a forgotten password ----------------
      Step 1: phone or email; a 6-digit code goes out by Telegram, email or SMS (whichever the account has).
@@ -937,7 +991,7 @@
   }
   function viewLogin() {
     var t = L();
-    return '<div class="wrap pad acc" style="max-width:520px"><h1>' + t.login_h + '</h1><div class="demo" style="margin:16px 0 22px">' + t.acc_demo + '</div><form class="form" id="loginform" novalidate>' +
+    return '<div class="wrap pad acc" style="max-width:520px"><h1>' + t.login_h + '</h1><div class="demo" style="margin:16px 0 22px">' + t.acc_demo + "</div>" + googleBlock("login") + '<form class="form" id="loginform" novalidate>' +
       '<div class="fld"><label for="l-id">' + t.login_id + '</label><input id="l-id" autocomplete="username"></div><div class="fld"><label for="l-pw">' + t.f_pw + '</label><input id="l-pw" type="password" autocomplete="current-password"></div>' +
       '<p class="fgline"><a href="#/forgot">' + t.fg_link + '</a></p><div class="err" id="l-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.login_btn + '</button><div class="authalt"><span>' + t.no_acc + '</span><a class="btn ghost block" href="#/register">' + t.go_reg + "</a></div></form></div>";
   }
@@ -994,10 +1048,10 @@
     }
     var del = ACC_DEL ? '<div class="confirm-row"><b>' + t.acc_del_q + '</b><button class="btn danger sm" type="button" data-act="accdel-yes">' + t.acc_del_yes + '</button><button class="btn ghost sm" type="button" data-act="accdel-no">' + t.v_keep + "</button></div>" : "";
     var pub = role === "doctor" ? "#/doc/" + u.id : role === "clinic" ? "#/c/" + u.id : "";
-    if (PRO_FORM) return '<div class="acc proform">' + trustCard(u) + notifyCard(u) + '<form class="form accform" id="accform" novalidate>' + contact + body + '<div class="err" id="a-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.acc_save + "</button></form>" +
+    if (PRO_FORM) return '<div class="acc proform">' + trustCard(u) + notifyCard(u) + googleCard(u) + '<form class="form accform" id="accform" novalidate>' + contact + body + '<div class="err" id="a-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.acc_save + "</button></form>" +
       '<p style="margin-top:20px"><button class="linkbtn" type="button" data-act="accdel">' + t.acc_del + "</button></p>" + del + "</div>";
     return '<div class="wrap pad acc"><div class="sechead"><div><div class="eyebrow">' + t.role[role] + "</div><h1>" + esc(u.name) + '</h1></div><div class="btns">' + (pub ? '<a class="btn ghost sm" href="' + pub + '">' + t.acc_view + "</a>" : "") + '<button class="btn ghost sm" type="button" data-act="logout">' + t.logout + '</button></div></div><div class="demo" style="margin:14px 0 20px">' + t.acc_demo + "</div>" +
-      trustCard(u) + notifyCard(u) + (role === "doctor" ? liveCard(u) + mothersCard() + earnCard() + docInbox(u) : role === "clinic" ? clinicInbox(u) : "") + (role !== "patient" ? rvMine(u) : "") + '<form class="form accform" id="accform" novalidate>' + contact + body + '<div class="err" id="a-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.acc_save + "</button></form>" +
+      trustCard(u) + notifyCard(u) + googleCard(u) + (role === "doctor" ? liveCard(u) + mothersCard() + earnCard() + docInbox(u) : role === "clinic" ? clinicInbox(u) : "") + (role !== "patient" ? rvMine(u) : "") + '<form class="form accform" id="accform" novalidate>' + contact + body + '<div class="err" id="a-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.acc_save + "</button></form>" +
       '<p style="margin-top:20px"><button class="linkbtn" type="button" data-act="accdel">' + t.acc_del + "</button></p>" + del + "</div>";
   }
 
@@ -2591,7 +2645,7 @@
     else if (path === "/dashboard") { html = viewDashboard(); route = "dashboard"; }
     else if (path === "/assist") { html = viewAssist(); route = "assist"; }
     else html = viewHome();
-    var y = window.scrollY, apb = document.querySelector(".apbody"), apy = apb ? apb.scrollTop : 0; destroyMap(); $("app").innerHTML = html; hydratePhotos();
+    var y = window.scrollY, apb = document.querySelector(".apbody"), apy = apb ? apb.scrollTop : 0; destroyMap(); $("app").innerHTML = html; hydratePhotos(); gsiMount();
     document.documentElement.classList.toggle("aplock", !!$("ap-h")); if (keepScroll && $("ap-h")) document.querySelector(".applypanel").classList.add("still");   /* slide in once, not on every redraw */ if (keepScroll && apy && document.querySelector(".apbody")) document.querySelector(".apbody").scrollTop = apy;
     if (pendingMap) { var items = pendingMap; pendingMap = null; if (items.fac) initFacMap(items.fac, items.single); else initMap(items); }
     all("[data-t]").forEach(function (el) { var v = t[el.dataset.t]; if (typeof v === "string") el.innerHTML = v; });
@@ -2895,6 +2949,7 @@
       if (BE) { el.disabled = true; BE.saveProfile({ role: gu.role, name: gu.name, email: gu.email || "", phone: gu.phone || "", tg: gu.tg || "", profile: gp }).then(function () { ACC = null; toast(t.off_done); render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
       var gl = users(); gl.forEach(function (x) { if (x.id === gu.id) x.profile = gp; }); saveUsers(gl); ACC = null; toast(t.off_done); render(true); return;
     }
+    if (ds.act === "gunlink" && BE) { if (current.path === "/account" || current.path === "/pro") accCollect(); el.disabled = true; BE.googleUnlink().then(function () { toast(t.g_unlinked); render(true); }, function (x) { el.disabled = false; toast(gMsg(t, x)); }); return; }
     if (ds.act === "tgunlink" && BE) { if ((current.path === "/account" || current.path === "/pro")) accCollect(); BE.tgUnlink().then(function () { NT_WAIT = false; render(true); }, function (x) { toast(beMsg(t, x)); }); return; }
     if (ds.adm && BE) { el.disabled = true; BE.adminVerify(ds.id, ds.adm === "ok").then(function () { toast(ds.adm === "ok" ? t.adm_ok_done : t.adm_no_done); ADM.list = null; BE.refresh().catch(function () {}); render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
     if (ds.act === "admtg" && BE) { BE.adminTgSetup().then(function (j) { toast(t.adm_tg_ok(j.bot)); }, function (x) { toast(beMsg(t, x)); }); return; }

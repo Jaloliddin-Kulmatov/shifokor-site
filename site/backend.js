@@ -22,7 +22,7 @@
   }
 
   function toUser(u) {
-    return { id: u.id, role: u.role, name: u.name, email: u.email || "", phone: u.phone || "", tg: u.tg || "", profile: u.profile || {}, updated: String(u.updated_at || "").slice(0, 10), verified: !!u.verified, pending: !!u.pending, inviteAt: u.invite_at ? Date.parse(u.invite_at) : 0, tgLinked: !!u.tg_linked, emailVerified: !!u.email_verified, admin: !!u.admin, remote: true,
+    return { id: u.id, role: u.role, name: u.name, email: u.email || "", phone: u.phone || "", tg: u.tg || "", profile: u.profile || {}, updated: String(u.updated_at || "").slice(0, 10), verified: !!u.verified, pending: !!u.pending, inviteAt: u.invite_at ? Date.parse(u.invite_at) : 0, tgLinked: !!u.tg_linked, emailVerified: !!u.email_verified, google: !!u.google, hasPw: u.has_pw !== false, admin: !!u.admin, remote: true,
       onlineUntil: u.online ? Date.parse(u.online) : 0, photoUrl: u.photo ? C.api + "?photo=" + u.id + "&v=" + u.photo : "" };
   }
   function toConsult(c) {
@@ -187,6 +187,10 @@
     pwLinkInfo: function (token) { return call("pw_link_info", { token: token }); },
     pwLink: async function (token, password) { var j = await call("pw_link", { token: token, password: password }); setToken(j.token); await refresh(); },
     adminResetLink: function (o) { return call("admin_reset_link", o); },
+    /* "Sign in with Google": o = { credential, role?, profile?, name?, phone?, tg? } → { created } once signed in */
+    google: async function (o) { var j = await call("google", o); setToken(j.token); await refresh(); return j; },
+    googleLink: async function (credential) { await call("google_link", { credential: credential }); await refresh(); },
+    googleUnlink: async function () { await call("google_unlink"); await refresh(); },
     claimInfo: function (token) { return call("claim_info", { token: token }); },
     claim: async function (token, password) { var j = await call("claim", { token: token, password: password }); setToken(j.token); await refresh(); },
     adminVerify: function (id, ok) { return call("admin_verify", { id: id, ok: ok }); },

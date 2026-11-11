@@ -1801,3 +1801,9 @@ audio.voice { display: block; width: 240px; max-width: 100%; height: 36px; margi
 .nav .navai .ic { width: 18px; height: 18px; }
 .nav .navai:hover, .nav .navai[aria-expanded="true"] { background: rgba(242, 250, 249, 0.18); }
 .top .regbtn { display: none !important; }
+
+/* "Sign in with Google": Google draws the button; this only places it */
+.gsign { display: grid; justify-items: center; gap: 6px; margin: 4px 0; }
+.gsign #gbtn { width: 100%; max-width: 400px; min-height: 44px; display: flex; justify-content: center; }
+.ordiv { display: flex; align-items: center; gap: 12px; margin: 16px 0; color: var(--muted); font-size: 0.9rem; }
+.ordiv::before, .ordiv::after { content: ""; flex: 1; height: 1px; background: var(--line); }

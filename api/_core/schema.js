@@ -232,6 +232,10 @@ alter table app_consults add column if not exists asap boolean not null default 
 alter table app_users add column if not exists online_until timestamptz;
 alter table app_users add column if not exists photo bytea check (photo is null or octet_length(photo) <= 200000);
 alter table app_users add column if not exists photo_at timestamptz;
+-- google_sub: the Google account (its stable id) that may sign in to this account with "Sign in with Google".
+-- An account made with Google has no password (pw_hash 'google') until its owner sets one through "forgot password".
+alter table app_users add column if not exists google_sub text;
+create unique index if not exists app_users_google_idx on app_users (google_sub);
 
 -- Care for pregnant women and young mothers: a pregnancy profile, weekly check-ins, check-up reminders,
 -- and a family member who hears about danger signs. Only the woman, her chosen doctor and that family member see it.

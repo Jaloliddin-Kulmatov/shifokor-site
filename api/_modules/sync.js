@@ -24,7 +24,7 @@ const actions = {
     let ona = { preg: null, mothers: [] };
     let medOrders = [];
     if (me) {
-      mine = Object.assign(userOut(me), { email: me.email || "", phone: me.phone || "", tg_linked: !!me.tg_chat, email_verified: !!me.email_verified_at, admin: isAdmin(me) });
+      mine = Object.assign(userOut(me), { email: me.email || "", phone: me.phone || "", tg_linked: !!me.tg_chat, email_verified: !!me.email_verified_at, admin: isAdmin(me), google: !!me.google_sub, has_pw: !!me.has_pw });
       const i = users.findIndex((u) => u.id === me.id);
       if (i > -1) users[i] = mine; else users.push(mine);
       const cs = await q(

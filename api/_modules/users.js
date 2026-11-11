@@ -10,6 +10,7 @@ const { notifyUser } = site;
 const N = require("./notify");
 const { photoOf } = require("./files");
 const { send } = require("../_core/http");
+const G = require("../_core/google");
 
 // what a doctor or clinic may fill in at sign-up (the rest of the profile is filled in later)
 const SIGNUP_KEYS = {
@@ -115,6 +116,54 @@ const actions = {
     const ok = checkPw(b.password, row && row.pw_hash);   // always runs scrypt, so timing doesn't reveal unknown accounts
     if (!row || !ok) throw new Fail(401, "login");
     return { token: await newSession(row.id) };
+  },
+
+  // ---------- "Sign in with Google" ----------
+  // { credential: Google's ID token, and for a new account: role, profile, phone, tg }. Signs in to the account
+  // linked to that Google account, or to the one with the same Google-verified email; without either, makes a
+  // new account when a role is given, otherwise answers 404 "google_new" so the site can send them to sign-up.
+  async google(b) {
+    const c = await G.verifyGoogle(b.credential);
+    let u = (await q("select id from app_users where google_sub = $1", [c.sub])).rows[0];
+    if (u) return { token: await newSession(u.id) };
+    const email = G.verifiedEmail(c) ? String(c.email).toLowerCase() : null;
+    if (email) {
+      u = (await q("select id, imported_at, claimed_at from app_users where email = $1", [email])).rows[0];
+      if (u && u.imported_at && !u.claimed_at) throw new Fail(409, "invited");   // the team's invite link comes first: it asks for their consent
+      if (u && !G.trustedEmail(c)) throw new Fail(409, "google_exists");
+      if (u) {
+        await q("update app_users set google_sub = $2, email_verified_at = coalesce(email_verified_at, now()) where id = $1 and google_sub is null", [u.id, c.sub]);
+        return { token: await newSession(u.id) };
+      }
+    }
+    if (!b.role) throw new Fail(404, "google_new");
+    const role = ["patient", "doctor", "clinic"].includes(b.role) ? b.role : bad("role");
+    const name = str(b.name, 200) || (role !== "clinic" ? str(c.name, 200) : "") || bad("name");   // a clinic's name isn't the person's
+    if (!email) bad("contact");
+    const given = profileOf(b.profile), prof = Object.assign({}, DEFAULT_PROFILE[role]);
+    SIGNUP_KEYS[role].forEach((k) => { if (given[k] !== undefined && given[k] !== "") prof[k] = given[k]; });
+    try {
+      const r = await q("insert into app_users (role, name, email, phone, tg, pw_hash, profile, google_sub, email_verified_at) values ($1, $2, $3, $4, $5, 'google', $6, $7, now()) returning id", [role, name, email, phoneOf(b.phone), tgOf(b.tg), prof, c.sub]);
+      return { token: await newSession(r.rows[0].id), created: true };
+    } catch (e) {
+      if (e.code === "23505") throw new Fail(409, "exists");   // the phone belongs to another account
+      throw e;
+    }
+  },
+  // a signed-in person adds "Sign in with Google" to their account
+  async google_link(b, me) {
+    need(me);
+    const c = await G.verifyGoogle(b.credential);
+    const other = (await q("select id from app_users where google_sub = $1", [c.sub])).rows[0];
+    if (other && other.id !== me.id) throw new Fail(409, "google_taken");
+    await q("update app_users set google_sub = $2 where id = $1", [me.id, c.sub]);
+    return { ok: true };
+  },
+  async google_unlink(b, me) {
+    need(me);
+    if (!me.has_pw) throw new Fail(409, "google_only");   // without a password there'd be no way back in
+    await q("update app_users set google_sub = null where id = $1", [me.id]);
+    return { ok: true };
   },
 
   // ---------- a forgotten password ----------

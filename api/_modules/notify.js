@@ -27,9 +27,10 @@ async function tgBotName() {
   if (!botName && TG) botName = (await tgApi("getMe", {})).username;
   return botName;
 }
-async function tgSend(chat, text) {
+// extra: more sendMessage fields, such as reply_markup for buttons
+async function tgSend(chat, text, extra) {
   if (!TG || !chat) return false;
-  try { await within(tgApi("sendMessage", { chat_id: chat, text, disable_web_page_preview: true }), 4000); return true; }
+  try { await within(tgApi("sendMessage", Object.assign({ chat_id: chat, text, disable_web_page_preview: true }, extra || {})), 4000); return true; }
   catch (e) { console.error("tg send", e.message); return false; }
 }
 

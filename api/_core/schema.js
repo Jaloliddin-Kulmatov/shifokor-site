@@ -236,6 +236,23 @@ alter table app_users add column if not exists photo_at timestamptz;
 -- An account made with Google has no password (pw_hash 'google') until its owner sets one through "forgot password".
 alter table app_users add column if not exists google_sub text;
 create unique index if not exists app_users_google_idx on app_users (google_sub);
+-- "Sign in with Telegram": the site makes a secret code and opens the bot with it; pressing Start there, then sharing
+-- the phone number (or "without the number"), confirms it, and the site's waiting page signs in. Kept a day.
+create table if not exists app_tg_logins (
+  id uuid primary key default gen_random_uuid(),
+  code_hash text not null unique,
+  chat_id bigint not null,
+  tg_name text check (tg_name is null or char_length(tg_name) <= 200),
+  tg_user text check (tg_user is null or char_length(tg_user) <= 40),
+  phone text check (phone is null or phone ~ '^[0-9]{7,15}$'),
+  created_at timestamptz not null default now(),
+  confirmed_at timestamptz,
+  used_at timestamptz
+);
+-- call_media: the kind of call started (video or audio), whatever the consultation's type.
+-- mail_at: the last "the doctor wrote" email for this consultation, so a long chat sends one email per half hour.
+alter table app_consults add column if not exists call_media text check (call_media is null or call_media in ('audio', 'video'));
+alter table app_consults add column if not exists mail_at timestamptz;
 
 -- Care for pregnant women and young mothers: a pregnancy profile, weekly check-ins, check-up reminders,
 -- and a family member who hears about danger signs. Only the woman, her chosen doctor and that family member see it.
@@ -410,6 +427,7 @@ alter table app_branches enable row level security;
 alter table app_staff enable row level security;
 alter table app_email_codes enable row level security;
 alter table app_pw_resets enable row level security;
+alter table app_tg_logins enable row level security;
 alter table app_docs enable row level security;
 alter table app_ai_use enable row level security;
 `;

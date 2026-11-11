@@ -118,6 +118,40 @@ const actions = {
     return { token: await newSession(row.id) };
   },
 
+  // ---------- "Sign in with Telegram" ----------
+  // { code } the site made and sent to the bot; for a new account also role, profile, name; account when the
+  // person picks one of several. Answers { status: "wait" } until they confirm in Telegram, then signs in to the
+  // account linked to that chat or with that Telegram-verified phone, links the chat for notices, or makes a new one.
+  async tg_login(b) {
+    const code = String(b.code || "");
+    if (!/^[A-Za-z0-9_-]{20,40}$/.test(code)) bad("code");
+    const l = (await q("select * from app_tg_logins where code_hash = $1 and created_at > now() - interval '10 minutes' and used_at is null", [sha(code)])).rows[0];
+    if (!l || !l.confirmed_at) return { status: "wait", started: !!l };
+    const phone = l.phone && /^998\d{9}$/.test(l.phone) ? l.phone : null;
+    const found = (await q("select id, role, name, phone, imported_at, claimed_at from app_users where tg_chat = $1 or ($2::text is not null and phone = $2) order by updated_at desc limit 5", [l.chat_id, phone])).rows;
+    let u = found.length === 1 ? found[0] : found.find((x) => x.id === b.account);
+    if (found.length > 1 && !u) return { status: "choose", accounts: found.map((x) => ({ id: x.id, role: x.role, name: x.name })) };
+    if (u) {
+      if (u.imported_at && !u.claimed_at) throw new Fail(409, "invited");   // the team's invite link comes first
+      await q("update app_users set tg_chat = $2, phone = coalesce(phone, $3), updated_at = now() where id = $1", [u.id, l.chat_id, phone && !u.phone && !found.some((x) => x.id !== u.id && x.phone === phone) ? phone : null]);
+      await q("update app_tg_logins set used_at = now() where id = $1", [l.id]);
+      return { token: await newSession(u.id) };
+    }
+    if (!b.role) return { status: "new", name: l.tg_name || "" };
+    const role = ["patient", "doctor", "clinic"].includes(b.role) ? b.role : bad("role");
+    const name = str(b.name, 200) || (role !== "clinic" ? str(l.tg_name, 200) : "") || bad("name");   // a clinic's name isn't the person's
+    const given = profileOf(b.profile), prof = Object.assign({}, DEFAULT_PROFILE[role]);
+    SIGNUP_KEYS[role].forEach((k) => { if (given[k] !== undefined && given[k] !== "") prof[k] = given[k]; });
+    try {
+      const r = await q("insert into app_users (role, name, phone, tg, pw_hash, profile, tg_chat) values ($1, $2, $3, $4, 'telegram', $5, $6) returning id", [role, name, phone, l.tg_user ? tgOf(l.tg_user) : null, prof, l.chat_id]);
+      await q("update app_tg_logins set used_at = now() where id = $1", [l.id]);
+      return { token: await newSession(r.rows[0].id), created: true };
+    } catch (e) {
+      if (e.code === "23505") throw new Fail(409, "exists");
+      throw e;
+    }
+  },
+
   // ---------- "Sign in with Google" ----------
   // { credential: Google's ID token, and for a new account: role, profile, phone, tg }. Signs in to the account
   // linked to that Google account, or to the one with the same Google-verified email; without either, makes a

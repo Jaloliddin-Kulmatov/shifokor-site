@@ -10,6 +10,7 @@
 
   /* ---------------- icons ---------------- */
   var ICONS = {
+    send: '<path d="M21 3L3 10.5l7 2.5 2.5 7z"/><path d="M10 13l5-5"/>',
     cal: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/>',
     camera: '<path d="M4 8h3.5l2-3h5l2 3H20v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
     hosp: '<rect x="4" y="7" width="16" height="14" rx="2"/><path d="M12 10v6M9 13h6M9 7V4h6v3"/>',
@@ -887,10 +888,51 @@
     BE.google(o).then(function () { ACC = null; var mu = me(); toast(t.welcome(mu ? mu.name : "")); go(afterAuth()); },
       function (x) { gErr(x && x.code === "google_new" ? esc(t.g_new) + ' <a href="#/register">' + t.go_reg + "</a>" : esc(gMsg(t, x)), true); });
   }
+  /* ---------------- "Sign in with Telegram" ----------------
+     The browser makes a secret code and the button opens t.me/<bot>?start=login_<code>. In Telegram the person shares
+     their number (or continues without it); meanwhile this page asks the server every 2 seconds whether the code was
+     confirmed, then signs in, or asks who they are when the account is new. The code lives 10 minutes. */
+  var TGL = { code: "", at: 0, active: false, status: "", name: "", accounts: [], err: "", timer: null };
+  try { var tgl0 = JSON.parse(sessionStorage.getItem("shifokor-tgl") || "null"); if (tgl0 && Date.now() - tgl0.at < 600e3) { TGL.code = tgl0.code; TGL.at = tgl0.at; TGL.active = !!tgl0.active; } } catch (e) {}
+  var tgOn = function () { var n = BE && BE.notify(); return !!(n && n.tg && n.bot); };
+  function tglCode() {
+    if (!TGL.code || Date.now() - TGL.at > 540e3) {
+      var b = new Uint8Array(18); crypto.getRandomValues(b);
+      TGL.code = btoa(String.fromCharCode.apply(null, b)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      TGL.at = Date.now(); TGL.active = false; TGL.status = "";
+    }
+    return TGL.code;
+  }
+  function tglSave() { try { sessionStorage.setItem("shifokor-tgl", JSON.stringify({ code: TGL.code, at: TGL.at, active: TGL.active })); } catch (e) {} }
+  function tglReset() { clearTimeout(TGL.timer); TGL = { code: "", at: 0, active: false, status: "", name: "", accounts: [], err: "", timer: null }; try { sessionStorage.removeItem("shifokor-tgl"); } catch (e) {} }
+  /* one check; extra = { role, profile, name } for a new account or { account } for a chosen one */
+  function tglPoll(extra) {
+    clearTimeout(TGL.timer);
+    if (!TGL.active || !BE) return;
+    if (Date.now() - TGL.at > 600e3) { TGL.active = false; TGL.err = L().tl_expired; tglSave(); render(true); return; }
+    var t = L();
+    BE.tgLogin(Object.assign({ code: TGL.code }, extra || {})).then(function (j) {
+      if (j.status === "wait") { TGL.timer = setTimeout(tglPoll, document.visibilityState === "visible" ? 2000 : 5000); return; }
+      if (j.status === "new" || j.status === "choose") { TGL.status = j.status; TGL.name = j.name || ""; TGL.accounts = j.accounts || []; render(true); return; }
+      tglReset(); ACC = null; var mu = me(); toast(t.welcome(mu ? mu.name : "")); go(afterAuth());
+    }, function (x) { TGL.err = x && x.code === "invited" ? t.e_invited : beMsg(t, x); TGL.active = false; tglSave(); render(true); });
+  }
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible" && TGL.active && !TGL.status) tglPoll(); });
+  /* the Telegram button and what follows it; on sign-up a new account takes the role and fields chosen on the page */
+  function tgBlock(mode) {
+    var t = L(); if (!tgOn()) return "";
+    if (TGL.status === "choose") return '<div class="tgbox"><b>' + t.tl_choose + '</b><div class="stack" style="margin-top:10px">' + TGL.accounts.map(function (a) { return '<button class="btn ghost block" type="button" data-tgl="acc" data-id="' + a.id + '">' + esc(a.name) + " · " + t.role[a.role] + "</button>"; }).join("") + "</div></div>";
+    if (TGL.status === "new") return '<div class="tgbox"><b>' + t.tl_new_h(esc(TGL.name)) + "</b>" + (mode === "register" ? '<p class="muted">' + t.tl_new_reg + '</p><div class="err" id="tl-err" aria-live="polite"></div><button class="btn block" type="button" data-tgl="reg">' + ic("check") + t.tl_reg_btn + "</button>"
+      : '<p class="muted">' + t.tl_new_p + '</p><div class="stack"><button class="btn block" type="button" data-tgl="patient">' + t.tl_as_patient + '</button><a class="btn ghost block" href="#/register">' + t.tl_as_pro + "</a></div>") + "</div>";
+    var href = "https://t.me/" + encodeURIComponent(BE.notify().bot) + "?start=login_" + tglCode();
+    return '<div class="gsign"><a class="btn tgbtn block" href="' + href + '" target="_blank" rel="noopener" data-tgl="go">' + ic("send") + t.tl_btn + "</a>" +
+      (TGL.active ? '<div class="tgbox" role="status"><b>' + t.tl_wait_h + '</b><p class="muted">' + t.tl_wait_p + '</p><p><a href="' + href + '" target="_blank" rel="noopener">' + t.tl_again + '</a> · <button class="linkbtn" type="button" data-tgl="cancel">' + t.tl_cancel + "</button></p></div>" : "") +
+      (TGL.err ? '<p class="err">' + esc(TGL.err) + "</p>" : "") + "</div>";
+  }
   /* the button with an "or" line; nothing at all until GOOGLE_CLIENT_ID is set on the server */
   function googleBlock(mode) {
-    var t = L(); if (!GOOGLE) return "";
-    var btn = '<div class="gsign"><div id="gbtn" data-g="' + mode + '"></div>' + (inApp ? '<p class="fine">' + t.g_inapp + "</p>" : "") + "</div>";
+    var t = L(); if (!GOOGLE) return tgBlock(mode) ? (mode === "register" ? '<div class="ordiv"><span>' + t.g_or + "</span></div>" + tgBlock(mode) : tgBlock(mode) + '<div class="ordiv"><span>' + t.g_or + "</span></div>") : "";
+    var btn = tgBlock(mode) + '<div class="gsign"><div id="gbtn" data-g="' + mode + '"></div>' + (inApp ? '<p class="fine">' + t.g_inapp + "</p>" : "") + "</div>";
     return mode === "register" ? '<div class="ordiv"><span>' + t.g_or + "</span></div>" + btn + '<p class="fine" style="text-align:center">' + t.g_reg_note + "</p>" : btn + '<div class="ordiv"><span>' + t.g_or + "</span></div>";
   }
   /* account page: add or remove "Sign in with Google" */
@@ -1540,11 +1582,18 @@
   }
   /* the doctor pressed "call" in the last 3 minutes */
   var ringNow = function (c) { return !!c.callAt && Date.now() - c.callAt < 180e3; };
-  function openCall(c, role) {
-    var t = L();
+  /* video and audio call buttons, in any consultation (a text one too); act: "call" for the doctor, "pcall" for the patient */
+  function callBtns(c, act, ghost) {
+    var t = L(), b = function (m, icn, label, g) { return '<button class="btn' + (g ? " ghost" : "") + '" type="button" data-cs="' + act + '" data-media="' + m + '" data-id="' + c.id + '">' + ic(icn) + label + "</button>"; };
+    return b("video", "video", act === "pcall" ? t.cl_call_doc(true) : t.tk_video, ghost) + b("audio", "phone", act === "pcall" ? t.cl_call_doc(false) : t.cl_call_audio, true);
+  }
+  /* the call that's ringing or was started: its own kind (video or audio), else the consultation's */
+  var cMedia = function (c) { return c.callMedia || (c.type === "video" ? "video" : "audio"); };
+  function openCall(c, role, media) {
+    var t = L(); media = media || cMedia(c);
     if (!window.ShifokorCall) return;
     var onChat = BE ? function (text) { var mu = me(); BE.addMessage(c.id, role, mu ? mu.name : "", text).catch(function () {}); } : null;   /* messages written during the call stay in the consultation's chat */
-    ShifokorCall.open({ cid: c.id, role: role, media: c.type === "video" ? "video" : "audio", title: t.cs_no(c.n), peer: role === "d" ? c.name : c.doctorName, t: t, demo: !BE, onChat: onChat,
+    ShifokorCall.open({ cid: c.id, role: role, media: media, title: t.cs_no(c.n), peer: role === "d" ? c.name : c.doctorName, t: t, demo: !BE, onChat: onChat,
       done: function (sec) { if (sec) toast(t.cl_ended(Math.floor(sec / 60) + ":" + pad(sec % 60))); render(true); } });
     render(true);
   }
@@ -1564,24 +1613,24 @@
     if (isDoc && c.status === "new") actions = '<button class="btn" type="button" data-cs="accept" data-id="' + c.id + '">' + ic("check") + t.cs_accept + "</button>" +
       /* instead of accepting: an in-person visit is needed, the application closes and nothing is charged */
       '<details class="finish"><summary>' + t.rf2_btn + '</summary><form id="csrefer" data-id="' + c.id + '" novalidate><div class="fld"><label for="cs-adv">' + t.rf2_label + '</label><textarea id="cs-adv" maxlength="1000" placeholder="' + esc(t.rf2_ph) + '"></textarea></div><div class="err" id="csr-err" aria-live="polite"></div><button class="btn" type="submit">' + t.rf2_send + '</button><p class="fine" style="margin-top:8px">' + t.rf2_note + "</p></form></details>";
-    if (mineDoc && c.status === "accepted") actions = (due ? '<div class="note-box">' + ic("tag") + " " + t.pay_wait_doc(esc(money(c.price))) + "</div>" : "") + (!due ? (c.callBy === "p" && ringNow(c) ? '<div class="ring" role="status"><span class="ring-ic">' + ic(c.type === "video" ? "video" : "mic") + "</span><div><b>" + t.cl_pat_ringing + "</b><span>" + esc(c.name) + "</span></div></div>" : "") + '<button class="btn" type="button" data-cs="call" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "mic") + (c.callBy === "p" && ringNow(c) ? t.cl_answer : c.type === "text" ? t.cl_call_audio : t.cs_call) + "</button>" : "") +
+    if (mineDoc && c.status === "accepted") actions = (due ? '<div class="note-box">' + ic("tag") + " " + t.pay_wait_doc(esc(money(c.price))) + "</div>" : "") + (!due ? (c.callBy === "p" && ringNow(c) ? '<div class="ring" role="status"><span class="ring-ic">' + ic(cMedia(c) === "video" ? "video" : "mic") + "</span><div><b>" + t.cl_pat_ringing + "</b><span>" + esc(c.name) + '</span></div></div><button class="btn" type="button" data-cs="call" data-media="' + cMedia(c) + '" data-id="' + c.id + '">' + ic(cMedia(c) === "video" ? "video" : "mic") + t.cl_answer + "</button>" : callBtns(c, "call")) : "") +
       '<details class="finish"><summary>' + t.cs_finish + '</summary><form id="csfinish" data-id="' + c.id + '" novalidate><div class="radio">' + t.on_out.map(function (o, i) { return '<label><input type="radio" name="csout" value="' + i + '">' + o + "</label>"; }).join("") + '</div><div class="fld"><label for="cs-sum">' + t.vs_note + '</label><textarea id="cs-sum" maxlength="600"></textarea></div><div class="err" id="csf-err"></div><button class="btn" type="submit">' + t.vs_save + "</button></form></details>";
-    if (!isDoc && c.status === "accepted" && !due && (u ? c.userId === u.id : !c.userId)) actions = (c.call && ringNow(c) && c.callBy !== "p" ? '<button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "mic") + t.cs_join + "</button>" : "") +
-      '<button class="btn' + (c.call && ringNow(c) && c.callBy !== "p" ? " ghost" : "") + '" type="button" data-cs="pcall" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "phone") + t.cl_call_doc(c.type === "video") + "</button>";
+    if (!isDoc && c.status === "accepted" && !due && (u ? c.userId === u.id : !c.userId)) actions = (c.call && ringNow(c) && c.callBy !== "p" ? '<button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + ic(cMedia(c) === "video" ? "video" : "mic") + t.cs_join + "</button>" : "") +
+      callBtns(c, "pcall", c.call && ringNow(c) && c.callBy !== "p");
     var slotBox = c.slotAt && (c.status === "new" || c.status === "accepted") ? '<div class="slotbox' + (c.slotAt - Date.now() < 3600e3 && c.slotAt > Date.now() - 3600e3 ? " soon" : "") + '">' + ic("cal") + "<div><small>" + t.sl_when + "</small><b>" + esc(slotTxt(c.slotAt)) + "</b><span>" + (c.slotAt > Date.now() ? t.sl_in(Math.round((c.slotAt - Date.now()) / 60e3)) : t.sl_now) + " · " + t.sl_tz + "</span></div></div>" : "";
     var own = !isDoc && (u ? c.userId === u.id : !c.userId), dWho = c.doc ? userById(c.doc) : c.doctorId ? userById(c.doctorId) : null;
     var canMove = own && c.slotAt && (c.status === "new" || c.status === "accepted") && dWho && hoursOf(dWho.profile);
     var manage = own && (c.status === "new" || canMove) ? (RS && RS.cid === c.id ? '<div class="dcard rsbox"><h2>' + t.rs_h + "</h2>" + slotPicker(RS) + '<div class="err" id="rs-err" aria-live="polite"></div><div class="btns"><button class="btn" type="button" data-rs="save"' + (RS.slot ? "" : " disabled") + ">" + t.rs_save + '</button><button class="btn ghost" type="button" data-rs="close">' + t.po_cancel + "</button></div></div>"
       : CX === c.id ? '<div class="confirm-row"><b>' + t.cx_q + '</b><button class="btn danger sm" type="button" data-cx="yes" data-id="' + c.id + '">' + t.cx_yes + '</button><button class="btn ghost sm" type="button" data-cx="no">' + t.v_keep + "</button></div>"
       : '<div class="btns manage">' + (canMove ? '<button class="btn ghost sm" type="button" data-rs="open" data-id="' + c.id + '">' + ic("cal") + t.rs_btn + "</button>" : "") + (c.status === "new" ? '<button class="linkbtn" type="button" data-cx="ask" data-id="' + c.id + '">' + t.cx_btn + "</button>" : "") + "</div>") : "";
-    var talk = c.status === "accepted" && !due && (mineDoc || (!isDoc && (u ? c.userId === u.id : !c.userId))) ? '<div class="talkbar"><span>' + t.tk_h + '</span><a class="btn" href="#csmsg" data-scroll="csmsg">' + ic("chat") + t.tk_write + '</a><button class="btn ghost" type="button" data-cs="' + (mineDoc ? "call" : "pcall") + '" data-id="' + c.id + '">' + ic(c.type === "video" ? "video" : "phone") + (c.type === "video" ? t.tk_video : t.tk_call) + "</button></div>" : "";
+    var talk = c.status === "accepted" && !due && (mineDoc || (!isDoc && (u ? c.userId === u.id : !c.userId))) ? '<div class="talkbar"><span>' + t.tk_h + '</span><a class="btn" href="#csmsg" data-scroll="csmsg">' + ic("chat") + t.tk_write + "</a>" + callBtns(c, mineDoc ? "call" : "pcall", true) + "</div>" : "";
     var ringing = !isDoc && c.status === "accepted" && c.callBy !== "p" && ringNow(c) && !due && !(window.ShifokorCall && ShifokorCall.active());
     return '<div class="wrap"><a class="back" href="' + (isDoc ? "#/pro?tab=requests" : "#/visits") + '">‹ ' + (isDoc ? t.pro_t.requests : t.nav_visits) + '</a><div class="sechead" style="padding-top:12px"><div><h1 style="font-size:clamp(1.6rem,1.3rem + 1.4vw,2.3rem)">' + t.cs_no(c.n) + "</h1><div class=\"badges\">" + csBadge(c.status) + payBadge(c) + (c.asap && c.status === "new" ? '<span class="badge warn">' + t.asap_badge + "</span>" : "") + (isDoc && c.followup ? '<span class="badge ' + (c.followup === "worse" ? "warn" : "ok") + '">' + t.fu_doc(t.fu_opts[c.followup]) + "</span>" : "") + '<span class="badge plain">' + t.cs_types[c.type][0] + "</span></div></div>" + (isDoc ? '<span class="sample">' + t.cs_doc_view + "</span>" : "") + "</div>" +
-      slotBox + manage + talk + (ringing ? '<div class="ring" role="status"><span class="ring-ic">' + ic(c.type === "video" ? "video" : "mic") + "</span><div><b>" + t.cl_ringing + "</b><span>" + esc(c.doctorName) + '</span></div><button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + t.cs_join + "</button></div>" : "") +
+      slotBox + manage + talk + (ringing ? '<div class="ring" role="status"><span class="ring-ic">' + ic(cMedia(c) === "video" ? "video" : "mic") + "</span><div><b>" + t.cl_ringing + "</b><span>" + esc(c.doctorName) + '</span></div><button class="btn" type="button" data-cs="join" data-id="' + c.id + '">' + t.cs_join + "</button></div>" : "") +
       '<div class="pf" style="padding-top:18px"><div>' + (!isDoc && due && (u ? c.userId === u.id : !c.userId) ? payCard(c) : "") + (!isDoc && (u ? c.userId === u.id : !c.userId) ? careCard(c) : "") + rxCard(c, mineDoc, !isDoc && (u ? c.userId === u.id : !c.userId)) + (!isDoc && c.status === "done" && c.doctorId && (u ? c.userId === u.id : !c.userId) ? rvCard("c", c.id, c.doctorName, false) : "") + '<div class="dcard"><h2>' + t.cs_details + "</h2>" + details + "</div>" + (isDoc && !mineDoc && c.status !== "new" ? "" : "") + '<p class="fine" style="margin-top:14px">' + t.cs_demo + "</p></div>" +
       '<aside class="dcard chatcard"><h2>' + t.cs_thread + '</h2><div class="room-log" id="cslog">' + (msgs || '<div class="sys">' + t.cs_sent + "</div>") + "</div>" +
       (canWrite ? voBar(c.id) + '<form class="room-send withph" id="csmsg" data-id="' + c.id + '" style="margin-top:10px">' + (PH && PH.cid === c.id ? '<div class="phpend"><img src="' + PH.url + '" alt="' + esc(t.ph_alt) + '"><span>' + t.ph_ready + '</span><button class="btn ghost sm" type="button" data-act="phdrop">' + t.ph_remove + "</button></div>" : "") +
-        '<label class="btn ghost phbtn" title="' + esc(t.ph_add) + '"><input type="file" accept="image/*" id="csmsg-ph" class="vh" aria-label="' + esc(t.ph_add) + '">' + ic("camera") + '</label><button class="btn ghost phbtn" type="button" data-vo="rec" data-id="' + c.id + '" title="' + esc(t.vo_btn) + '" aria-label="' + esc(t.vo_btn) + '">' + ic("mic") + '</button><input id="csmsg-in" class="pinput" style="width:100%;text-align:left" placeholder="' + esc(t.cs_write) + '" aria-label="' + esc(t.cs_write) + '" autocomplete="off"><button class="btn" type="submit">' + t.cs_send_msg + '</button></form><p class="fine" style="margin-top:6px">' + t.ph_privacy + "</p>" : "") +
+        '<label class="btn ghost phbtn" title="' + esc(t.ph_add) + '"><input type="file" accept="image/*" id="csmsg-ph" class="vh" aria-label="' + esc(t.ph_add) + '">' + ic("camera") + '</label><button class="btn ghost phbtn" type="button" data-vo="rec" data-id="' + c.id + '" title="' + esc(t.vo_btn) + '" aria-label="' + esc(t.vo_btn) + '">' + ic("mic") + "</button>" + (c.status === "accepted" && !due && (mineDoc || !isDoc) ? '<button class="btn ghost phbtn" type="button" data-cs="' + (mineDoc ? "call" : "pcall") + '" data-media="video" data-id="' + c.id + '" title="' + esc(t.tk_video) + '" aria-label="' + esc(t.tk_video) + '">' + ic("video") + "</button>" : "") + '<input id="csmsg-in" class="pinput" style="width:100%;text-align:left" placeholder="' + esc(t.cs_write) + '" aria-label="' + esc(t.cs_write) + '" autocomplete="off"><button class="btn" type="submit">' + t.cs_send_msg + '</button></form><p class="fine" style="margin-top:6px">' + t.ph_privacy + "</p>" : "") +
       (actions ? '<div class="stack" style="margin-top:12px">' + actions + "</div>" : "") + (!isDoc && c.status === "new" ? "" : "") + '<p class="fine" style="margin-top:10px">' + t.cs_sms_note + "</p></aside></div></div>";
   }
   /* ---------------- booked times: the patient picks one of the doctor's free slots (Tashkent time, UTC+5) ---------------- */
@@ -2867,13 +2916,14 @@
     if (ds.cs) {
       var cl = consults(), cc = cl.filter(function (x) { return x.id === ds.id; })[0], du = me(); if (!cc) return;
       if (BE && ds.cs === "accept") { if (!du || du.role !== "doctor") { toast(t.cs_only_doc); return; } BE.updateConsult(cc.id, { status: "accepted", doctor_id: du.id, doctor_name: du.name }, t.cs_accepted(du.name)).then(function () { csOpen(cc.id); }, function () { toast(t.be_err); }); return; }
-      if (BE && ds.cs === "call") { BE.updateConsult(cc.id, { call: true }, t.cs_call_msg(cc.type)).then(function () { render(true); }, function (x) { toast(beMsg(t, x)); }); openCall(cc, "d"); return; }
+      var cm = ds.media === "video" || ds.media === "audio" ? ds.media : cMedia(cc);
+      if (BE && ds.cs === "call") { BE.updateConsult(cc.id, { call: true, media: cm }, t.cs_call_msg(cm)).then(function () { render(true); }, function (x) { toast(beMsg(t, x)); }); openCall(cc, "d", cm); return; }
       if (ds.cs === "accept") { if (!du || du.role !== "doctor") { toast(t.cs_only_doc); return; } cc.status = "accepted"; cc.doctorId = du.id; cc.doctorName = du.name; cc.price = cpOf(du.profile)[cc.type]; cc.payStatus = cc.price > 0 ? "due" : "none"; cc.msgs.push({ from: "s", text: t.cs_accepted(du.name), at: Date.now() }); saveConsults(cl); csOpen(cc.id); return; }
-      if (ds.cs === "call") { if (!ringNow(cc)) cc.msgs.push({ from: "s", text: t.cs_call_msg(cc.type), at: Date.now() }); cc.callBy = ringNow(cc) && cc.callBy === "p" ? "p" : "d"; cc.call = true; cc.callAt = Date.now(); saveConsults(cl); render(true); openCall(cc, "d"); return; }
-      if (ds.cs === "join") { openCall(cc, "p"); return; }
+      if (ds.cs === "call") { if (!ringNow(cc)) { cc.msgs.push({ from: "s", text: t.cs_call_msg(cm), at: Date.now() }); cc.callMedia = cm; } cc.callBy = ringNow(cc) && cc.callBy === "p" ? "p" : "d"; cc.call = true; cc.callAt = Date.now(); saveConsults(cl); render(true); openCall(cc, "d", cm); return; }
+      if (ds.cs === "join") { openCall(cc, "p", cMedia(cc)); return; }
       if (ds.cs === "pcall") {
-        if (BE) { BE.updateConsult(cc.id, { call: true }, t.cl_pat_msg).then(function () { render(true); }, function (x) { toast(beMsg(t, x)); }); openCall(cc, "p"); return; }
-        if (!ringNow(cc)) cc.msgs.push({ from: "s", text: t.cl_pat_msg, at: Date.now() }); cc.call = true; cc.callAt = Date.now(); cc.callBy = "p"; saveConsults(cl); render(true); openCall(cc, "p"); return;
+        if (BE) { BE.updateConsult(cc.id, { call: true, media: cm }, t.cl_pat_msg).then(function () { render(true); }, function (x) { toast(beMsg(t, x)); }); openCall(cc, "p", cm); return; }
+        if (!ringNow(cc)) { cc.msgs.push({ from: "s", text: t.cl_pat_msg, at: Date.now() }); cc.callMedia = cm; } cc.call = true; cc.callAt = Date.now(); cc.callBy = "p"; saveConsults(cl); render(true); openCall(cc, "p", cm); return;
       }
     }
     if (ds.aitry) { aiSend(ds.aitry); return; }
@@ -2949,6 +2999,18 @@
       var gu = me(); if (!gu) return; var gp = JSON.parse(JSON.stringify(gu.profile || {})); gp.modes = (gp.modes || ["in"]).filter(function (m) { return m !== "on"; }).concat(["on"]);
       if (BE) { el.disabled = true; BE.saveProfile({ role: gu.role, name: gu.name, email: gu.email || "", phone: gu.phone || "", tg: gu.tg || "", profile: gp }).then(function () { ACC = null; toast(t.off_done); render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
       var gl = users(); gl.forEach(function (x) { if (x.id === gu.id) x.profile = gp; }); saveUsers(gl); ACC = null; toast(t.off_done); render(true); return;
+    }
+    if (ds.tgl && BE) {
+      if (ds.tgl === "go") { TGL.active = true; TGL.err = ""; tglSave(); setTimeout(function () { render(true); tglPoll(); }, 300); return; }   /* the link itself opens Telegram */
+      if (ds.tgl === "cancel") { tglReset(); render(true); return; }
+      if (ds.tgl === "acc") { el.disabled = true; tglPoll({ account: ds.id }); return; }
+      if (ds.tgl === "patient") { el.disabled = true; tglPoll({ role: "patient" }); return; }
+      if (ds.tgl === "reg") {
+        var tp = regProfile(), tbad = regCheck(t, tp), tn = $("r-name") ? $("r-name").value.trim() : "";
+        if (tbad) { $("tl-err").textContent = tbad[0]; $(tbad[1]).focus(); return; }
+        if (REGROLE === "clinic" && !tn) { $("tl-err").textContent = t.g_need_clinic; $("r-name").focus(); return; }
+        el.disabled = true; tglPoll({ role: REGROLE, profile: tp, name: tn }); return;
+      }
     }
     if (ds.act === "gunlink" && BE) { if (current.path === "/account" || current.path === "/pro") accCollect(); el.disabled = true; BE.googleUnlink().then(function () { toast(t.g_unlinked); render(true); }, function (x) { el.disabled = false; toast(gMsg(t, x)); }); return; }
     if (ds.act === "tgunlink" && BE) { if ((current.path === "/account" || current.path === "/pro")) accCollect(); BE.tgUnlink().then(function () { NT_WAIT = false; render(true); }, function (x) { toast(beMsg(t, x)); }); return; }
@@ -3419,10 +3481,13 @@
     var id = paying(), c = id && consultById(id);
     if (c && c.payStatus === "paid") { try { sessionStorage.removeItem("shifokor-paying"); } catch (x) {} toast(L().pay_done); }
   }
+  if (BE && TGL.active) setTimeout(tglPoll, 800);   /* came back from Telegram after the page reloaded */
   if (BE) BE.on(function () {
     ringCheck();
     payCheck();
     var p = current.path;
+    /* sign-in pages aren't redrawn (it would clear what's typed), except once to add the Telegram button when the bot's name arrives */
+    if ((p === "/register" || p === "/login") && tgOn() && !document.querySelector("[data-tgl]") && !all("#app input").some(function (i) { return i.value && i.type !== "checkbox" && i.type !== "radio"; })) { render(true); return; }
     if (p === "/consult" || p === "/register" || p === "/login") { hdr(); return; }
     if (p === "/account" || p === "/pro") accCollect();
     if ($("apform")) apCollect();

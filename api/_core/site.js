@@ -6,6 +6,15 @@ let SITE = "";
 const url = () => SITE;
 // set from each request: the address the visitor used
 function fromRequest(req) { SITE = "https://" + String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim(); }
-const notifyUser = async (id, text) => { const r = (await q("select tg_chat from app_users where id = $1", [id])).rows[0]; return !!(r && r.tg_chat) && N.tgSend(r.tg_chat, text); };
+// A notice to one user: Telegram when they linked it (with an "Ochish" button when o.link is given); otherwise, when
+// o.mail (the subject) is given, an email to the account's address. False when nothing could be sent.
+async function notifyUser(id, text, o) {
+  o = o || {};
+  const r = (await q("select tg_chat, email from app_users where id = $1", [id])).rows[0];
+  if (!r) return false;
+  if (r.tg_chat && (await N.tgSend(r.tg_chat, text, o.link ? { reply_markup: { inline_keyboard: [[{ text: o.button || "Ochish", url: o.link }]] } } : null))) return true;
+  if (o.mail && r.email && N.MAIL) return N.mail(r.email, o.mail, text + (o.link && text.indexOf(o.link) < 0 ? "\n\n" + o.link : "") + "\n\nShifokor · shifokor.com");
+  return false;
+}
 
 module.exports = { url, fromRequest, notifyUser };

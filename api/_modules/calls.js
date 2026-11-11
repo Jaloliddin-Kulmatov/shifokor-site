@@ -112,12 +112,14 @@ const actions = {
     if (c.pay_status === "due") throw new Fail(409, "unpaid");
     // pressing "call" again within two minutes rings the same call, so Telegram gets one notice
     const fresh = !c.call_at || Date.now() - new Date(c.call_at).getTime() > 120e3;
-    await q("update app_consults set call = true, call_at = now(), call_by = case when $2::boolean then $3 else coalesce(call_by, $3) end where id = $1", [c.id, fresh, by]);
+    // video or audio, chosen by whoever calls, in any consultation (a text one too); the consultation's own type when not given
+    const media = b.media === "video" || b.media === "audio" ? b.media : c.type === "video" ? "video" : "audio";
+    await q("update app_consults set call = true, call_at = now(), call_by = case when $2::boolean then $3 else coalesce(call_by, $3) end, call_media = case when $2::boolean then $4 else coalesce(call_media, $4) end where id = $1", [c.id, fresh, by, media]);
     if (fresh) {
       await sysNote(c.id, b.note);
-      const media = c.type === "video" ? "video" : "audio";
-      if (by === "d") await notifyUser(c.patient_id, "Shifokor: shifokor " + me.name + " sizga " + media + " qo‘ng‘iroq qilmoqda (ariza №" + c.n + "). Qo‘shiling: " + site.url() + "/#/consult/" + c.id);
-      else if (c.doctor_id) await notifyUser(c.doctor_id, "Shifokor: bemor " + c.name + " sizga " + media + " qo‘ng‘iroq qilmoqda (ariza №" + c.n + "). Qo‘shiling: " + site.url() + "/#/consult/" + c.id);
+      const link = site.url() + "/#/consult/" + c.id;
+      if (by === "d") await notifyUser(c.patient_id, "Shifokor: shifokor " + me.name + " sizga " + media + " qo‘ng‘iroq qilmoqda (ariza №" + c.n + "). Qo‘shiling: " + link, { link, button: "Qo‘ng‘iroqqa qo‘shilish" });
+      else if (c.doctor_id) await notifyUser(c.doctor_id, "Shifokor: bemor " + c.name + " sizga " + media + " qo‘ng‘iroq qilmoqda (ariza №" + c.n + "). Qo‘shiling: " + link, { link, button: "Qo‘ng‘iroqqa qo‘shilish" });
     }
     return { ok: true };
   },

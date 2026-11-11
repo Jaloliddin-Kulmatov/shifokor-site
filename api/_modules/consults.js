@@ -108,8 +108,13 @@ const actions = {
     }
     await q("insert into app_messages (consult_id, sender, kind, name, body, file_id) values ($1, $2, $3, $4, $5, $6)", [c.id, me.id, kind, name, body, fileId]);
     const what = photo ? "rasm yubordi" : voice ? "ovozli xabar yubordi" : kind === "d" ? "javob yozdi" : "yangi xabar yozdi";
-    if (kind === "d") await notifyUser(c.patient_id, "Shifokor: shifokor " + me.name + " " + what + " (ariza №" + c.n + "). " + site.url() + "/#/consult/" + c.id);
-    else if (c.doctor_id) await notifyUser(c.doctor_id, "Shifokor: bemor " + what + " (ariza №" + c.n + "). " + site.url() + "/#/consult/" + c.id);
+    const link = site.url() + "/#/consult/" + c.id;
+    if (kind === "d") {
+      // an email only for the first reply in half an hour, so a long chat doesn't fill the inbox
+      const mailNow = !c.mail_at || Date.now() - new Date(c.mail_at).getTime() > 30 * 60e3;
+      const sent = await notifyUser(c.patient_id, "Shifokor: shifokor " + me.name + " " + what + " (ariza №" + c.n + "). " + link, { link, button: "Javobni ochish", mail: mailNow ? "Shifokor " + me.name + " sizga javob yozdi" : "" });
+      if (sent && mailNow) await q("update app_consults set mail_at = now() where id = $1", [c.id]);
+    } else if (c.doctor_id) await notifyUser(c.doctor_id, "Shifokor: bemor " + what + " (ariza №" + c.n + "). " + link, { link, button: "Arizani ochish" });
     return { ok: true, file: fileId };
   },
 
@@ -124,7 +129,8 @@ const actions = {
     const r = await q("update app_consults set status = 'accepted', doctor_id = $1, doctor_name = $2, price = $4, pay_status = $5 where id = $3 and status = 'new' and (doc is null or doc = $1) returning id, n, patient_id", [me.id, me.name, b.id, price, due ? "due" : "none"]);
     if (!r.rows[0]) throw new Fail(409, "taken");
     await sysNote(b.id, b.note);
-    await notifyUser(r.rows[0].patient_id, "Shifokor: shifokor " + me.name + " arizangizni qabul qildi (№" + r.rows[0].n + ")." + (due ? " Maslahat narxi " + P.sum(price) + " so‘m: to‘lovdan keyin shifokor javob beradi." : "") + " " + site.url() + "/#/consult/" + b.id);
+    const link = site.url() + "/#/consult/" + b.id;
+    await notifyUser(r.rows[0].patient_id, "Shifokor: shifokor " + me.name + " arizangizni qabul qildi (№" + r.rows[0].n + ")." + (due ? " Maslahat narxi " + P.sum(price) + " so‘m: to‘lovdan keyin shifokor javob beradi." : "") + " " + link, { link, button: "Arizani ochish", mail: "Shifokor " + me.name + " arizangizni qabul qildi" });
     return { ok: true };
   },
 
@@ -150,7 +156,7 @@ const actions = {
     if (!r.rows[0]) throw new Fail(409, "taken");
     await q("insert into app_messages (consult_id, sender, kind, name, body) values ($1, $2, 'd', $3, $4)", [b.id, me.id, me.name, advice]);
     await sysNote(b.id, b.note);
-    await notifyUser(r.rows[0].patient_id, "Shifokor: shifokor " + me.name + " arizangizni o‘qib, yuzma-yuz ko‘rik kerakligini aytdi (№" + r.rows[0].n + "). To‘lov olinmaydi. Maslahatini o‘qing: " + site.url() + "/#/consult/" + b.id);
+    await notifyUser(r.rows[0].patient_id, "Shifokor: shifokor " + me.name + " arizangizni o‘qib, yuzma-yuz ko‘rik kerakligini aytdi (№" + r.rows[0].n + "). To‘lov olinmaydi. Maslahatini o‘qing: " + site.url() + "/#/consult/" + b.id, { link: site.url() + "/#/consult/" + b.id, button: "Maslahatni o‘qish", mail: "Shifokor " + me.name + " arizangizga javob berdi" });
     return { ok: true };
   },
 

@@ -18,7 +18,7 @@ const actions = {
   async create_consult(b, me) {
     need(me);
     const c = b.c || {};
-    const type = ["text", "audio", "video"].includes(c.type) ? c.type : bad("type");
+    const type = ["text", "video"].includes(c.type) ? c.type : bad("type");   // chat or video; audio applications were dropped (calls can still be voice-only)
     const who = ["self", "child", "other"].includes(c.who) ? c.who : "self";
     const name = str(c.name, 200) || bad("name");
     const age = c.age === "" || c.age == null ? null : Math.round(Number(c.age));
@@ -31,14 +31,18 @@ const actions = {
     let doc = UUID.test(String(c.doc || "")) ? c.doc : null;
     // an imported doctor who hasn't claimed their profile yet can't answer, so the application goes to any doctor
     if (doc && !(await q("select 1 from app_users where id = $1 and role = 'doctor' and (imported_at is null or claimed_at is not null)", [doc])).rows[0]) doc = null;
-    const asap = !doc && c.asap === true;   // "first available doctor": doctors online now are alerted, the first to accept takes it
     // a booked time must be one of the chosen doctor's free slots, from 30 minutes to 14 days ahead
     const slot = c.slot && doc ? await slotFor(doc, c.slot) : null;
+    // otherwise the day and time that suit the patient: within the next 14 days (the doctor confirms it in the chat)
+    const wantMs = !slot && c.want ? Date.parse(String(c.want)) : NaN;
+    if (!slot && c.want && (isNaN(wantMs) || wantMs < Date.now() - 10 * 60e3 || wantMs > Date.now() + 15 * 864e5)) bad("want");
+    const want = isNaN(wantMs) ? null : new Date(wantMs).toISOString();
+    const asap = !doc && c.asap === true && !want;   // "first available doctor, now": doctors online now are alerted, the first to accept takes it
     let r;
     try {
       r = await q(
-        "insert into app_consults (patient_id, type, who, name, age, sex, phone, region, district, complaint, since, chronic, meds, allergy, spec, doc, asap, slot_at) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) returning id, n",
-        [me.id, type, who, name, age, sex, phone, opt(c.region, 20), opt(c.district, 20), complaint, since, opt(c.chronic, 500), opt(c.meds, 500), opt(c.allergy, 500), opt(c.spec, 20), doc, asap, slot]
+        "insert into app_consults (patient_id, type, who, name, age, sex, phone, region, district, complaint, since, chronic, meds, allergy, spec, doc, asap, slot_at, want_at) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) returning id, n",
+        [me.id, type, who, name, age, sex, phone, opt(c.region, 20), opt(c.district, 20), complaint, since, opt(c.chronic, 500), opt(c.meds, 500), opt(c.allergy, 500), opt(c.spec, 20), doc, asap, slot, want]
       );
     } catch (e) {
       if (e.code === "23505") throw new Fail(409, "slot_taken");   // someone booked the same time a moment earlier
@@ -47,7 +51,7 @@ const actions = {
     const id = r.rows[0].id;
     if (slot) await reminders.remindBefore(id, slot);
     for (const note of (Array.isArray(b.notes) ? b.notes : []).slice(0, 3)) await sysNote(id, note);
-    if (doc) await notifyUser(doc, "Shifokor: sizga yangi onlayn maslahat arizasi" + (slot ? " — " + slotUz(slot) : "") + ". " + site.url() + "/#/consult/" + id);
+    if (doc) await notifyUser(doc, "Shifokor: sizga yangi onlayn maslahat arizasi" + (slot ? " — " + slotUz(slot) : want ? " (bemorga qulay vaqt: " + slotUz(want) + ")" : "") + ". " + site.url() + "/#/consult/" + id, { link: site.url() + "/#/consult/" + id, button: "Arizani ochish" });
     if (asap) {
       const on = await q("select tg_chat from app_users where role = 'doctor' and online_until > now() and tg_chat is not null and (imported_at is null or claimed_at is not null) and ($1::text is null or profile->>'spec' = $1 or profile->>'spec' = 'gp') limit 50", [opt(c.spec, 20)]);
       const text = "Shifokor: hozir maslahat kerak (ariza №" + r.rows[0].n + "). Birinchi qabul qilgan shifokor oladi. " + site.url() + "/#/consult/" + id;
@@ -142,6 +146,9 @@ const actions = {
     if (!(outcome >= 0 && outcome <= 2)) bad("outcome");
     await q("update app_consults set status = 'done', outcome = $2, closed_at = now() where id = $1", [c.id, outcome]);
     await sysNote(c.id, b.note);
+    // the patient hears that the conclusion (xulosa) is ready, with the note itself in Telegram
+    const link = site.url() + "/#/consult/" + c.id, note = str(b.note, 300);
+    await notifyUser(c.patient_id, "Shifokor: shifokor " + me.name + " maslahatni yakunladi (ariza №" + c.n + ")." + (note ? "\n\n" + note : "") + "\n\nXulosa: " + link, { link, button: "Xulosani o‘qish", mail: "Shifokor " + me.name + " xulosa yozdi" });
     return { ok: true };
   },
 

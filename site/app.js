@@ -1045,7 +1045,7 @@
     var map = { "a-region": "region", "a-district": "district", "p-village": "village", "d-spec": "spec", "d-spec-other": "spec_other", "d-years": "years", "d-lic": "lic", "d-edu": "edu", "d-bio": "bio", "c-type": "ctype", "c-own": "own", "c-addr": "addr", "c-hours": "hours", "c-lic": "lic", "c-about": "about", "d-reply": "reply", "d-ohours": "ohours", "d-sex": "sex" };
     Object.keys(map).forEach(function (id) { var x = v(id); if (x !== undefined) pr[map[id]] = x; });
     if ($("c-claim")) { var m = matchPlace(v("c-claim")); pr.fac = m && m.t === "f" ? m.key : ""; pr.claim = v("c-claim"); }
-    if ($("d-cp-text")) { pr.cp = {}; ["text", "audio", "video"].forEach(function (k) { var x = v("d-cp-" + k); pr.cp[k] = x === "" ? "" : Math.max(0, Math.round(+x) || 0); }); }
+    if ($("d-cp-text")) { pr.cp = {}; CS_KINDS.forEach(function (k) { var x = v("d-cp-" + k); pr.cp[k] = x === "" ? "" : Math.max(0, Math.round(+x) || 0); }); }
     if ($("d-langs")) pr.langs = all("#d-langs input:checked").map(function (i) { return i.value; });
     if ($("d-hdays")) pr.hours = { days: all("#d-hdays input:checked").map(function (i) { return +i.value; }), from: v("d-hfrom"), to: v("d-hto"), len: +v("d-hlen") };
     if ($("d-modes")) pr.modes = all("#d-modes input:checked").map(function (i) { return i.value; });
@@ -1073,7 +1073,7 @@
         '<div class="fld"><span class="flabel">' + t.d_langs + '</span><div class="checks" id="d-langs">' + ["uz", "ru", "en", "kaa", "tg"].map(function (l) { var n = { kaa: "Qaraqalpaq", tg: "Tojik" }[l] || t.lg[l]; return '<label class="mini"><input type="checkbox" value="' + l + '"' + (pr.langs.indexOf(l) > -1 ? " checked" : "") + ">" + n + "</label>"; }).join("") + "</div></div>" +
         '<div class="fld"><span class="flabel">' + t.d_modes + '</span><div class="checks" id="d-modes">' + [["in", t.tab_in], ["on", t.tab_on]].map(function (m) { return '<label class="mini"><input type="checkbox" value="' + m[0] + '"' + (pr.modes.indexOf(m[0]) > -1 ? " checked" : "") + ">" + m[1] + "</label>"; }).join("") + "</div></div>" +
         ta("d-bio", t.d_bio, pr.bio, t.d_bio_ph) + "</fieldset>" +
-        '<fieldset class="accsec"><legend>' + t.sec_cprice + '</legend><p class="fine" style="margin:0 0 10px">' + t.cp_hint + '</p><div class="three">' + ["text", "audio", "video"].map(function (k) { var c = pr.cp || {}; return fi("d-cp-" + k, t.cp_types[k], c[k] === 0 ? "0" : c[k], "number", ' min="0" step="1000" inputmode="numeric" placeholder="' + unit() + '"'); }).join("") + "</div>" +
+        '<fieldset class="accsec"><legend>' + t.sec_cprice + '</legend><p class="fine" style="margin:0 0 10px">' + t.cp_hint + '</p><div class="two">' + CS_KINDS.map(function (k) { var c = pr.cp || {}; return fi("d-cp-" + k, t.cp_types[k], c[k] === 0 ? "0" : c[k], "number", ' min="0" step="1000" inputmode="numeric" placeholder="' + unit() + '"'); }).join("") + "</div>" +
         '<div class="two"><div class="fld"><label for="d-reply">' + t.reply_l + '</label><select id="d-reply">' + ["", "1", "3", "24", "48"].map(function (h) { return '<option value="' + h + '"' + (String(pr.reply || "") === h ? " selected" : "") + ">" + t.replies[h] + "</option>"; }).join("") + "</select></div>" + fi("d-ohours", t.ohours_l, pr.ohours, "text", ' maxlength="80" placeholder="' + esc(t.ohours_ph) + '"') + "</div></fieldset>" +
         (function () { var h = pr.hours || {}, on = h.days || []; return '<fieldset class="accsec"><legend>' + t.sl_hours_h + '</legend><p class="fine" style="margin:0 0 10px">' + t.sl_hours_p + '</p><div class="checks wdays" id="d-hdays">' + WD7.map(function (d) { return '<label class="mini"><input type="checkbox" value="' + d + '"' + (on.indexOf(d) > -1 ? " checked" : "") + "><span>" + t.sl_wd[d - 1] + "</span></label>"; }).join("") + "</div>" +
           '<div class="three">' + fi("d-hfrom", t.sl_from, h.from || "09:00", "time", ' step="900"') + fi("d-hto", t.sl_to, h.to || "18:00", "time", ' step="900"') + '<div class="fld"><label for="d-hlen">' + t.sl_len + '</label><select id="d-hlen">' + [15, 20, 30, 60].map(function (m) { return '<option value="' + m + '"' + (+(h.len || 30) === m ? " selected" : "") + ">" + t.sl_min(m) + "</option>"; }).join("") + "</select></div></div></fieldset>"; })() +
@@ -1123,7 +1123,7 @@
   }
   function cpBlock(u) {
     var t = L(), pr = u.profile || {}, c = cpOf(pr); if (!offersCp(u)) return "";
-    var rows = ["text", "audio", "video"].filter(function (k) { return c[k] != null; }).map(function (k) { return "<tr><td>" + ic(k === "text" ? "chat" : k === "audio" ? "mic" : "video") + " " + t.cp_types[k] + '</td><td class="n nums">' + esc(money(c[k])) + "</td></tr>"; }).join("");
+    var rows = CS_KINDS.filter(function (k) { return c[k] != null; }).map(function (k) { return "<tr><td>" + ic(k === "text" ? "chat" : k === "audio" ? "mic" : "video") + " " + t.cp_types[k] + '</td><td class="n nums">' + esc(money(c[k])) + "</td></tr>"; }).join("");
     var info = [pr.reply ? t.reply_txt(pr.reply) : "", pr.ohours ? t.ohours_l + ": " + esc(pr.ohours) : "", t.cp_pay].filter(Boolean).join(" · ");
     return '<div class="sect"><h2>' + t.cp_h + "</h2>" + (rows ? '<div class="tablewrap"><table><tbody>' + rows + "</tbody></table></div>" : '<p class="muted">' + t.cp_none + "</p>") + '<p class="muted" style="margin-top:10px;font-size:.92rem">' + info + "</p></div>";
   }
@@ -1148,6 +1148,8 @@
   var pageUrl = function (path) { return location.origin + path; };
   function shareBtn(path, name) { return '<button class="btn ghost sm sharebtn" type="button" data-act="share" data-url="' + esc(pageUrl(path)) + '" data-name="' + esc(name) + '">' + ic("share") + L().sh_share + "</button>"; }
   /* consultation prices on a doctor's profile: { text, audio, video }, null when not offered, 0 when free */
+  /* the kinds of online consultation offered: chat and video (audio consultations were dropped; old ones still show) */
+  var CS_KINDS = ["text", "video"];
   function cpOf(pr) { var c = (pr && pr.cp) || {}, o = {}; ["text", "audio", "video"].forEach(function (k) { o[k] = c[k] === "" || c[k] == null ? null : Math.max(0, +c[k] || 0); }); return o; }
   /* an imported doctor who hasn't claimed their profile can't answer, so they take no online consultations yet */
   var offersCp = function (u) { return !u.pending && ((u.profile || {}).modes || []).indexOf("on") > -1; };
@@ -1155,7 +1157,7 @@
   /* a doctor who switched on "I'm online now" */
   var onlineNow = function (u) { return isOnline(u) && !!u.onlineUntil && u.onlineUntil > Date.now(); };
   var liveBadge = function () { return '<span class="badge live"><i class="dot"></i>' + L().on_now + "</span>"; };
-  function cpMin(u) { if (!offersCp(u)) return null; var c = cpOf(u.profile), v = ["text", "audio", "video"].map(function (k) { return c[k]; }).filter(function (x) { return x != null; }); return v.length ? Math.min.apply(null, v) : null; }
+  function cpMin(u) { if (!offersCp(u)) return null; var c = cpOf(u.profile), v = CS_KINDS.map(function (k) { return c[k]; }).filter(function (x) { return x != null; }); return v.length ? Math.min.apply(null, v) : null; }
   var money = function (v) { return v === 0 ? L().free_c : num(v) + " " + unit(); };
   var langName = function (l) { return { kaa: "Qaraqalpaq", tg: "Tojik" }[l] || L().lg[l] || l; };
   function wantedNote(d, type) { var t = L(), p = cpOf(d.profile)[type]; return t.cs_wanted + ": " + d.name + (p != null ? " · " + t.cs_types[type][0] + " " + money(p) : ""); }
@@ -1312,7 +1314,7 @@
       if (u.role !== "doctor" && u.role !== "clinic") return;
       var pr = u.profile || {}, who = u.role === "doctor" ? specName(pr) : t.cat[pr.ctype || "clinic"];
       (pr.svc || []).forEach(function (x) { if (x.name) out.push({ u: u, name: x.name, price: x.price === "" || x.price == null ? null : +x.price, online: !!x.online, who: who }); });
-      if (u.role === "doctor" && isOnline(u)) { var c = cpOf(pr); ["text", "audio", "video"].forEach(function (k) { if (c[k] != null) out.push({ u: u, name: t.pr_cs(t.cp_types[k]), price: c[k], online: true, cp: true, who: who }); }); }
+      if (u.role === "doctor" && isOnline(u)) { var c = cpOf(pr); CS_KINDS.forEach(function (k) { if (c[k] != null) out.push({ u: u, name: t.pr_cs(t.cp_types[k]), price: c[k], online: true, cp: true, who: who }); }); }
     });
     return out;
   }
@@ -1439,7 +1441,7 @@
   function viewConsult(q, embed) {
     var t = L(); if (!CS || CS.docQ !== csKey(q) || (q.now === "1" && !CS.asap && !CS.complaint)) csStart(q);
     var c = CS, fi = function (id, label, val, type, extra) { return '<div class="fld"><label for="' + id + '">' + label + '</label><input id="' + id + '" type="' + (type || "text") + '" value="' + esc(val || "") + '"' + (extra || "") + "></div>"; };
-    var types = ["text", "audio", "video"].map(function (k) { return '<button type="button" class="rolecard" data-cstype="' + k + '" aria-pressed="' + (c.type === k) + '"><span class="icobox">' + ic(k === "text" ? "chat" : k === "audio" ? "mic" : "video") + "</span><b>" + t.cs_types[k][0] + "</b><span>" + t.cs_types[k][1] + "</span></button>"; }).join("");
+    var types = CS_KINDS.map(function (k) { return '<button type="button" class="rolecard" data-cstype="' + k + '" aria-pressed="' + (c.type === k) + '"><span class="icobox">' + ic(k === "text" ? "chat" : k === "audio" ? "mic" : "video") + "</span><b>" + t.cs_types[k][0] + "</b><span>" + t.cs_types[k][1] + "</span></button>"; }).join("");
     var dis = '<div class="two"><div class="fld"><label for="cs-region">' + t.f_region + '</label><select id="cs-region"><option value="">—</option>' + REG.slice().sort(function (a, b) { return nmL(a).localeCompare(nmL(b)); }).map(function (r) { return '<option value="' + r.code + '"' + (c.region === r.code ? " selected" : "") + ">" + esc(nmL(r)) + "</option>"; }).join("") + '</select></div><div class="fld"><label for="cs-district">' + t.f_district + '</label><select id="cs-district">' + districtOptions(c.region, c.district) + "</select></div></div>";
     var docs = onlineDoctors(c.spec);
     var form =
@@ -1456,9 +1458,9 @@
       (c.asap ? (function () { var n = onlineDoctors(c.spec).filter(onlineNow).length; return '<p class="cpnote">' + (n ? liveBadge() + " " + t.asap_note_on(n) : t.asap_note_off) + "</p>"; })() : "") +
       '<div class="two"><div class="fld"><label for="cs-spec">' + t.d_spec + '</label><select id="cs-spec"><option value="">' + t.cs_spec_any + "</option>" + DOC_SP.filter(function (k) { return k !== "other"; }).map(function (k) { return '<option value="' + k + '"' + (c.spec === k ? " selected" : "") + ">" + t.docsp[k] + "</option>"; }).join("") + '</select></div>' + (c.asap ? "</div>" : "") + '<div class="fld"' + (c.asap ? " hidden" : "") + '><label for="cs-doc">' + t.cs_doc_pick + '</label><select id="cs-doc"><option value="">' + t.cs_doc_any + "</option>" + docs.map(function (d) { var p = cpOf(d.profile)[c.type]; return '<option value="' + d.id + '"' + (c.doc === d.id ? " selected" : "") + ">" + esc(d.name) + " · " + esc(specName(d.profile || {})) + (p != null ? " · " + esc(money(p)) : "") + "</option>"; }).join("") + "</select></div>" + (c.asap ? "" : "</div>") + (function () {
         var d = !c.asap && c.doc ? userById(c.doc) : null; if (!d) return "";
-        var cp = cpOf(d.profile), p = cp[c.type], anyP = ["text", "audio", "video"].some(function (k) { return cp[k] != null; });
+        var cp = cpOf(d.profile), p = cp[c.type], anyP = CS_KINDS.some(function (k) { return cp[k] != null; });
         return '<p class="cpnote">' + (p != null ? ic("tag") + " <b>" + esc(t.cp_price_note(t.cs_types[c.type][0], money(p))) + ".</b> " + (p > 0 && payOn() ? t.cp_pay_online : t.cp_pay) : anyP ? t.cp_not_offered : t.cp_none) + "</p>";
-      })() + slotPicker(c) + "</fieldset>" +
+      })() + (slotPicker(c) || wantPicker(c)) + "</fieldset>" +
       '<label class="chk"><input type="checkbox" id="cs-consent"' + (c.consent ? " checked" : "") + "><span>" + t.cs_consent + '</span></label><div class="err" id="cs-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.cs_send + "</button>";
     if (embed) {
       var dd0 = q.doc ? userById(q.doc) : null, smp0 = dd0 && dd0.sample;
@@ -1604,7 +1606,7 @@
     var dd = c.district && disByCode[c.district], area = dd ? nmL(dd) + ", " + nmL(REG[dd.r]) : c.region && regByCode[c.region] ? nmL(regByCode[c.region]) : "—";
     var row = function (k, v) { return v ? "<dt>" + k + "</dt><dd>" + v + "</dd>" : ""; };
     var due = c.status === "accepted" && c.payStatus === "due";
-    var details = '<dl class="kv">' + row(t.cs_type_lbl, t.cs_types[c.type][0]) + row(t.pay_price, c.price != null && c.status !== "new" ? '<span class="nums">' + esc(money(c.price)) + "</span>" : "") + row(t.cs_for_lbl, t.cs_for[c.who]) + row(t.cs_pname, esc(c.name)) + row(t.cs_age, esc(c.age)) + row(t.cs_sex, t.cs_sexes[c.sex]) + row(t.cs_phone, '<span class="nums">' + esc(isDoc || !c.userId || (u && u.id === c.userId) ? c.phone : maskPhone(c.phone)) + "</span>") + row(t.cs_area, esc(area)) + row(t.cs_since, t.cs_sinces[+c.since]) + "</dl>" +
+    var details = '<dl class="kv">' + row(t.cs_type_lbl, t.cs_types[c.type][0]) + row(t.wt_lbl, c.wantAt && !c.slotAt ? esc(slotTxt(c.wantAt)) : "") + row(t.pay_price, c.price != null && c.status !== "new" ? '<span class="nums">' + esc(money(c.price)) + "</span>" : "") + row(t.cs_for_lbl, t.cs_for[c.who]) + row(t.cs_pname, esc(c.name)) + row(t.cs_age, esc(c.age)) + row(t.cs_sex, t.cs_sexes[c.sex]) + row(t.cs_phone, '<span class="nums">' + esc(isDoc || !c.userId || (u && u.id === c.userId) ? c.phone : maskPhone(c.phone)) + "</span>") + row(t.cs_area, esc(area)) + row(t.cs_since, t.cs_sinces[+c.since]) + "</dl>" +
       '<h3 style="margin:16px 0 6px">' + t.cs_complaint + '</h3><p class="pre">' + esc(c.complaint) + "</p>" +
       '<dl class="kv" style="margin-top:14px">' + row(t.cs_chronic, esc(c.chronic)) + row(t.cs_meds, esc(c.meds)) + row(t.cs_allergy, esc(c.allergy)) + row(t.cs_wanted, c.spec ? t.docsp[c.spec] : t.cs_spec_any) + row(t.cs_doctor, c.doctorId ? '<a href="#/doc/' + c.doctorId + '">' + esc(c.doctorName) + "</a>" : "") + "</dl>";
     var msgs = c.msgs.map(function (m) { if (m.from === "s") return '<div class="sys">' + esc(m.text) + "</div>"; var mine = (isDoc && m.from === "d") || (!isDoc && m.from === "p"); return '<div class="' + (mine ? "me" : "them") + (m.file ? " hasph" : "") + '">' + (m.from === "d" && !mine ? "<b>" + esc(m.name) + "</b>" : "") + (m.file ? (m.fk === "a" ? '<audio class="voice" controls preload="none" data-auid="' + esc(m.file) + '"></audio>' : phImg(m.file)) : "") + esc(m.text || "") + '<small>' + fmt(new Date(m.at), { day: "numeric", month: "short" }) + " " + pad(new Date(m.at).getHours()) + ":" + pad(new Date(m.at).getMinutes()) + "</small></div>"; }).join("");
@@ -1664,6 +1666,19 @@
       if (list.some(function (x) { return !x.busy; })) out.push({ day: start, slots: list });
     }
     return { days: out, loading: taken === null };
+  }
+  /* when there's no doctor's slot to book: the day and time that suit the patient (Tashkent time), or "as soon as possible" */
+  function wantPicker(c) {
+    var t = L(), day0 = Math.floor((Date.now() + TK) / 864e5) * 864e5 - TK, days = [];
+    for (var i = 0; i < 14; i++) days.push(day0 + i * 864e5);
+    if (c.wantDay && days.indexOf(c.wantDay) < 0) { c.wantDay = 0; c.want = 0; }
+    var times = [];
+    if (c.wantDay) for (var m = 8 * 60; m <= 21 * 60; m += 30) { var ms = c.wantDay + m * 60e3; if (ms > Date.now() + 30 * 60e3) times.push(ms); }
+    if (c.want && times.indexOf(c.want) < 0) c.want = 0;
+    var dayBtn = function (d) { var dd = tkDate(d + 6 * 3600e3); return '<button type="button" data-wtday="' + d + '" aria-pressed="' + (c.wantDay === d) + '"><small>' + esc(d === day0 ? t.wt_today : d === day0 + 864e5 ? t.wt_tomorrow : fmt(dd, { weekday: "short" })) + "</small><b>" + dd.getDate() + "</b><small>" + esc(fmt(dd, { month: "short" })) + "</small></button>"; };
+    return '<div class="slotpick"><b class="flabel">' + t.wt_h + '</b><div class="sldays" role="group" aria-label="' + esc(t.wt_h) + '"><button type="button" class="wtnow" data-wtday="0" aria-pressed="' + !c.wantDay + '"><b>' + t.wt_now + "</b></button>" + days.map(dayBtn).join("") + "</div>" +
+      (c.wantDay ? (times.length ? '<div class="sltimes" role="group">' + times.map(function (x) { return '<button type="button" class="nums" data-wt="' + x + '" aria-pressed="' + (c.want === x) + '">' + hhmm(x) + "</button>"; }).join("") + "</div>" : '<p class="muted">' + t.wt_late + "</p>") : "") +
+      '<p class="fine">' + (c.want ? ic("cal") + " <b>" + esc(slotTxt(c.want)) + "</b> · " : "") + t.wt_note + "</p></div>";
   }
   function slotPicker(c) {
     var t = L(), d = !c.asap && c.doc ? userById(c.doc) : null; if (!d || d.sample) return "";
@@ -2172,7 +2187,7 @@
   function proCard(c, u) {   /* one application in the queue, with what a doctor needs to decide */
     var t = L(), age = c.age !== "" && c.age != null ? t.pro_age(c.age) : "";
     return '<article class="procard' + (c.status === "new" ? " isnew" : "") + '"><div class="pchead"><span class="pctype">' + ic(c.type === "text" ? "chat" : c.type === "audio" ? "mic" : "video") + '</span><div><b>' + esc(c.name) + '</b><small class="muted">' + [age, t.cs_sexes[c.sex] || "", t.cs_types[c.type][0]].filter(Boolean).join(" · ") + "</small></div>" + csBadge(c.status) + "</div>" +
-      (c.slotAt ? '<p class="pcslot">' + ic("cal") + " <b>" + esc(slotTxt(c.slotAt)) + "</b></p>" : c.asap && c.status === "new" ? '<p class="pcslot warn">' + ic("siren") + " " + t.asap_badge + "</p>" : "") +
+      (c.slotAt ? '<p class="pcslot">' + ic("cal") + " <b>" + esc(slotTxt(c.slotAt)) + "</b></p>" : c.wantAt ? '<p class="pcslot">' + ic("cal") + " " + t.wt_lbl + ": <b>" + esc(slotTxt(c.wantAt)) + "</b></p>" : c.asap && c.status === "new" ? '<p class="pcslot warn">' + ic("siren") + " " + t.asap_badge + "</p>" : "") +
       '<p class="pccompl">' + esc(c.complaint.slice(0, 160)) + (c.complaint.length > 160 ? "…" : "") + "</p>" +
       '<div class="pcfoot"><small class="muted">' + t.cs_no(c.n) + " · " + waitTxt(c.at) + (c.msgs && c.msgs.some(function (m) { return m.file; }) ? " · " + ic("camera") : "") + '</small><div class="btns">' +
       (c.status === "new" ? '<button class="btn sm" type="button" data-cs="accept" data-id="' + c.id + '">' + ic("check") + t.cs_accept + "</button>" : "") + '<a class="btn ghost sm" href="#/consult/' + c.id + '">' + (c.status === "accepted" ? t.pro_open_chat : t.pro_open) + "</a></div></div></article>";
@@ -2185,7 +2200,7 @@
     var e = BE && BE.earnings();
     var stats = [[fresh.length, t.pro_st_new, "requests"], [todays.length, t.pro_st_today, "schedule"], [active.length, t.pro_st_active, "requests&f=active"], [r.n ? avgTxt(r.avg) + " ★" : "—", t.pro_st_rating(r.n), "reviews"]].concat(e ? [[num(e.balance), t.er_owed, "earnings"]] : []);
     /* a complete profile gets more requests: what is still missing, as on Practo's and Doctolib's onboarding lists */
-    var pr = u.profile || {}, cp = cpOf(pr), todo = [[!!u.photoUrl, t.pro_do_photo], [!!pr.lic, t.pro_do_lic], [!!pr.bio, t.pro_do_bio], [["text", "audio", "video"].some(function (k) { return cp[k] != null; }), t.pro_do_price], [!!hoursOf(pr), t.pro_do_hours]].concat(BE && BE.notify().tg ? [[!!u.tgLinked, t.pro_do_tg]] : []);
+    var pr = u.profile || {}, cp = cpOf(pr), todo = [[!!u.photoUrl, t.pro_do_photo], [!!pr.lic, t.pro_do_lic], [!!pr.bio, t.pro_do_bio], [CS_KINDS.some(function (k) { return cp[k] != null; }), t.pro_do_price], [!!hoursOf(pr), t.pro_do_hours]].concat(BE && BE.notify().tg ? [[!!u.tgLinked, t.pro_do_tg]] : []);
     var done = todo.filter(function (x) { return x[0]; }).length;
     return inviteCards(u) + '<div class="prohello"><div><h1>' + t.pro_hello(esc(u.name.split(" ")[0] === "Dr" ? u.name : u.name.split(" ")[0])) + '</h1><p class="muted">' + esc(fmt(tkDate(Date.now()), { weekday: "long", day: "numeric", month: "long" })) + " · " + esc(specName(pr)) + "</p></div></div>" +
       liveCard(u) +
@@ -2815,6 +2830,8 @@
       if (oa === "delok") { ON = { mode: "due", urgent: false, ok: false, famUrl: "", del: false }; if (BE) { BE.pregDelete().then(done, fail); return; } savePregDemo(null); render(true); return; }
     }
     if (ds.csasap) { csCollect(); CS.asap = ds.csasap === "1"; if (CS.asap) CS.doc = ""; render(true); return; }
+    if (ds.wtday != null) { csCollect(); CS.wantDay = +ds.wtday; CS.want = 0; render(true); return; }
+    if (ds.wt) { csCollect(); CS.want = +ds.wt; render(true); return; }
     if (ds.slday) { if (RS && el.closest(".rsbox")) { RS.slotDay = +ds.slday; RS.slot = 0; render(true); return; } csCollect(); CS.slotDay = +ds.slday; CS.slot = 0; render(true); return; }
     if (ds.slot) { if (RS && el.closest(".rsbox")) { RS.slot = +ds.slot; render(true); return; } csCollect(); CS.slot = +ds.slot; render(true); return; }
     if (ds.rs) {
@@ -3118,7 +3135,7 @@
         var dsel2 = C.doc ? userById(C.doc) : null, notes = [t.cs_sent].concat(dsel2 ? [wantedNote(dsel2, C.type)] : []);
         var phs = CSPH.slice(), csb = e.target.querySelector('button[type="submit"]');
         err.textContent = ""; if (csb) csb.disabled = true;
-        BE.createConsult(Object.assign({}, C, { slot: C.slot && !C.asap ? new Date(C.slot).toISOString() : "" }), notes).then(function (cid) {
+        BE.createConsult(Object.assign({}, C, { slot: C.slot && !C.asap ? new Date(C.slot).toISOString() : "", want: !C.slot && C.want ? new Date(C.want).toISOString() : "" }), notes).then(function (cid) {
           if (phs.length) err.textContent = t.ph_sending;
           /* photos go up one by one after the application; one that fails can be sent again in the chat */
           return phs.reduce(function (p, ph) { return p.then(function (ok) { return BE.addMessage(cid, "p", C.name, "", ph).then(function () { return ok; }, function () { return false; }); }); }, Promise.resolve(true)).then(function (ok) {
@@ -3128,7 +3145,7 @@
         return;
       }
       var cl2 = consults(), cu3 = me(), dsel = C.doc ? userById(C.doc) : null;
-      var rec = { id: "c" + Date.now().toString(36), n: 1000 + cl2.length + 1, at: Date.now(), userId: cu3 && cu3.role === "patient" ? cu3.id : "", type: C.type, who: C.who, name: C.name, age: C.age, sex: C.sex, phone: C.phone, region: C.region, district: C.district, complaint: C.complaint, since: C.since, chronic: C.chronic, meds: C.meds, allergy: C.allergy, spec: C.spec, doc: C.asap ? "" : C.doc, asap: !!C.asap, slotAt: C.asap ? 0 : C.slot || 0, status: "new", doctorId: "", doctorName: "", msgs: [{ from: "s", text: t.cs_sent, at: Date.now() }] };
+      var rec = { id: "c" + Date.now().toString(36), n: 1000 + cl2.length + 1, at: Date.now(), userId: cu3 && cu3.role === "patient" ? cu3.id : "", wantAt: !C.slot && C.want ? C.want : 0, type: C.type, who: C.who, name: C.name, age: C.age, sex: C.sex, phone: C.phone, region: C.region, district: C.district, complaint: C.complaint, since: C.since, chronic: C.chronic, meds: C.meds, allergy: C.allergy, spec: C.spec, doc: C.asap ? "" : C.doc, asap: !!C.asap, slotAt: C.asap ? 0 : C.slot || 0, status: "new", doctorId: "", doctorName: "", msgs: [{ from: "s", text: t.cs_sent, at: Date.now() }] };
       if (dsel) rec.msgs.push({ from: "s", text: wantedNote(dsel, C.type), at: Date.now() });
       var full2 = false; CSPH.forEach(function (ph) { var fid = demoPhoto(ph); if (fid) rec.msgs.push({ from: "p", name: C.name, text: "", file: fid, at: Date.now() }); else full2 = true; });
       cl2.push(rec); saveConsults(cl2); CS = null; CSPH = []; toast(full2 ? t.ph_full : t.cs_sent); go("#/consult/" + rec.id); return;

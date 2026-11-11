@@ -253,6 +253,11 @@ create table if not exists app_tg_logins (
 -- mail_at: the last "the doctor wrote" email for this consultation, so a long chat sends one email per half hour.
 alter table app_consults add column if not exists call_media text check (call_media is null or call_media in ('audio', 'video'));
 alter table app_consults add column if not exists mail_at timestamptz;
+-- want_at: the day and time the patient said suits them, when they didn't book one of a doctor's slots
+alter table app_consults add column if not exists want_at timestamptz;
+-- tg_state: what the bot expects next from this person ("reply:<consultation>" or "ai:<last messages>")
+alter table app_users add column if not exists tg_state text check (tg_state is null or char_length(tg_state) <= 8000);
+alter table app_users add column if not exists tg_state_at timestamptz;
 
 -- Care for pregnant women and young mothers: a pregnancy profile, weekly check-ins, check-up reminders,
 -- and a family member who hears about danger signs. Only the woman, her chosen doctor and that family member see it.

@@ -30,7 +30,7 @@
       id: c.id, n: Number(c.n), at: Date.parse(c.created_at), userId: c.patient_id, type: c.type, who: c.who, name: c.name,
       age: c.age == null ? "" : String(c.age), sex: c.sex || "f", phone: c.phone, region: c.region || "", district: c.district || "",
       complaint: c.complaint, since: String(c.since == null ? 1 : c.since), chronic: c.chronic || "", meds: c.meds || "", allergy: c.allergy || "",
-      spec: c.spec || "", doc: c.doc || "", status: c.status, doctorId: c.doctor_id || "", doctorName: c.doctor_name || "", call: !!c.call, callAt: c.call_at ? Date.parse(c.call_at) : 0, callMedia: c.call_media || "", callBy: c.call_by || "d", slotAt: c.slot_at ? Date.parse(c.slot_at) : 0, outcome: c.outcome,
+      spec: c.spec || "", doc: c.doc || "", status: c.status, doctorId: c.doctor_id || "", doctorName: c.doctor_name || "", call: !!c.call, callAt: c.call_at ? Date.parse(c.call_at) : 0, callMedia: c.call_media || "", wantAt: c.want_at ? Date.parse(c.want_at) : 0, callBy: c.call_by || "d", slotAt: c.slot_at ? Date.parse(c.slot_at) : 0, outcome: c.outcome,
       asap: !!c.asap, closedAt: c.closed_at ? Date.parse(c.closed_at) : 0, followupAt: c.followup_at ? Date.parse(c.followup_at) : 0, followup: c.followup || "",
       rx: Array.isArray(c.rx) ? c.rx : [], rxAt: c.rx_at ? Date.parse(c.rx_at) : 0,
       price: c.price == null ? null : Number(c.price), payStatus: c.pay_status || "none", paidAt: c.paid_at ? Date.parse(c.paid_at) : 0, payProvider: c.pay_provider || "",

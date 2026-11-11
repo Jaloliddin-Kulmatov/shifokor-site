@@ -15,7 +15,7 @@
     sv_spec_h: "Mutaxassislik bo‘yicha shifokor kerakmi?", sv_how_h: "Qanday ishlaydi",
     img_how: "Shifokor telefon orqali bemorga javob yozmoqda",
     sv_items: {
-      online: ["Onlayn maslahat", "Shifokor bilan chat, audio yoki video orqali gaplashing. Rasm yuborish mumkin.", "Maslahat so‘rash", "Shifokor noutbuk orqali bemor bilan video qo‘ng‘iroqda"],
+      online: ["Onlayn maslahat", "Shifokor bilan chat yoki video orqali gaplashing. Rasm yuborish mumkin.", "Maslahat so‘rash", "Shifokor noutbuk orqali bemor bilan video qo‘ng‘iroqda"],
       results: ["Tahlil natijalarini tushuntirish", "Qon tahlili, UZI, EKG yoki MRT natijasini shifokor oddiy tilda tushuntiradi.", "Natijani ko‘rsatish", "Shifokor ish stolida hujjatlarni ko‘rib chiqmoqda"],
       pediatrics: ["Bolalar shifokori", "Isitma, yo‘tal, ovqatlanish va emlash bo‘yicha pediatr maslahati.", "Pediatrga yozilish", "Pediatr chaqaloqni onasi bilan ko‘rmoqda"],
       pregnancy: ["Homiladorlik kuzatuvi", "Ginekolog bilan oylik kuzatuv, UZI natijalari va savollaringiz.", "Boshlash", "Shifokor homilador ayol bilan suhbatlashmoqda"],
@@ -38,7 +38,7 @@
     sv_spec_h: "Нужен врач по специальности?", sv_how_h: "Как это работает",
     img_how: "Врач отвечает пациенту по телефону",
     sv_items: {
-      online: ["Онлайн-консультация", "Чат, аудио или видео с врачом. Можно отправить фото.", "Получить консультацию", "Врач на видеозвонке с пациентом через ноутбук"],
+      online: ["Онлайн-консультация", "Чат или видео с врачом. Можно отправить фото.", "Получить консультацию", "Врач на видеозвонке с пациентом через ноутбук"],
       results: ["Расшифровка анализов", "Врач простым языком объяснит результат анализа крови, УЗИ, ЭКГ или МРТ.", "Показать результат", "Врач за столом просматривает документы"],
       pediatrics: ["Детский врач", "Педиатр: температура, кашель, питание и прививки.", "К педиатру", "Педиатр осматривает младенца вместе с мамой"],
       pregnancy: ["Ведение беременности", "Ежемесячное наблюдение у гинеколога, результаты УЗИ и ваши вопросы.", "Начать", "Врач беседует с беременной женщиной"],
@@ -61,7 +61,7 @@
     sv_spec_h: "Need a doctor by specialty?", sv_how_h: "How it works",
     img_how: "A doctor answering a patient on the phone",
     sv_items: {
-      online: ["Online consultation", "Talk to a doctor by chat, audio or video. You can send photos.", "Ask a doctor", "A doctor on a video call with a patient on a laptop"],
+      online: ["Online consultation", "Talk to a doctor by chat or video. You can send photos.", "Ask a doctor", "A doctor on a video call with a patient on a laptop"],
       results: ["Explain my test results", "A doctor explains your blood test, ultrasound, ECG or MRI in plain words.", "Show a result", "A doctor at a desk looking through documents"],
       pediatrics: ["Children's doctor", "A paediatrician for fever, cough, feeding and vaccinations.", "See a paediatrician", "A paediatrician seeing a baby with its mother"],
       pregnancy: ["Pregnancy care", "Monthly check-ins with a gynaecologist, ultrasound results and your questions.", "Start", "A doctor talking with a pregnant woman"],

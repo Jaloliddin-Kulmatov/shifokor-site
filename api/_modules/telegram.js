@@ -6,6 +6,7 @@ const site = require("../_core/site");
 const N = require("./notify");
 const { O } = require("./services");
 const { FOLLOW, followupAnswer } = require("./followups");
+const BOT = require("./bot");
 
 // Telegram calls POST /api/app?tg=hook for messages to the bot. "/start <code>" links the chat, "/stop" unlinks it.
 async function telegramHook(req, res) {
@@ -14,7 +15,7 @@ async function telegramHook(req, res) {
   if (typeof u === "string") { try { u = JSON.parse(u); } catch (e) { u = null; } }
   const cb = u && u.callback_query;
   if (cb) {
-    try { await migrate(); if (!(await loginButton(cb)) && !(await O.hookButton(cb))) await followupButton(cb); } catch (e) { console.error("tg button", e && e.message); }
+    try { await migrate(); if (!(await loginButton(cb)) && !(await BOT.botButton(cb)) && !(await O.hookButton(cb))) await followupButton(cb); } catch (e) { console.error("tg button", e && e.message); }
     return send(res, 200, { ok: true });
   }
   const m = u && u.message, chat = m && m.chat && m.chat.id, text = String((m && m.text) || "").trim();
@@ -35,7 +36,7 @@ async function telegramHook(req, res) {
       await O.hookStop(chat);
       await N.tgSend(chat, "Xabarnomalar o‘chirildi.");
     } else {
-      await N.tgSend(chat, "Bu Shifokor xabarnomalari boti. Ulash uchun saytda «Telegramni ulash» tugmasini bosing.");
+      await BOT.botMessage(m);   // the menu, Shifo_AI, answering in a consultation
     }
   } catch (e) { console.error("tg hook", e && e.message); }
   return send(res, 200, { ok: true });
@@ -54,14 +55,14 @@ async function loginStart(code, m) {
   await N.tgSend(chat, "Shifokor saytiga kirish.\n\nPastdagi «📱 Raqamni yuborish va kirish» tugmasini bosing: raqamingiz bo‘yicha hisobingizni topamiz, yangi bo‘lsangiz, hisob ochamiz. Xabarnomalar ham shu yerga keladi.\n\nAgar siz hozir saytda «Telegram orqali kirish»ni bosmagan bo‘lsangiz, hech narsani bosmang.", { reply_markup: LOGIN_KB });
   await N.tgSend(chat, "Raqamsiz davom etish ham mumkin:", { reply_markup: { inline_keyboard: [[{ text: "Raqamsiz kirish", callback_data: "lg:" + r.rows[0].id }]] } });
 }
-const done = (chat) => N.tgSend(chat, "✅ Tasdiqlandi. Saytga qayting: u o‘zi ochiladi.", { reply_markup: { remove_keyboard: true } });
+const done = (chat) => N.tgSend(chat, "✅ Tasdiqlandi. Saytga qayting: u o‘zi ochiladi.\n\nBot menyusi pastda: arizalar, qabullar, shifokorlar va Shifo_AI.", { reply_markup: BOT.MENU });
 // the person's own contact (not someone else's card) confirms their newest waiting sign-in
 async function loginContact(m) {
   const chat = m.chat.id, c = m.contact;
   if (!c || !m.from || c.user_id !== m.from.id) return N.tgSend(chat, "Iltimos, o‘z raqamingizni «📱 Raqamni yuborish va kirish» tugmasi bilan yuboring.");
   const phone = String(c.phone_number || "").replace(/\D/g, "");
   const r = await q("update app_tg_logins set phone = $2, confirmed_at = now() where id = (select id from app_tg_logins where chat_id = $1 and confirmed_at is null and created_at > now() - interval '10 minutes' order by created_at desc limit 1) returning id", [chat, /^[0-9]{7,15}$/.test(phone) ? phone : null]);
-  if (!r.rows[0]) return N.tgSend(chat, "Kirish so‘rovi topilmadi yoki eskirgan. Saytda «Telegram orqali kirish» tugmasini bosing.", { reply_markup: { remove_keyboard: true } });
+  if (!r.rows[0]) return BOT.linkContact(m);   // no sign-in waiting: link this chat to an account from the bot itself
   return done(chat);
 }
 async function loginButton(cb) {

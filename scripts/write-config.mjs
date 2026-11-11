@@ -36,6 +36,14 @@ if (tg && conn && host && env.VERCEL_ENV === "production") {
     const r = await fetch("https://api.telegram.org/bot" + tg + "/setWebhook", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: "https://" + host + "/api/app?tg=hook", secret_token: secret, allowed_updates: ["message", "callback_query"] }) });
     const j = await r.json().catch(() => ({}));
     console.log(j.ok ? "write-config: Telegram bot webhook set to https://" + host + "/api/app?tg=hook" : "write-config: Telegram setWebhook failed: " + (j.description || r.status));
+    // the bot's menu commands and the text people see before pressing Start
+    const tgCall = (method, body) => fetch("https://api.telegram.org/bot" + tg + "/" + method, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((x) => x.json()).catch(() => ({}));
+    await tgCall("setMyCommands", { commands: [
+      { command: "menu", description: "Asosiy menyu" }, { command: "arizalar", description: "Arizalarim va shifokor javoblari" },
+      { command: "qabullar", description: "Klinikaga yozilishlarim" }, { command: "shifokorlar", description: "Shifokor topish" },
+      { command: "ai", description: "Shifo_AI: qaysi shifokor kerak?" }, { command: "ona", description: "Onalar uchun" }, { command: "cancel", description: "Bekor qilish" }] });
+    await tgCall("setMyShortDescription", { short_description: "Shifokor: onlayn tibbiy maslahat. Arizalar, shifokor javoblari, qabullar va Shifo_AI." });
+    await tgCall("setMyDescription", { description: "Shifokor.com boti.\n\n• Saytga Telegram orqali kirish\n• Shifokor javob yozsa yoki qo‘ng‘iroq qilsa — xabar\n• Arizalaringiz, xulosalar va klinikaga yozilishlar\n• Shifokor topish va Shifo_AI\n• Onalar uchun: haftalik so‘rov va ko‘rik eslatmalari\n\nShoshilinch holatda 103 ga qo‘ng‘iroq qiling." });
   } catch (e) { console.warn("write-config: couldn't reach Telegram: " + e.message); }
 }
 

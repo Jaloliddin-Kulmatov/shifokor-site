@@ -1,7 +1,7 @@
 /* Copy for the test call page (#/calltest). Short on purpose. */
 (function (T) {
   var add = function (lang, o) { Object.keys(o).forEach(function (k) { T[lang][k] = o[k]; }); };
-  var WHY = { uz: { key: "kalitlar noto‘g‘ri", unreachable: "server javob bermadi", net: "tekshirib bo‘lmadi" }, ru: { key: "неверные ключи", unreachable: "сервер не отвечает", net: "не удалось проверить" }, en: { key: "wrong keys", unreachable: "server didn't answer", net: "couldn't check" } };
+  var WHY = { uz: { url: "LIVEKIT_URL noto‘g‘ri (wss://….livekit.cloud bo‘lishi kerak)", keys: "kalitda ortiqcha belgilar bor, qayta nusxalang", key: "kalitlar noto‘g‘ri", unreachable: "server javob bermadi", net: "tekshirib bo‘lmadi" }, ru: { url: "неверный LIVEKIT_URL (нужен wss://….livekit.cloud)", keys: "в ключах лишние символы, скопируйте заново", key: "неверные ключи", unreachable: "сервер не отвечает", net: "не удалось проверить" }, en: { url: "LIVEKIT_URL is wrong (should be wss://….livekit.cloud)", keys: "the keys have stray characters, copy them again", key: "wrong keys", unreachable: "server didn't answer", net: "couldn't check" } };
   var why = function (l, w) { return WHY[l][w] || w || ""; };
 
   add("uz", {

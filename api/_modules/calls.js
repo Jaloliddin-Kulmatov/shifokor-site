@@ -62,6 +62,11 @@ const actions = {
   // Is LiveKit set up, and do its URL and keys work? Checked against LiveKit's server at most every 5 minutes.
   async call_status() {
     if (!LIVEKIT) return { livekit: false, ok: false, why: "" };
+    // values pasted with hidden characters (for example the dots a dashboard shows instead of the real text)
+    const plain = (v) => /^[\x21-\x7e]+$/.test(v);
+    let host0 = ""; try { host0 = new URL(LK.url.replace(/^ws/, "http")).hostname; } catch (e) {}
+    if (!plain(LK.url) || !/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(host0)) return { livekit: true, ok: false, why: "url" };
+    if (!plain(LK.key) || !plain(LK.secret)) return { livekit: true, ok: false, why: "keys" };
     if (Date.now() - lkCheck.at > 300e3) {
       let ok = false, why = "";
       try { const r = await lkApi("ListRooms", {}, { roomList: true }); ok = r.ok; why = r.ok ? "" : r.status === 401 || r.status === 403 ? "key" : "status " + r.status; }

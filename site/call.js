@@ -58,7 +58,8 @@
     };
   }
 
-  /* o: { cid, role: "d" | "p", media: "audio" | "video", title, peer, t: copy, done(seconds) } */
+  /* o: { cid, role: "d" | "p", media: "audio" | "video", title, peer, t: copy, done(seconds) }
+     and for a test call: roomInfo() gives the LiveKit room instead of the consultation's, lkOnly (no direct fallback), wait (the waiting text) */
   function open(o) {
     if (cur) { cur.el.classList.remove("mini"); return; }
     var t = o.t, video = o.media === "video";
@@ -305,7 +306,7 @@
       }).then(function () {
         if (s.closed) { room.disconnect(); return; }
         syncLocal(); awake();
-        if (room.remoteParticipants.size) onState("connected"); else status(s.noCam ? t.cl_nocam : o.role === "d" ? t.cl_wait_doc : t.cl_wait_pat, "wait");
+        if (room.remoteParticipants.size) onState("connected"); else status(s.noCam ? t.cl_nocam : o.wait || (o.role === "d" ? t.cl_wait_doc : t.cl_wait_pat), "wait");
         if (video && navigator.mediaDevices.enumerateDevices) navigator.mediaDevices.enumerateDevices().then(function (ds) { s.cams = ds.filter(function (d) { return d.kind === "videoinput"; }).length; btns(); }, function () {});
       });
     }
@@ -349,7 +350,7 @@
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.RTCPeerConnection || !window.isSecureContext) { status(t.cl_unsup, "err"); btns(); return; }
       status(t.cl_asking, "wait");
       var via = !o.demo && window.SB && SB.callRoom
-        ? SB.callRoom(o.cid).then(function (info) { return loadLk().then(function (LK) { return lkStart(info, LK); }, function (e) { warn(e); return direct(); }); }, function (e) { if (e && e.code === "no_livekit") return direct(); throw e; })
+        ? (o.roomInfo ? o.roomInfo() : SB.callRoom(o.cid)).then(function (info) { return loadLk().then(function (LK) { return lkStart(info, LK); }, function (e) { warn(e); if (o.lkOnly) throw e; return direct(); }); }, function (e) { if (e && e.code === "no_livekit" && !o.lkOnly) return direct(); throw e; })
         : direct();
       via.catch(fail);
     }

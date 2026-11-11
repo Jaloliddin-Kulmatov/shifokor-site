@@ -139,6 +139,8 @@
     signal: function (cid, kind, body, keep) { return call("signal", { id: cid, kind: kind, body: body || "" }, keep); },
     signals: function (cid, after) { return call("signals", { id: cid, after: after }); },
     callRoom: function (cid) { return call("call_room", { id: cid }); },
+    callStatus: function () { return call("call_status"); },
+    callTest: function (code) { return call("call_test", { code: code || "" }); },
     aiFind: function (messages, l) { return call("ai_find", { messages: messages, lang: l }); },
     /* opens the bot in Telegram; pressing Start there links this account */
     tgLink: async function () { return (await call("tg_link")).url; },

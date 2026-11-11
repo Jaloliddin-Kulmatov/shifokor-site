@@ -399,6 +399,25 @@
   /* after each page draw: redraw only when the language or the visibility changed, so typing and scrolling stay put */
   function aiSync() { var box = $("shifoai"); if (!box || AI.lang !== lang || box.hidden === aiShown()) aiDraw(); }
 
+  /* ---------------- test call (#/calltest): try a LiveKit video call between two devices, with no consultation ---------------- */
+  var CT = { st: null, loading: false };
+  function ctLoad() {
+    if (!BE || CT.loading) return; CT.loading = true;
+    BE.callStatus().then(function (j) { CT.st = j; }, function () { CT.st = { livekit: false, ok: false, why: "net" }; }).then(function () { CT.loading = false; if (current.path.indexOf("/calltest") === 0) render(true); });
+  }
+  function viewCallTest(code) {
+    var t = L(), u = me(); code = String(code || "").toUpperCase();
+    if (BE && !CT.st) ctLoad();
+    var st = !BE ? '<p class="note-box">' + t.ct_demo + "</p>" : !CT.st ? '<p class="muted">' + t.ct_checking + "</p>" : CT.st.ok ? '<p class="ctstate ok">' + ic("check") + t.ct_ok + "</p>" : '<p class="ctstate bad">' + ic("siren") + (CT.st.livekit ? esc(t.ct_bad(CT.st.why)) : t.ct_off) + "</p>";
+    var link = location.origin + location.pathname + "#/calltest/" + code, body;
+    if (!u) body = '<div class="dcard"><p>' + t.ct_login + '</p><div class="btns"><a class="btn" href="#/login">' + t.go_login + '</a><a class="btn ghost" href="#/register">' + t.go_reg + "</a></div></div>";
+    else if (code) body = '<div class="dcard"><h2>' + esc(t.ct_room(code)) + '</h2><p class="muted">' + t.ct_share + '</p><div class="ctlink"><input id="ct-link" readonly value="' + esc(link) + '" aria-label="' + esc(t.ct_room(code)) + '"><button class="btn ghost sm" type="button" data-act="ctcopy">' + t.ct_copy + "</button></div>" +
+      '<div class="btns" style="margin-top:14px"><button class="btn" type="button" data-ctjoin="video">' + ic("video") + t.ct_join_v + '</button><button class="btn ghost" type="button" data-ctjoin="audio">' + ic("mic") + t.ct_join_a + "</button></div></div>";
+    else body = '<div class="dcard"><h2>' + t.ct_new_h + '</h2><p class="muted">' + t.ct_new_p + '</p><button class="btn" type="button" data-act="ctnew">' + ic("video") + t.ct_new + "</button></div>";
+    return pageHead(t.ct_eyebrow, t.ct_h, t.ct_p) + '<div class="wrap pad" style="max-width:760px">' + st + body +
+      '<h2 class="subh" style="margin-top:26px">' + t.ct_how + '</h2><ol class="ctsteps">' + t.ct_steps.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ol></div>";
+  }
+
   /* ---------------- results ---------------- */
   function card(r) {
     var t = L(), p = r.p, lead = r.lead, nf = r.nf, link = "#/p/" + p.id + (r.mode === "on" ? "?m=on" : "");
@@ -2362,6 +2381,7 @@
       (inPanel ? "" : row(t.set_map, seg("map", ["on", "off"], mapOn ? "on" : "off", t.maps)) +
       row(t.set_loc, '<button class="btn ghost sm" type="button" data-act="forgetloc"' + (hasPos ? "" : " disabled") + ">" + t.set_loc_btn + "</button>", hasPos ? t.set_loc_p : t.set_loc_none)) +
       row(t.set_acc, accRow, u ? esc(u.name) : "") +
+      row(t.ct_row, '<a class="btn ghost sm" href="#/calltest">' + ic("video") + t.ct_row_btn + "</a>", t.ct_row_p) +
       row(t.set_data, clear, t.set_data_p) + "</div>";
   }
 
@@ -2495,6 +2515,7 @@
     else if (path === "/about") { html = viewAbout(); route = "about"; }
     else if (path === "/specialists") { html = viewSpecialists(); route = "specialists"; }
     else if (path === "/services") { html = viewServices(); route = "services"; }
+    else if (path === "/calltest" || path.indexOf("/calltest/") === 0) { html = viewCallTest(path.slice(10)); route = "calltest"; }
     else if (path === "/family") { html = viewFamily(); route = "family"; }
     else if (path === "/wellness") { html = viewWellness(); route = "wellness"; }
     else if (path.indexOf("/consult/") === 0) { html = viewConsultThread(path.slice(9)); route = "consult"; }
@@ -2739,6 +2760,14 @@
       }
     }
     if (ds.aitry) { aiSend(ds.aitry); return; }
+    if (ds.act === "ctnew") { el.disabled = true; BE.callTest("").then(function (j) { go("#/calltest/" + j.code); }, function (x) { el.disabled = false; toast(x && x.code === "limit" ? t.ct_limit : x && x.code === "no_livekit" ? t.ct_off : beMsg(t, x)); }); return; }
+    if (ds.act === "ctcopy") { var cl = $("ct-link"); if (cl) { cl.select(); (navigator.clipboard ? navigator.clipboard.writeText(cl.value) : Promise.reject()).then(function () { toast(t.ct_copied); }, function () { try { document.execCommand("copy"); toast(t.ct_copied); } catch (x) {} }); } return; }
+    if (ds.ctjoin) {
+      var ctc = current.path.slice(10).toUpperCase();
+      if (!window.ShifokorCall || !BE) return;
+      ShifokorCall.open({ cid: "test-" + ctc, role: "p", media: ds.ctjoin, title: t.ct_room(ctc), peer: t.ct_peer, t: t, demo: false, lkOnly: true, wait: t.ct_wait, roomInfo: function () { return BE.callTest(ctc); }, done: function (sec) { if (sec) toast(t.cl_ended(Math.floor(sec / 60) + ":" + pad(sec % 60))); render(true); } });
+      return;
+    }
     if (ds.aiask) { AI.complaint = AI.msgs.filter(function (m) { return m.role === "user"; }).map(function (m) { return m.content; }).join(". ").slice(0, 1500); CS = null; AI.open = false; aiDraw(); go("#/consult?" + qs({ s: ds.aiask })); return; }
     if (ds.act === "aireset") { AI.msgs = []; AI.busy = false; aiDraw(""); return; }
     if (ds.act === "aiopen" || ds.act === "aiclose") { AI.open = ds.act === "aiopen" ? !AI.open : false; aiDraw(AI.open ? "" : null); if (!AI.open) { var fb = document.querySelector(".aifab"); if (fb) fb.focus(); } return; }

@@ -1380,6 +1380,13 @@ audio.voice { display: block; width: 240px; max-width: 100%; height: 36px; margi
 .wslot.busy b { color: var(--accent-ink); }
 .wslot.busy span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wslot.past { opacity: 0.4; }
+/* visits at the clinic in the clinic calendar: solid when confirmed, outlined while waiting for the clinic */
+.wslot.wvisit { background: var(--brand, #0f4c4f); color: #fff; }
+.wslot.wvisit b { color: #fff; }
+.wslot.wvisit small { opacity: .85; }
+.wslot.wvisit span { white-space: normal; overflow: visible; line-height: 1.25; }
+.wslot.wvisit.wnew { background: transparent; color: var(--ink); border: 1.5px dashed var(--accent); }
+.wslot.wvisit.wnew b { color: var(--ink); }
 .wclosed { font-size: 0.88rem; }
 .proform .accform { max-width: none; }
 @media (max-width: 1000px) { .progrid { grid-template-columns: minmax(0, 1fr); } }

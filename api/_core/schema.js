@@ -119,6 +119,8 @@ alter table app_users add column if not exists verified_fac text;
 alter table app_appts add column if not exists doctor_id uuid references app_users (id) on delete set null;
 alter table app_appts add column if not exists doctor_name text check (doctor_name is null or char_length(doctor_name) <= 200);
 create index if not exists app_appts_doctor_idx on app_appts (doctor_id);
+-- the hour the patient would prefer inside the part of the day they picked; the clinic still sets appt_time
+alter table app_appts add column if not exists pref_time text check (pref_time is null or pref_time ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$');
 alter table app_users add column if not exists tg_chat bigint;
 alter table app_users add column if not exists tg_code text;
 alter table app_users add column if not exists tg_code_at timestamptz;

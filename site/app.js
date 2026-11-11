@@ -1807,7 +1807,9 @@
   var dayTxt = function (s) { return fmt(fromIso(s), { weekday: "short", day: "numeric", month: "short" }); };
   /* the next 10 days from tomorrow, without Sundays (state polyclinics work Monday to Saturday) */
   function apDays(n, from) { var out = []; for (var i = from == null ? 1 : from; out.length < n && i <= 30; i++) { var d = dayAt(i); if (d.getDay() !== 0) out.push(iso(d)); } return out; }
-  function apStart(cid) { var u = me(); AP = { cid: cid, day: "", part: "", who: "self", name: u && u.role === "patient" ? u.name : "", phone: u && u.phone ? fmtPhone(u.phone) : "", spec: "", reason: "", doc: "", docQ: "" }; }
+  /* hours a patient may prefer inside the part of the day they chose; the clinic still sets the final hour */
+  var apHours = function (part) { var out = [], h0 = part === "pm" ? 13 : 8; for (var i = 0; i < 8; i++) out.push(pad(h0 + (i >> 1)) + ":" + (i % 2 ? "30" : "00")); return out; };
+  function apStart(cid) { var u = me(); AP = { cid: cid, day: "", part: "", who: "self", ptime: "", name: u && u.role === "patient" ? u.name : "", phone: u && u.phone ? fmtPhone(u.phone) : "", spec: "", reason: "", doc: "", docQ: "" }; }
   function apCollect() {
     if (!AP) return;
     var map = { "ap-name": "name", "ap-phone": "phone", "ap-spec": "spec", "ap-reason": "reason", "ap-doc": "doc" };
@@ -1831,6 +1833,7 @@
       '<form class="form accform apform" id="apform" data-fac="' + esc(fac || "") + '" novalidate>' +
       '<div class="fld"><span class="flabel">' + t.ap_day + "</span>" + chips("apday", apDays(10), a.day, dayTxt) + "</div>" +
       '<div class="fld"><span class="flabel">' + t.ap_part + "</span>" + chips("appart", ["am", "pm"], a.part, function (k) { return t.ap_parts[k]; }) + "</div>" +
+      (a.part ? '<div class="fld"><span class="flabel">' + t.ap_ptime + "</span>" + chips("aptime", apHours(a.part), a.ptime, function (h) { return h; }) + "</div>" : "") +
       '<div class="fld"><span class="flabel">' + t.ap_who + '</span><div class="seg" role="group">' + ["self", "other"].map(function (k) { return '<button type="button" data-apwho="' + k + '" aria-pressed="' + (a.who === k) + '">' + t.ap_whos[k] + "</button>"; }).join("") + "</div></div>" +
       '<div class="two">' + fi("ap-name", t.ap_name, a.name, "text", ' autocomplete="name"') + fi("ap-phone", t.ap_phone, a.phone, "tel", ' inputmode="tel" placeholder="+998" autocomplete="tel"') + "</div>" +
       (docs.length ? '<div class="fld"><label for="ap-doc">' + t.ap_doc + '</label><select id="ap-doc"><option value="">' + t.ap_doc_any + "</option>" + docs.map(function (d) { var s = specName(d.profile || {}); return '<option value="' + d.id + '"' + (a.doc === d.id ? " selected" : "") + ">" + esc(d.name + (s ? " — " + s : "")) + "</option>"; }).join("") + "</select></div>" : "") +
@@ -1848,7 +1851,7 @@
   function apSort(list) { return list.slice().sort(function (x, y) { var ox = apOpen(x), oy = apOpen(y); if (ox !== oy) return ox ? -1 : 1; if (ox && x.status !== y.status) return x.status === "new" ? -1 : 1; return ox ? (x.day < y.day ? -1 : x.day > y.day ? 1 : 0) : (x.day < y.day ? 1 : x.day > y.day ? -1 : 0); }); }
   function apRow(a, forClinic) {
     var t = L(), d = fromIso(a.day), c = userById(a.clinicId), open = apOpen(a);
-    var when = dayTxt(a.day) + ", " + (a.time ? t.ap_at(a.time) : t.ap_parts_s[a.part]);
+    var when = dayTxt(a.day) + ", " + (a.time ? t.ap_at(a.time) : t.ap_parts_s[a.part] + (a.ptime ? " (" + t.ap_pref(a.ptime) + ")" : ""));
     var place = a.fac && facByKey[a.fac] ? '<a href="#/f/' + a.fac + '">' + esc(a.clinicName) + "</a>" : c ? '<a href="#/c/' + c.id + '">' + esc(a.clinicName) + "</a>" : esc(a.clinicName);
     var tel = function (ph) { return '<a class="btn ghost sm" href="tel:+' + esc(digits(ph)) + '">' + ic("phone") + t.ap_call + "</a>"; };
     /* forClinic: true for the clinic's inbox, "doc" for the doctor the patient picked (read only: the clinic sets the hour) */
@@ -2092,13 +2095,17 @@
     if (BE) { if (!CAL.list || Date.now() - CAL.at > 60e3) calLoad(); list = CAL.list || []; }
     else { var docIds = staffOfClinic(u.id); list = consults().filter(function (c) { return c.slotAt && (c.status === "new" || c.status === "accepted"); }).map(function (c) { var s = docIds.filter(function (x) { return x.doctorId === (c.doctorId || c.doc); })[0]; var d = s && userById(s.doctorId); return s ? { id: c.id, at: c.slotAt, status: c.status, type: c.type, doctor_id: s.doctorId, doctor_name: d ? d.name : "", branch_id: s.branchId } : null; }).filter(Boolean); }
     if (q.b) list = list.filter(function (x) { return (x.branch_id || "") === q.b; });
+    else list = list.concat(appts().filter(function (a) { return a.clinicId === u.id && (a.status === "confirmed" || a.status === "new") && apOpen(a); }).map(function (a) {
+      var hm = a.time || a.ptime || (a.part === "pm" ? "13:00" : "08:00");
+      return { id: a.id, at: Date.parse(a.day + "T" + hm + ":00+05:00"), visit: a, doctor_name: a.doctorName || (a.spec ? t.docsp[a.spec] || "" : "") };
+    }));
     var t0 = new Date(Date.now() + TK), day0 = Date.UTC(t0.getUTCFullYear(), t0.getUTCMonth(), t0.getUTCDate()) - TK, days = [];
     for (var i = 0; i < 7; i++) days.push(day0 + i * 864e5);
     var filter = branchesOf(u.id).length ? '<label class="sel">' + t.cl_branch + " " + branchSel("cal-b", u.id, q.b || "", t.cl_all_branches) + "</label>" : "";
     return pHead(t.pn_t.ccalendar, t.cl_cal_p, filter) + (BE && !CAL.list ? '<p class="muted">…</p>' :
       '<div class="week">' + days.map(function (d, i) {
         var dd = tkDate(d + 6 * 3600e3), items = list.filter(function (x) { return x.at >= d && x.at < d + 864e5; }).sort(function (a, b) { return a.at - b.at; });
-        return '<div class="wday' + (i === 0 ? " today" : "") + '"><div class="wdh"><small>' + esc(fmt(dd, { weekday: "short" })) + "</small><b>" + dd.getDate() + "</b></div>" + (items.length ? items.map(function (x) { var b = branchById(x.branch_id); return '<div class="wslot busy"><b class="nums">' + hhmm(x.at) + "</b><span>" + esc(x.doctor_name) + "</span>" + (b ? "<small>" + esc(b.name) + "</small>" : "") + "</div>"; }).join("") : '<p class="muted wclosed">' + t.cl_cal_free + "</p>") + "</div>";
+        return '<div class="wday' + (i === 0 ? " today" : "") + '"><div class="wdh"><small>' + esc(fmt(dd, { weekday: "short" })) + "</small><b>" + dd.getDate() + "</b></div>" + (items.length ? items.map(function (x) { if (x.visit) { var v = x.visit, ok = v.status === "confirmed"; return '<a class="wslot busy wvisit' + (ok ? "" : " wnew") + '" href="' + acc("/requests") + '"><b class="nums">' + (v.time ? v.time : "~" + hhmm(x.at)) + "</b><span>" + esc(t.ap_no(v.n)) + (x.doctor_name ? " · " + esc(x.doctor_name) : "") + "</span><small>" + esc(ok ? t.cl_cal_visit : t.ap_st.new) + "</small></a>"; } var b = branchById(x.branch_id); return '<div class="wslot busy"><b class="nums">' + hhmm(x.at) + "</b><span>" + esc(x.doctor_name) + "</span>" + (b ? "<small>" + esc(b.name) + "</small>" : "") + "</div>"; }).join("") : '<p class="muted wclosed">' + t.cl_cal_free + "</p>") + "</div>";
       }).join("") + "</div>") + '<p class="fine">' + t.cl_cal_note + "</p>";
   }
   /* the doctor's side: invitations to accept, and the clinics they work for */
@@ -2141,7 +2148,7 @@
     var page = path.slice(1) || "home";
     if (role === "doctor") {
       var mine = proMine(u);
-      var b = page === "requests" ? proRequests(u, mine, q.f) : page === "schedule" ? proSchedule(u, mine) + docVisits(u, true) : page === "patients" ? proPatients(u, mine) : page === "earnings" ? proEarnings(u, mine) : page === "reviews" ? "<h1>" + t.pro_t.reviews + "</h1>" + rvMine(u) : proHome(u, mine) + docVisits(u, false);
+      var b = page === "requests" ? proRequests(u, mine, q.f) : page === "schedule" ? proSchedule(u, mine) + docVisits(u, true) : page === "patients" ? proPatients(u, mine) : page === "earnings" ? proEarnings(u, mine) : page === "reviews" ? "<h1>" + t.pro_t.reviews + "</h1>" + rvMine(u) : proHome(u, mine);
       return { body: b, key: ["requests", "schedule", "patients", "earnings", "reviews"].indexOf(page) > -1 ? page : "home" };
     }
     if (role === "clinic") { var ck = { requests: "crequests", calendar: "ccalendar", team: "cdoctors", branches: "cbranches", reviews: "reviews" };
@@ -2198,13 +2205,14 @@
     var active = mine.filter(function (c) { return c.status === "accepted"; });
     var todays = mine.filter(function (c) { return c.slotAt && tkDayKey(c.slotAt) === today && (c.status === "new" || c.status === "accepted"); }).sort(function (a, b) { return a.slotAt - b.slotAt; });
     var e = BE && BE.earnings();
-    var stats = [[fresh.length, t.pro_st_new, "requests"], [todays.length, t.pro_st_today, "schedule"], [active.length, t.pro_st_active, "requests&f=active"], [r.n ? avgTxt(r.avg) + " ★" : "—", t.pro_st_rating(r.n), "reviews"]].concat(e ? [[num(e.balance), t.er_owed, "earnings"]] : []);
+    var vToday = appts().filter(function (a) { return a.doctorId === u.id && a.status === "confirmed" && a.day === iso(today0()); });
+    var stats = [[fresh.length, t.pro_st_new, "requests"], [todays.length + vToday.length, t.pro_st_today, "schedule"], [active.length, t.pro_st_active, "requests&f=active"], [r.n ? avgTxt(r.avg) + " ★" : "—", t.pro_st_rating(r.n), "reviews"]].concat(e ? [[num(e.balance), t.er_owed, "earnings"]] : []);
     /* a complete profile gets more requests: what is still missing, as on Practo's and Doctolib's onboarding lists */
     var pr = u.profile || {}, cp = cpOf(pr), todo = [[!!u.photoUrl, t.pro_do_photo], [!!pr.lic, t.pro_do_lic], [!!pr.bio, t.pro_do_bio], [CS_KINDS.some(function (k) { return cp[k] != null; }), t.pro_do_price], [!!hoursOf(pr), t.pro_do_hours]].concat(BE && BE.notify().tg ? [[!!u.tgLinked, t.pro_do_tg]] : []);
     var done = todo.filter(function (x) { return x[0]; }).length;
     return inviteCards(u) + '<div class="prohello"><div><h1>' + t.pro_hello(esc(u.name.split(" ")[0] === "Dr" ? u.name : u.name.split(" ")[0])) + '</h1><p class="muted">' + esc(fmt(tkDate(Date.now()), { weekday: "long", day: "numeric", month: "long" })) + " · " + esc(specName(pr)) + "</p></div></div>" +
       liveCard(u) +
-      '<div class="prostats">' + stats.map(function (x) { return '<a class="prostat" href="#/pro?tab=' + x[2] + '"><b class="nums">' + x[0] + "</b><span>" + x[1] + "</span></a>"; }).join("") + "</div>" +
+      '<div class="prostats">' + stats.map(function (x) { return '<a class="prostat" href="#/pro?tab=' + x[2] + '"><b class="nums">' + x[0] + "</b><span>" + x[1] + "</span></a>"; }).join("") + "</div>" + docVisits(u, false) +
       (done < todo.length ? '<div class="dcard protodo"><div class="sechead"><h2>' + t.pro_todo_h + '</h2><span class="muted nums">' + done + " / " + todo.length + '</span></div><div class="pbar2"><i style="width:' + Math.round(done / todo.length * 100) + '%"></i></div><ul>' + todo.map(function (x) { return '<li class="' + (x[0] ? "ok" : "") + '">' + ic(x[0] ? "check" : "plus") + "<span>" + x[1] + "</span></li>"; }).join("") + '</ul><a class="btn sm" href="#/pro?tab=profile">' + t.pro_todo_go + "</a></div>" : "") +
       '<div class="progrid"><section><div class="sechead"><h2>' + t.pro_today_h + '</h2><a class="linkbtn" href="#/pro?tab=schedule">' + t.pro_all + "</a></div>" + (todays.length ? '<div class="protimeline">' + todays.map(function (c) { return '<a class="tlrow" href="#/consult/' + c.id + '"><b class="nums">' + hhmm(c.slotAt) + "</b><span>" + esc(c.name) + '<small class="muted"> · ' + t.cs_types[c.type][0] + "</small></span>" + csBadge(c.status) + "</a>"; }).join("") + "</div>" : '<p class="muted">' + t.pro_today_none + "</p>") + "</section>" +
       '<section><div class="sechead"><h2>' + t.pro_new_h + '</h2><a class="linkbtn" href="#/pro?tab=requests">' + t.pro_all + "</a></div>" + (fresh.length ? fresh.slice(0, 4).map(function (c) { return proCard(c, u); }).join("") : '<p class="muted">' + t.pro_new_none + "</p>") + "</section></div>";
@@ -2522,7 +2530,7 @@
 
   function clinicInbox(u) {
     var t = L(), list = apSort(appts().filter(function (a) { return a.clinicId === u.id; })), nn = list.filter(function (a) { return a.status === "new" && apOpen(a); }).length;
-    return '<div class="dcard" id="inbox" style="margin-bottom:22px"><h2>' + t.ap_inbox_h + (nn ? ' <span class="badge warn">' + t.ap_new_n(nn) + "</span>" : "") + '</h2><p class="muted" style="margin:4px 0 0">' + t.ap_inbox_p + "</p>" + (!(u.profile || {}).fac ? '<p class="fine" style="margin-top:8px">' + t.ap_inbox_hint + "</p>" : "") +
+    return '<div class="dcard" id="inbox" style="margin-bottom:22px"><h2>' + t.ap_inbox_h + (nn ? ' <span class="badge warn">' + t.ap_new_n(nn) + "</span>" : "") + '</h2><p class="muted" style="margin:4px 0 0">' + t.ap_inbox_p + "</p>" + (!(u.profile || {}).fac ? '<p class="fine" style="margin-top:8px">' + t.ap_inbox_hint + ' <a href="' + acc("/settings") + '">' + t.ap_inbox_hint_go + "</a></p>" : "") +
       (list.length ? '<div class="visits">' + list.map(function (a) { return apRow(a, true); }).join("") + "</div>" : '<p class="muted" style="margin-top:12px">' + t.ap_inbox_none + "</p>") + "</div>";
   }
 
@@ -2735,7 +2743,7 @@
     var n = ""; try { n = sessionStorage.getItem(NEXT_K) || ""; sessionStorage.removeItem(NEXT_K); } catch (x) {}
     /* a page of the public site (an application the visitor started there): go back to it */
     /* back to an application the visitor had started; otherwise straight to their own panel */
-    return /^#\/consult\?/.test(n) ? n : "#/account";
+    return /^#\/(consult\?|c\/|f\/|doc\/)/.test(n) ? n : "#/account";
   }
   function go(hash) { if (location.hash === hash) render(true); else location.hash = hash; }
   function rerender() { render(true); refreshModal(); }
@@ -2956,11 +2964,11 @@
     if (ds.act === "aireset") { AI.msgs = []; AI.busy = false; aiDraw(""); return; }
     if (ds.act === "aiopen" || ds.act === "aiclose") { AI.open = ds.act === "aiopen" ? !AI.open : false; aiDraw(AI.open ? "" : null); if (!AI.open) { var fb = document.querySelector(".aifab"); if (fb) fb.focus(); } return; }
     if (ds.pq) { go("#/prices?" + qs(prQuery({ q: ds.pq }))); return; }
-    if (ds.apday || ds.appart || ds.apwho) { apCollect(); if (ds.apday) AP.day = ds.apday; if (ds.appart) AP.part = ds.appart; if (ds.apwho) { AP.who = ds.apwho; var mu7 = me(); AP.name = ds.apwho === "self" && mu7 && mu7.role === "patient" ? mu7.name : ""; } render(true); return; }
+    if (ds.apday || ds.appart || ds.apwho || ds.aptime) { apCollect(); if (ds.apday) AP.day = ds.apday; if (ds.appart) { AP.part = ds.appart; if (apHours(AP.part).indexOf(AP.ptime) < 0) AP.ptime = ""; } if (ds.aptime) AP.ptime = AP.ptime === ds.aptime ? "" : ds.aptime; if (ds.apwho) { AP.who = ds.apwho; var mu7 = me(); AP.name = ds.apwho === "self" && mu7 && mu7.role === "patient" ? mu7.name : ""; } render(true); return; }
     if (ds.apx) {
       if ((current.path === "/account" || current.path === "/pro")) accCollect();
       var ax = appts().filter(function (x) { return x.id === ds.id; })[0];
-      APX = ds.apx === "back" || !ax ? null : { id: ax.id, mode: ds.apx, day: ax.day, time: ax.time || (ax.part === "am" ? "09:00" : "14:00"), note: ax.note || "" };
+      APX = ds.apx === "back" || !ax ? null : { id: ax.id, mode: ds.apx, day: ax.day, time: ax.time || ax.ptime || (ax.part === "am" ? "09:00" : "14:00"), note: ax.note || "" };
       render(true); if ($("apx-time")) $("apx-time").focus(); else if ($("apx-note")) $("apx-note").focus(); return;
     }
     if (ds.rvstar) { rvCollect(); RV.stars = +ds.rvstar; render(true); return; }
@@ -3229,17 +3237,18 @@
       apCollect(); var A = AP, aer = $("ap-err"), afac = e.target.dataset.fac || "", acl = userById(A.cid);
       if (!A.day || !A.part || !A.name || !okPhone(A.phone)) { aer.textContent = t.ap_err_fill; return; }
       var adoc = A.doc ? userById(A.doc) : null;
-      var areq = { clinic: A.cid, fac: afac, day: A.day, part: A.part, who: A.who, name: A.name, phone: A.phone, spec: adoc ? (adoc.profile || {}).spec || "" : A.spec, reason: A.reason, doctor: adoc ? adoc.id : "" };
+      var areq = { clinic: A.cid, fac: afac, day: A.day, part: A.part, time: A.ptime || "", who: A.who, name: A.name, phone: A.phone, spec: adoc ? (adoc.profile || {}).spec || "" : A.spec, reason: A.reason, doctor: adoc ? adoc.id : "" };
       if (BE) {
         if (!BE.userId()) { aer.innerHTML = t.ap_login + ' <a href="#/login">' + t.go_login + '</a> · <a href="#/register">' + t.go_reg + "</a>"; return; }
         aer.textContent = ""; BE.createAppt(areq).then(function () { AP = null; toast(t.ap_sent); go("#/account/visits"); }, function (x) { aer.textContent = beMsg(t, x); });
         return;
       }
+      if (!me()) { aer.innerHTML = t.ap_login + ' <a href="#/login">' + t.go_login + '</a> · <a href="#/register">' + t.go_reg + "</a>"; return; }
       var al2 = appts(), amu = me(), auid = amu ? amu.id : "";
       var aopen = al2.filter(function (x) { return x.userId === auid && apOpen(x); });
       if (aopen.some(function (x) { return x.clinicId === A.cid && x.day === A.day; })) { aer.textContent = t.e_ap_dup; return; }
       if (aopen.length >= 5) { aer.textContent = t.e_ap_limit; return; }
-      al2.push({ id: "a" + Date.now().toString(36), n: 5001 + al2.length, at: Date.now(), userId: auid, clinicId: A.cid, clinicName: acl ? acl.name : "", fac: afac, day: A.day, part: A.part, who: A.who, name: A.name, phone: digits(A.phone), spec: areq.spec, reason: A.reason.slice(0, 500), doctorId: adoc ? adoc.id : "", doctorName: adoc ? adoc.name : "", status: "new", time: "", note: "" });
+      al2.push({ id: "a" + Date.now().toString(36), n: 5001 + al2.length, at: Date.now(), userId: auid, clinicId: A.cid, clinicName: acl ? acl.name : "", fac: afac, day: A.day, part: A.part, ptime: A.ptime || "", who: A.who, name: A.name, phone: digits(A.phone), spec: areq.spec, reason: A.reason.slice(0, 500), doctorId: adoc ? adoc.id : "", doctorName: adoc ? adoc.name : "", status: "new", time: "", note: "" });
       saveAppts(al2); AP = null; toast(t.ap_sent); go("#/account/visits"); return;
     }
     if (id === "apreply") {

@@ -28,6 +28,14 @@ const actions = {
     if (!isVerified(clinic)) throw new Fail(403, "unverified");
     const day = dayOf(a.day);
     const part = a.part === "am" || a.part === "pm" ? a.part : bad("part");
+    // an optional preferred hour, inside the part of the day: 07:00–12:30 in the morning, 12:00–18:30 after lunch
+    let ptime = null;
+    if (a.time) {
+      const m = /^([01][0-9]|2[0-3]):([0-5][0-9])$/.exec(String(a.time));
+      const h = m ? +m[1] + +m[2] / 60 : -1;
+      if (part === "am" ? h < 7 || h > 12.5 : h < 12 || h > 18.5) bad("time");
+      ptime = String(a.time);
+    }
     const who = a.who === "other" ? "other" : "self";
     const name = str(a.name, 200) || bad("name");
     const phone = phoneOf(a.phone) || bad("phone");
@@ -47,10 +55,10 @@ const actions = {
     if (open.same) throw new Fail(409, "dup");
     if (open.n >= 5) throw new Fail(429, "limit");
     const r = await q(
-      "insert into app_appts (patient_id, clinic_id, clinic_name, fac, day, part, who, name, phone, spec, reason, doctor_id, doctor_name) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) returning id, n",
-      [me.id, clinic.id, clinic.name, opt(a.fac, 40), day, part, who, name, phone, spec, opt(a.reason, 500), doc ? doc.id : null, doc ? doc.name : null]
+      "insert into app_appts (patient_id, clinic_id, clinic_name, fac, day, part, who, name, phone, spec, reason, doctor_id, doctor_name, pref_time) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) returning id, n",
+      [me.id, clinic.id, clinic.name, opt(a.fac, 40), day, part, who, name, phone, spec, opt(a.reason, 500), doc ? doc.id : null, doc ? doc.name : null, ptime]
     );
-    if (clinic.tg_chat) await N.tgSend(clinic.tg_chat, "Shifokor: yangi qabul so‘rovi №" + r.rows[0].n + ". " + name + ", " + N.dayUz(day) + ", " + (part === "am" ? "ertalab" : "tushdan keyin") + (doc ? ", shifokor: " + doc.name : "") + ". " + site.url() + "/#/account");
+    if (clinic.tg_chat) await N.tgSend(clinic.tg_chat, "Shifokor: yangi qabul so‘rovi №" + r.rows[0].n + ". " + name + ", " + N.dayUz(day) + ", " + (part === "am" ? "ertalab" : "tushdan keyin") + (ptime ? " (taxminan " + ptime + ")" : "") + (doc ? ", shifokor: " + doc.name : "") + ". " + site.url() + "/#/account");
     if (doc) await notifyUser(doc.id, "Shifokor: " + clinic.name + " orqali sizga qabul so‘rovi №" + r.rows[0].n + ": " + name + ", " + N.dayUz(day) + ", " + (part === "am" ? "ertalab" : "tushdan keyin") + ". Soatni klinika tasdiqlaydi.");
     return { id: r.rows[0].id };
   },

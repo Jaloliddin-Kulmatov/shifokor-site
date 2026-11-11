@@ -1767,3 +1767,20 @@ audio.voice { display: block; width: 240px; max-width: 100%; height: 36px; margi
 .cc-send { flex: none; padding: 0 14px; border: 0; border-radius: 12px; background: #3CC4C0; color: #082123; font: 700 0.95rem var(--font-body); cursor: pointer; }
 .call.mini .call-chat, .call.mini .cb[data-c="chat"] { display: none; }
 @media (max-width: 600px) { .call-chat { left: 8px; right: 8px; width: auto; bottom: 150px; max-height: 45%; } .call-bar { gap: 10px; } .cb { width: 50px; height: 50px; } }
+
+/* ---- phones: main functions in a bottom bar, Shifo_AI in the middle (2026-11) ---- */
+.tabbar { display: none; }
+@media (max-width: 600px) {
+  .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 44; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: end; padding: 6px 4px max(6px, env(safe-area-inset-bottom, 0px)); background: var(--surface); border-top: 1px solid var(--line); box-shadow: 0 -10px 24px -20px rgba(0, 30, 35, 0.5); }
+  .tabbar[hidden], body.ai-lock .tabbar { display: none; }
+  .tbi { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 2px; border: 0; background: none; color: var(--muted); text-decoration: none; font: 600 0.7rem var(--font-body); cursor: pointer; min-width: 0; }
+  .tbi span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tbi .ic { width: 22px; height: 22px; }
+  .tbi[aria-current="page"] { color: var(--accent); }
+  .tbai { color: var(--accent); }
+  .tbai i { display: grid; place-items: center; width: 50px; height: 50px; margin-top: -24px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); box-shadow: 0 10px 20px -8px rgba(0, 60, 65, 0.6); border: 4px solid var(--surface); }
+  .tbai i .ic { width: 22px; height: 22px; }
+  body.has-tab { padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
+  body.has-tab .aifab { display: none; }
+  body.has-tab .toast { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+}

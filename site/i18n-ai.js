@@ -3,6 +3,7 @@
   var add = function (lang, o) { Object.keys(o).forEach(function (k) { T[lang][k] = o[k]; }); };
 
   add("uz", {
+    tb_label: "Asosiy bo‘limlar", tb_home: "Bosh sahifa", tb_docs: "Shifokorlar", tb_consult: "Maslahat", tb_me: "Kabinet", tb_login: "Kirish",
     ai_sub: "Qaysi shifokor kerakligini topib beraman", ai_close: "Yopish", ai_new: "Yangi suhbat",
     ai_hello: "Salom! Men Shifo_AI. Nima bezovta qilayotganini oddiy so‘zlar bilan yozing, sizga mos shifokorni topib beraman.",
     ai_label: "Muammongizni yozing", ai_ph: "Masalan: bolamda yo‘tal va isitma bor", ai_send: "Yuborish", ai_wait: "Javob tayyorlanmoqda…",
@@ -15,6 +16,7 @@
   });
 
   add("ru", {
+    tb_label: "Главные разделы", tb_home: "Главная", tb_docs: "Врачи", tb_consult: "Консультация", tb_me: "Кабинет", tb_login: "Войти",
     ai_sub: "Подскажу, какой врач вам нужен", ai_close: "Закрыть", ai_new: "Новый разговор",
     ai_hello: "Здравствуйте! Я Shifo_AI. Напишите простыми словами, что беспокоит, и я подберу подходящего врача.",
     ai_label: "Опишите проблему", ai_ph: "Например: у ребёнка кашель и температура", ai_send: "Отправить", ai_wait: "Готовлю ответ…",
@@ -27,6 +29,7 @@
   });
 
   add("en", {
+    tb_label: "Main sections", tb_home: "Home", tb_docs: "Doctors", tb_consult: "Consult", tb_me: "Account", tb_login: "Sign in",
     ai_sub: "I'll help you find the right doctor", ai_close: "Close", ai_new: "New conversation",
     ai_hello: "Hello! I'm Shifo_AI. Tell me in plain words what's bothering you, and I'll find the right doctor.",
     ai_label: "Describe the problem", ai_ph: "e.g. my child has a cough and fever", ai_send: "Send", ai_wait: "Preparing an answer…",

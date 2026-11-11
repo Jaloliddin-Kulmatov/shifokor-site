@@ -404,6 +404,20 @@
     var aiVv = function () { var v = window.visualViewport, r = document.documentElement.style; r.setProperty("--vvh", v.height + "px"); r.setProperty("--vvt", v.offsetTop + "px"); var ml = document.querySelector(".aimsgs"); if (ml && AI.open) ml.scrollTop = ml.scrollHeight; };
     window.visualViewport.addEventListener("resize", aiVv); window.visualViewport.addEventListener("scroll", aiVv); aiVv();
   }
+  /* phones: the main functions in a bar at the bottom of the screen, with Shifo_AI in the middle (it replaces the
+     floating button there). Only on the public pages, for patients and visitors. */
+  function tbDraw() {
+    var t = L(), u = me(), p = current ? current.path : "/", bar = $("tabbar");
+    if (!bar) { bar = document.createElement("nav"); bar.id = "tabbar"; bar.className = "tabbar"; document.body.appendChild(bar); }
+    var on = function (x) { return x === "home" ? p === "/" : x === "docs" ? p === "/doctors" || p.indexOf("/doc/") === 0 || p === "/services" : x === "cs" ? p === "/consult" || p.indexOf("/consult/") === 0 : x === "me" ? p === "/login" || p === "/register" : false; };
+    var item = function (k, href, icon, label) { return '<a href="' + href + '" class="tbi"' + (on(k) ? ' aria-current="page"' : "") + ">" + ic(icon) + "<span>" + label + "</span></a>"; };
+    bar.setAttribute("aria-label", t.tb_label);
+    bar.hidden = !aiShown();
+    bar.innerHTML = item("home", "#/", "home", t.tb_home) + item("docs", "#/doctors", "search", t.tb_docs) +
+      '<button type="button" class="tbi tbai" data-act="aiopen" aria-expanded="' + AI.open + '"><i>' + ic("chat") + "</i><span>Shifo_AI</span></button>" +
+      item("cs", "#/consult?now=1", "video", t.tb_consult) + item("me", u ? "#/account" : "#/login", "user", u ? t.tb_me : t.tb_login);
+    document.body.classList.toggle("has-tab", !bar.hidden);
+  }
   /* after each page draw: redraw only when the language or the visibility changed, so typing and scrolling stay put */
   function aiSync() { var box = $("shifoai"); if (!box || AI.lang !== lang || box.hidden === aiShown()) aiDraw(); }
 
@@ -2551,6 +2565,7 @@
     document.title = tw && (tw.role === "doctor" || tw.role === "clinic") ? tw.name + (tw.role === "doctor" ? " — " + specName(tw.profile || {}) : "") + " | Shifokor" : "Shifokor: " + (lang === "ru" ? "найдите хорошего врача и проконсультируйтесь онлайн" : lang === "uz" ? "yaxshi shifokorni toping va onlayn maslahat oling" : "find a good doctor and consult online");
     hdr();
     aiSync();
+    tbDraw();
     closeMenu();
     if (keepScroll) window.scrollTo(0, y); else { window.scrollTo(0, 0); $("app").focus({ preventScroll: true }); }
     if (Date.now() - CS_FOCUS < 1500) { var csTa = $("csmsg-in"); if (csTa) csTa.focus(); }   /* a page can draw twice after a move, so this holds briefly */

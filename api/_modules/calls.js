@@ -64,10 +64,12 @@ const actions = {
     if (Date.now() - lkCheck.at > 300e3) {
       let ok = false, why = "";
       try { const r = await lkApi("ListRooms", {}, { roomList: true }); ok = r.ok; why = r.ok ? "" : r.status === 401 || r.status === 403 ? "key" : "status " + r.status; }
-      catch (e) { why = "unreachable"; }
-      lkCheck = { at: Date.now(), ok, why };
+      catch (e) { why = "unreachable"; console.error("livekit check", e.name, e.cause && (e.cause.code || e.cause.message)); lkCheck.detail = (e.cause && e.cause.code) || e.name; }
+      lkCheck = { at: Date.now(), ok, why, detail: why === "unreachable" ? lkCheck.detail : "" };
     }
-    return { livekit: true, ok: lkCheck.ok, why: lkCheck.why };
+    // the project's address (not a secret: every caller gets it with a token) and the network error, to find a wrong LIVEKIT_URL
+    let host = ""; try { host = new URL(LK.url.replace(/^ws/, "http")).host; } catch (e) { host = "invalid"; }
+    return { livekit: true, ok: lkCheck.ok, why: lkCheck.why, host, scheme: (/^[a-z]+:/.exec(LK.url) || ["none"])[0], detail: lkCheck.detail || "" };
   },
 
   // A test call room (#/calltest): anyone signed in opens one, and anyone signed in with its 6-letter code joins it from

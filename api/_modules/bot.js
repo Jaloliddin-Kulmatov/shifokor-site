@@ -23,7 +23,7 @@ const userOf = async (chat) => (await q("select id, role, name, email, phone, pr
 const setState = (id, state) => q("update app_users set tg_state = $2, tg_state_at = now() where id = $1", [id, state]);
 
 async function menu(chat, u) {
-  if (!u) return send(chat, "Assalomu alaykum! Bu Shifokor boti: arizalaringiz, shifokor javoblari, qabullar va Shifo_AI shu yerda.\n\nBoshlash uchun pastdagi tugma bilan raqamingizni yuboring: hisobingizni topamiz yoki yangisini ochamiz.", { keyboard: [[{ text: "📱 Raqamni yuborish", request_contact: true }]], resize_keyboard: true, one_time_keyboard: true });
+  if (!u) return send(chat, "Assalomu alaykum! Bu Shifokor boti: arizalaringiz, shifokor javoblari, qabullar va Shifo_AI shu yerda.\n\nBoshlash uchun pastdagi tugma bilan raqamingizni yuboring: hisobingizni topamiz yoki yangisini ochamiz.", { keyboard: [[{ text: "📱 Raqamni yuborish", request_contact: true }]], resize_keyboard: true, is_persistent: true, input_field_placeholder: "Pastdagi tugmani bosing" });
   return send(chat, "Assalomu alaykum, " + u.name + "! Kerakli bo‘limni tanlang. Savolingizni shunchaki yozsangiz, Shifo_AI javob beradi.", MENU);
 }
 

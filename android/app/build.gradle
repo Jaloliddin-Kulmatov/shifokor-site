@@ -1,0 +1,39 @@
+// Shifokor for Android: shifokor.com in a Trusted Web Activity (Chrome, full screen), so calls, photos,
+// Google and Telegram sign-in work exactly as on the site. Built by .github/workflows/android.yml.
+plugins { id 'com.android.application' }
+
+def run = (System.getenv('GITHUB_RUN_NUMBER') ?: '1') as int
+
+android {
+    namespace 'uz.shifokor.app'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'uz.shifokor.app'
+        minSdk 21
+        targetSdk 34
+        versionCode run
+        versionName '1.0.' + run
+    }
+    signingConfigs {
+        release {
+            storeFile file('../shifokor.jks')
+            storePassword System.getenv('KEY_PW')
+            keyAlias 'shifokor'
+            keyPassword System.getenv('KEY_PW')
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+}

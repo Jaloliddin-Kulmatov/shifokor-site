@@ -1,7 +1,7 @@
 {
   "name": "Shifokor: yaxshi shifokor va onlayn maslahat",
   "short_name": "Shifokor",
-  "description": "Yaxshi shifokorni sharhlar bo‘yicha toping va onlayn maslahat oling: chat, audio va video qo‘ng‘iroq.",
+  "description": "Yaxshi shifokorni sharhlar bo‘yicha toping va onlayn maslahat oling: chat va video qo‘ng‘iroq.",
   "id": "/",
   "start_url": "/?app=1#/",
   "scope": "/",

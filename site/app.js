@@ -320,22 +320,15 @@
     { k: "mental", img: "psychologist", href: "#/consult?s=psych", spec: "psych" },
     { k: "clinic", img: "nukus-phone", href: "#/find" }
   ];
-  function svPrice(it, rows) {
-    var l = rows.filter(function (x) { return x.price != null && (it.cp ? x.cp : it.q ? pMatch(x.name, norm(it.q)) : it.spec ? x.cp && (x.u.profile || {}).spec === it.spec : false); });
-    var real = l.filter(function (x) { return !x.u.sample; }); if (real.length) l = real;
-    if (!l.length) return null;
-    return { min: Math.min.apply(null, l.map(function (x) { return x.price; })), sample: !!l[0].u.sample };
-  }
-  function svCard(it, rows) {
-    var t = L(), c = t.sv_items[it.k], p = it.cp || it.q || it.spec ? svPrice(it, rows) : null;
-    return '<a class="svcard" href="' + it.href + '"><div class="svphoto">' + photo(it.img, c[3], "(max-width: 600px) 40vw, (max-width: 1100px) 45vw, 300px") + '</div><div class="svtext"><h3>' + c[0] + "</h3><p>" + c[1] + '</p><span class="svfoot">' +
-      (p ? '<b class="nums">' + (p.min === 0 ? t.free_c : esc(t.sv_from(num(p.min) + " " + unit()))) + "</b>" : "<span></span>") + '<span class="carego">' + c[2] + " →</span></span></div></a>";
+  /* no "from … so'm" here: the cheapest price on the site (often a test account) said little about a real visit; each doctor's own price is on their profile */
+  function svCard(it) {
+    var c = L().sv_items[it.k];
+    return '<a class="svcard" href="' + it.href + '"><div class="svphoto">' + photo(it.img, c[3], "(max-width: 600px) 40vw, (max-width: 1100px) 45vw, 300px") + '</div><div class="svtext"><h3>' + c[0] + "</h3><p>" + c[1] + '</p><span class="svfoot"><span></span><span class="carego">' + c[2] + " →</span></span></div></a>";
   }
   function svcSection(n, home) {
-    var t = L(), rows = priceRows(), list = SV.slice(0, n), smp = false;
-    var cards = list.map(function (it) { var p = it.cp || it.q || it.spec ? svPrice(it, rows) : null; if (p && p.sample) smp = true; return svCard(it, rows); }).join("");
+    var t = L(), cards = SV.slice(0, n).map(svCard).join("");
     return '<div class="wrap pad svwrap"><div class="sechead"><div><h2>' + t.sv_h + '</h2><p class="lead" style="margin:4px 0 0">' + t.sv_p + '</p></div><a class="btn ghost sm" href="' + (home ? "#/services" : "#/prices") + '">' + (home ? t.sv_more : t.sv_all) + '</a></div><div class="svgrid">' + cards + "</div>" +
-      (smp ? '<p class="fine" style="margin-top:12px">' + t.smp_dir + "</p>" : "") + "</div>";
+      "</div>";
   }
   function viewServices() {
     var t = L();
@@ -595,11 +588,18 @@
     return h;
   }
   function pinOn(id, on) { var m = markers[id], el = m && m.getElement(); if (el) { var pin = el.querySelector(".pin"); if (pin) pin.classList.toggle("on", on); } if (m) m.setZIndexOffset(on ? 1000 : 0); }
+  /* a map with its zoom buttons in the site's language (Leaflet's own are English) */
+  function newMap(LF, el) {
+    var t = L(), m = LF.map(el, { scrollWheelZoom: false, dragging: !LF.Browser.mobile, tap: false, zoomControl: false });
+    LF.control.zoom({ zoomInTitle: t.map_zin, zoomOutTitle: t.map_zout }).addTo(m);
+    m.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
+    LF.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(m);
+    return m;
+  }
   function initMap(items) {
     var el = $("map"); if (!el) return;
     var LF = window.L; if (!LF || !LF.map) { el.innerHTML = '<div class="empty" style="margin:12px">' + L().map_off + "</div>"; return; }
-    mapInst = LF.map(el, { scrollWheelZoom: false, dragging: !LF.Browser.mobile, tap: false }).setView(CENTER, 13);
-    LF.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(mapInst);
+    mapInst = newMap(LF, el).setView(CENTER, 13);
     var pts = [];
     items.forEach(function (r) {
       var p = r.p, icon = LF.divIcon({ className: "pin-wrap", html: '<div class="pin"><span>' + p.ch + "</span></div>", iconSize: [34, 34], iconAnchor: [17, 34], popupAnchor: [0, -30] });
@@ -710,8 +710,7 @@
   function initFacMap(list, single) {
     var el = $("map"); if (!el) return;
     var LF = window.L; if (!LF || !LF.map) { el.innerHTML = '<div class="empty" style="margin:12px">' + L().map_off + "</div>"; return; }
-    mapInst = LF.map(el, { scrollWheelZoom: false, dragging: !LF.Browser.mobile, tap: false }).setView([41.3, 64.6], 6);
-    LF.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(mapInst);
+    mapInst = newMap(LF, el).setView([41.3, 64.6], 6);
     var pts = [], t = L();
     list.forEach(function (f) {
       var col = f.own === "s" ? "#0A7F83" : f.own === "p" ? "#7C8B8E" : "#C98A2B";
@@ -855,7 +854,7 @@
   var inApp = /Telegram|Instagram|FBAN|FBAV|; wv\)/i.test(navigator.userAgent || "");
   function gsiLoad() {
     if (!GSI) GSI = new Promise(function (res, rej) {
-      var s = document.createElement("script"); s.src = "https://accounts.google.com/gsi/client"; s.async = true;
+      var s = document.createElement("script"); s.src = "https://accounts.google.com/gsi/client?hl=" + (lang === "uz" ? "uz" : lang); s.async = true;   /* without hl the first button follows the browser's language */
       s.onload = function () { try { google.accounts.id.initialize({ client_id: GOOGLE, callback: onGoogle, ux_mode: "popup", auto_select: false, cancel_on_tap_outside: true }); res(); } catch (e) { rej(e); } };
       s.onerror = function () { GSI = null; rej(new Error("gsi")); };
       document.head.appendChild(s);
@@ -1209,7 +1208,8 @@
   }
   /* the doctors-list filters to keep when the application panel opens over it */
   var dfKeep = function () { var q = current && (current.path === "/doctors" || current.path === "/consult") ? Object.assign({}, current.q) : {}; delete q.doc; delete q.now; delete q.smp; delete q.slot; if (current && current.path === "/consult") delete q.s; return q; };
-  function dfQuery() { var v = function (id) { var el = $(id); return el ? el.value.trim() : ""; }; return { s: v("df-s"), r: v("df-r"), q: v("df-q"), lg: v("df-lg"), on: $("df-on") && $("df-on").checked ? "1" : "", fem: $("df-fem") && $("df-fem").checked ? "1" : "", sort: v("df-sort") }; }
+  function dfQuery() { var v = function (id) { var el = $(id); return el ? el.value.trim() : ""; }; var r = v("df-r"), d = v("df-d"); if (d && !(disByCode[d] && regByCode[r] && disByCode[d].r === regByCode[r].i)) d = "";   /* a district from the region chosen before goes */
+    return { s: v("df-s"), r: r, d: d, q: v("df-q"), lg: v("df-lg"), on: $("df-on") && $("df-on").checked ? "1" : "", fem: $("df-fem") && $("df-fem").checked ? "1" : "", sort: v("df-sort") }; }
   /* everyday complaints in Uzbek, Russian and English, and who sees them */
   var SYMS = [
     [["isitma", "harorat", "shamolla", "yo'tal", "tumov", "gripp", "temperatur", "кашел", "простуд", "насморк", "грипп", "температур", "fever", "cough", "cold", "flu"], ["gp", "therapist", "pediatrics"]],
@@ -1233,7 +1233,7 @@
     var ss = symSpecs(qq);   /* a complaint ("isitma", "tish og'rig'i") finds the right specialists, not only a name */
     var match = function (q) { return withSamples().filter(function (u) {
       var pr = u.profile || {}; if (u.role !== "doctor") return false;
-      if ((q.s && pr.spec !== q.s) || (q.r && pr.region !== q.r) || (q.on && !isOnline(u)) || (q.fem && pr.sex !== "f") || (q.lg && (pr.langs || []).indexOf(q.lg) < 0)) return false;
+      if ((q.s && pr.spec !== q.s) || (q.r && pr.region !== q.r) || (q.d && pr.district !== q.d) || (q.on && !isOnline(u)) || (q.fem && pr.sex !== "f") || (q.lg && (pr.langs || []).indexOf(q.lg) < 0)) return false;
       return !qq || ss.indexOf(pr.spec) > -1 || norm([u.name, specName(pr)].concat((pr.work || []).map(wpLabel), (pr.svc || []).map(function (x) { return x.name; })).join(" ")).indexOf(qq) > -1;
     }); };
     var list = realFirst(match(q), q.sort || "best");
@@ -1245,6 +1245,7 @@
     var filters = '<form class="filters" id="docfilter">' +
       sel("df-s", t.d_spec, [["", t.all_specs]].concat(DOC_SP.map(function (k) { return [k, t.docsp[k]]; })), q.s || "") +
       sel("df-r", t.f_region, [["", t.all_regions]].concat(REG.map(function (r) { return [r.code, nmL(r)]; })), q.r || "") +
+      (regByCode[q.r] ? sel("df-d", t.f_district, [["", t.all_districts]].concat(DIS.filter(function (d) { return d.r === regByCode[q.r].i; }).sort(function (a, b) { return nmL(a).localeCompare(nmL(b)); }).map(function (d) { return [d.code, nmL(d)]; })), q.d || "") : "") +
       sel("df-lg", t.df_lang, [["", t.df_any_lang]].concat(["uz", "ru", "en", "kaa", "tg"].map(function (l) { return [l, langName(l)]; })), q.lg || "") +
       sel("df-sort", t.df_sort, ["best", "rating", "cheap", "exp"].map(function (k) { return [k, t.df_sorts[k]]; }), q.sort || "best") +
       '<label class="sel">' + t.ds_name + ' <input id="df-q" class="pinput" style="width:180px;text-align:left" value="' + esc(q.q || "") + '" placeholder="' + esc(t.ds_name_ph) + '"></label>' +

@@ -1,7 +1,7 @@
 /* Shifokor copy in English, Uzbek (Latin) and Russian. Extra keys for newer screens are merged in i18n-extra.js. */
 window.SHIFOKOR_T = {
     en: {
-      loc: "en-GB", map_show: "Show map", map_hide: "Hide map", map_note: "Locations of sample clinics are approximate. Map data © OpenStreetMap contributors.", map_off: "The map could not load. Check your connection.", p_loc: "Location", nav_browse: "Browse", br_sp: "Specialties", br_cl: "Clinics", br_sv: "Services", br_ar: "Areas", br_in: "Insurance coverage",
+      loc: "en-GB", map_zin: "Zoom in", map_zout: "Zoom out", map_show: "Show map", map_hide: "Hide map", map_note: "Locations of sample clinics are approximate. Map data © OpenStreetMap contributors.", map_off: "The map could not load. Check your connection.", p_loc: "Location", nav_browse: "Browse", br_sp: "Specialties", br_cl: "Clinics", br_sv: "Services", br_ar: "Areas", br_in: "Insurance coverage",
       br_h: "Browse healthcare in Fergana", br_p: "Explore specialties, clinics, services and areas. Every link opens a search with free times and dated prices.", br_cats: "All categories",
       br_d: { sp: "Dentistry, diagnostics, ENT and more.", cl: "Every clinic and lab on Shifokor.", sv: "Compare dated prices for each service.", ar: "Find care near you.", in: "Services covered by state insurance, with no extra fee." },
       br_count: function (n) { return n + (n === 1 ? " clinic" : " clinics"); }, br_open: "Open in the pilot", br_next: "Coming next", br_fergana: "Fergana", br_all_ar: "All areas in Fergana",
@@ -61,7 +61,7 @@ window.SHIFOKOR_T = {
       msg_p: "Shifokor pilot, patient", msg_c: "Shifokor pilot, clinic"
     },
     uz: {
-      loc: "uz-Latn", map_show: "Xaritani ko‘rsatish", map_hide: "Xaritani yashirish", map_note: "Namuna klinikalarning joylashuvi taxminiy. Xarita ma’lumotlari © OpenStreetMap contributors.", map_off: "Xarita yuklanmadi. Internet aloqasini tekshiring.", p_loc: "Joylashuv", nav_browse: "Ko‘rib chiqish", br_sp: "Mutaxassisliklar", br_cl: "Klinikalar", br_sv: "Xizmatlar", br_ar: "Hududlar", br_in: "Sug‘urta qoplashi",
+      loc: "uz-Latn", map_zin: "Yaqinlashtirish", map_zout: "Uzoqlashtirish", map_show: "Xaritani ko‘rsatish", map_hide: "Xaritani yashirish", map_note: "Namuna klinikalarning joylashuvi taxminiy. Xarita ma’lumotlari © OpenStreetMap contributors.", map_off: "Xarita yuklanmadi. Internet aloqasini tekshiring.", p_loc: "Joylashuv", nav_browse: "Ko‘rib chiqish", br_sp: "Mutaxassisliklar", br_cl: "Klinikalar", br_sv: "Xizmatlar", br_ar: "Hududlar", br_in: "Sug‘urta qoplashi",
       br_h: "Farg‘onada tibbiyotni ko‘rib chiqing", br_p: "Mutaxassisliklar, klinikalar, xizmatlar va hududlarni ko‘rib chiqing. Har bir havola bo‘sh vaqtlar va sanali narxlar bilan qidiruvni ochadi.", br_cats: "Barcha toifalar",
       br_d: { sp: "Stomatologiya, diagnostika, LOR va boshqalar.", cl: "Shifokordagi barcha klinika va laboratoriyalar.", sv: "Har bir xizmat narxini sanasi bilan solishtiring.", ar: "Yaqiningizdagi tibbiy xizmatni toping.", in: "Davlat sug‘urtasi qoplaydigan, qo‘shimcha to‘lovsiz xizmatlar." },
       br_count: function (n) { return n + " ta klinika"; }, br_open: "Pilotda ochiq", br_next: "Keyingi navbatda", br_fergana: "Farg‘ona", br_all_ar: "Farg‘onadagi barcha hududlar",
@@ -121,7 +121,7 @@ window.SHIFOKOR_T = {
       msg_p: "Shifokor pilot, bemor", msg_c: "Shifokor pilot, klinika"
     },
     ru: {
-      loc: "ru-RU", map_show: "Показать карту", map_hide: "Скрыть карту", map_note: "Расположение примерных клиник приблизительное. Данные карты © OpenStreetMap contributors.", map_off: "Не удалось загрузить карту. Проверьте соединение.", p_loc: "Расположение", nav_browse: "Каталог", br_sp: "Специальности", br_cl: "Клиники", br_sv: "Услуги", br_ar: "Районы", br_in: "Покрытие страховкой",
+      loc: "ru-RU", map_zin: "Приблизить", map_zout: "Отдалить", map_show: "Показать карту", map_hide: "Скрыть карту", map_note: "Расположение примерных клиник приблизительное. Данные карты © OpenStreetMap contributors.", map_off: "Не удалось загрузить карту. Проверьте соединение.", p_loc: "Расположение", nav_browse: "Каталог", br_sp: "Специальности", br_cl: "Клиники", br_sv: "Услуги", br_ar: "Районы", br_in: "Покрытие страховкой",
       br_h: "Каталог медицины в Фергане", br_p: "Изучайте специальности, клиники, услуги и районы. Каждая ссылка открывает поиск со свободным временем и ценами с датой.", br_cats: "Все категории",
       br_d: { sp: "Стоматология, диагностика, ЛОР и другое.", cl: "Все клиники и лаборатории Shifokor.", sv: "Сравните цены с датой по каждой услуге.", ar: "Найдите помощь рядом.", in: "Услуги, покрываемые госстрахованием, без доплат." },
       br_count: function (n) { var m = n % 10, h = n % 100; return n + (m === 1 && h !== 11 ? " клиника" : m >= 2 && m <= 4 && (h < 12 || h > 14) ? " клиники" : " клиник"); }, br_open: "Открыто в пилоте", br_next: "Скоро", br_fergana: "Фергана", br_all_ar: "Все районы Ферганы",

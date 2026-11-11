@@ -40,8 +40,9 @@ function iceServers(userId) {
 // LiveKit (optional): a media server that carries the call when the two browsers can't reach each other directly,
 // as on many mobile networks. The browser gets a room name and a token signed with the project's secret (2 hours).
 //   LIVEKIT_URL   wss://<project>.livekit.cloud      LIVEKIT_API_KEY, LIVEKIT_API_SECRET   from the LiveKit project's keys
-// The URL may be given as https://...; the browser library wants wss://.
-const LK = { url: (process.env.LIVEKIT_URL || "").trim().replace(/^https:\/\//, "wss://").replace(/^http:\/\//, "ws://").replace(/\/+$/, ""), key: (process.env.LIVEKIT_API_KEY || "").trim(), secret: (process.env.LIVEKIT_API_SECRET || "").trim() };
+// The URL may be given as https://..., or as just the host; the browser library wants wss://.
+const lkUrl = (v) => { v = String(v || "").trim().replace(/^["']|["']$/g, "").replace(/\/+$/, ""); if (v && !/^[a-z]+:\/\//i.test(v)) v = "wss://" + v; return v.replace(/^https:\/\//i, "wss://").replace(/^http:\/\//i, "ws://"); };
+const LK = { url: lkUrl(process.env.LIVEKIT_URL), key: (process.env.LIVEKIT_API_KEY || "").trim(), secret: (process.env.LIVEKIT_API_SECRET || "").trim() };
 const LIVEKIT = !!(LK.url && LK.key && LK.secret);
 const b64u = (x) => Buffer.from(x).toString("base64").replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
 function lkJwt(claims, ttl) {

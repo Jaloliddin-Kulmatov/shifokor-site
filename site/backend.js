@@ -43,7 +43,7 @@
     return {
       id: a.id, n: Number(a.n), at: Date.parse(a.created_at), userId: a.patient_id, clinicId: a.clinic_id, clinicName: a.clinic_name, fac: a.fac || "",
       day: String(a.day).slice(0, 10), part: a.part, who: a.who, name: a.name, phone: a.phone, spec: a.spec || "", reason: a.reason || "",
-      status: a.status, time: a.appt_time || "", note: a.note || ""
+      status: a.status, time: a.appt_time || "", note: a.note || "", doctorId: a.doctor_id || "", doctorName: a.doctor_name || ""
     };
   }
 

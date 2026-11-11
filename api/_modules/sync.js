@@ -38,7 +38,7 @@ const actions = {
         ms.rows.forEach((m) => { (by[m.consult_id] = by[m.consult_id] || []).push(m); });
         consults.forEach((c) => { c.messages = by[c.id] || []; });
       }
-      appts = (await q("select * from app_appts where patient_id = $1 or clinic_id = $1 order by created_at desc limit 300", [me.id])).rows;
+      appts = (await q("select * from app_appts where patient_id = $1 or clinic_id = $1 or doctor_id = $1 order by created_at desc limit 300", [me.id])).rows;
       ona = await O.sync(me);
       medOrders = await M.sync(me);
       if (me.role === "doctor") {

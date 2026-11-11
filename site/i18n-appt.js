@@ -3,6 +3,9 @@
   var add = function (lang, o) { Object.keys(o).forEach(function (k) { T[lang][k] = o[k]; }); };
 
   add("uz", {
+    ap_doc: "Qaysi shifokorga?", ap_doc_any: "Istalgan shifokor", ap_with: function (n) { return "Shifokor: " + n; },
+    ap_doc_h: "Klinikada qabulga yozilish", ap_doc_p: "Shu shifokor ishlaydigan klinikani tanlang. Kun tanlaysiz, klinika aniq soatni tasdiqlaydi.", ap_doc_btn: "Klinikada qabulga yozilish", ap_doc_short: "Qabulga yozilish",
+    ap_docv_h: "Klinikadagi qabullarim", ap_docv_p: "Bemorlar klinika orqali sizga yozilgan. Soatni klinika tasdiqlaydi.", ap_docv_none: "Hali sizga klinikada yozilish yo‘q.", e_ap_doc: "Bu shifokor shu klinikada ishlamaydi. Boshqa shifokorni tanlang.",
     ap_h: "Qabulga yozilish", ap_p: "Kunni va kunning qaysi qismini tanlang. Shifoxona aniq soatni tasdiqlaydi.",
     ap_day: "Qaysi kuni?", ap_part: "Qaysi vaqtda?", ap_parts: { am: "Ertalab (8:00–12:00)", pm: "Tushdan keyin (13:00–17:00)" }, ap_parts_s: { am: "ertalab", pm: "tushdan keyin" },
     ap_who: "Kim uchun?", ap_whos: { self: "O‘zim uchun", other: "Boshqa odam uchun" },
@@ -25,6 +28,9 @@
   });
 
   add("ru", {
+    ap_doc: "К какому врачу?", ap_doc_any: "К любому врачу", ap_with: function (n) { return "Врач: " + n; },
+    ap_doc_h: "Запись на приём в клинике", ap_doc_p: "Выберите клинику, где работает этот врач. Вы выбираете день, клиника подтверждает точный час.", ap_doc_btn: "Записаться в клинику", ap_doc_short: "Записаться",
+    ap_docv_h: "Мои приёмы в клинике", ap_docv_p: "Пациенты записались к вам через клинику. Час подтверждает клиника.", ap_docv_none: "К вам пока никто не записался в клинике.", e_ap_doc: "Этот врач не работает в этой клинике. Выберите другого врача.",
     ap_h: "Запись на приём", ap_p: "Выберите день и время суток. Больница подтвердит точный час.",
     ap_day: "Какой день?", ap_part: "Какое время?", ap_parts: { am: "Утром (8:00–12:00)", pm: "После обеда (13:00–17:00)" }, ap_parts_s: { am: "утром", pm: "после обеда" },
     ap_who: "Для кого?", ap_whos: { self: "Для себя", other: "Для другого человека" },
@@ -47,6 +53,9 @@
   });
 
   add("en", {
+    ap_doc: "Which doctor?", ap_doc_any: "Any doctor", ap_with: function (n) { return "Doctor: " + n; },
+    ap_doc_h: "Book a visit at a clinic", ap_doc_p: "Pick a clinic where this doctor works. You choose the day, the clinic confirms the exact hour.", ap_doc_btn: "Book a clinic visit", ap_doc_short: "Book a visit",
+    ap_docv_h: "My clinic visits", ap_docv_p: "Patients booked a visit with you through a clinic. The clinic confirms the hour.", ap_docv_none: "No one has booked a clinic visit with you yet.", e_ap_doc: "This doctor doesn't work at this clinic. Pick another doctor.",
     ap_h: "Book a visit", ap_p: "Pick a day and a time of day. The hospital confirms the exact hour.",
     ap_day: "Which day?", ap_part: "What time?", ap_parts: { am: "Morning (8:00–12:00)", pm: "Afternoon (13:00–17:00)" }, ap_parts_s: { am: "morning", pm: "afternoon" },
     ap_who: "Who is it for?", ap_whos: { self: "For me", other: "For someone else" },

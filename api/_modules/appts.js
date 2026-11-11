@@ -31,14 +31,27 @@ const actions = {
     const who = a.who === "other" ? "other" : "self";
     const name = str(a.name, 200) || bad("name");
     const phone = phoneOf(a.phone) || bad("phone");
+    // a doctor the patient picked: they must work at this clinic (joined its staff, or name it on their profile)
+    let doc = null;
+    if (a.doctor) {
+      if (!UUID.test(String(a.doctor))) bad("doctor");
+      const fac = clinic.profile && clinic.profile.fac ? String(clinic.profile.fac) : null;
+      doc = (await q(
+        "select d.id, d.name, d.profile from app_users d where d.id = $1 and d.role = 'doctor' and (exists (select 1 from app_staff s where s.clinic_id = $2 and s.doctor_id = d.id and s.status = 'active') or coalesce(d.profile->'work', '[]'::jsonb) @> $3::jsonb or ($4::text is not null and coalesce(d.profile->'work', '[]'::jsonb) @> $5::jsonb))",
+        [a.doctor, clinic.id, JSON.stringify([{ t: "c", id: clinic.id }]), fac, JSON.stringify([{ t: "f", key: fac }])]
+      )).rows[0];
+      if (!doc) throw new Fail(400, "doctor");
+    }
+    const spec = doc ? opt((doc.profile || {}).spec, 20) : opt(a.spec, 20);
     const open = (await q("select count(*)::int as n, count(*) filter (where clinic_id = $2 and day = $3)::int as same from app_appts where patient_id = $1 and status in ('new', 'confirmed') and day >= $4", [me.id, clinic.id, day, today()])).rows[0];
     if (open.same) throw new Fail(409, "dup");
     if (open.n >= 5) throw new Fail(429, "limit");
     const r = await q(
-      "insert into app_appts (patient_id, clinic_id, clinic_name, fac, day, part, who, name, phone, spec, reason) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) returning id, n",
-      [me.id, clinic.id, clinic.name, opt(a.fac, 40), day, part, who, name, phone, opt(a.spec, 20), opt(a.reason, 500)]
+      "insert into app_appts (patient_id, clinic_id, clinic_name, fac, day, part, who, name, phone, spec, reason, doctor_id, doctor_name) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) returning id, n",
+      [me.id, clinic.id, clinic.name, opt(a.fac, 40), day, part, who, name, phone, spec, opt(a.reason, 500), doc ? doc.id : null, doc ? doc.name : null]
     );
-    if (clinic.tg_chat) await N.tgSend(clinic.tg_chat, "Shifokor: yangi qabul so‘rovi №" + r.rows[0].n + ". " + name + ", " + N.dayUz(day) + ", " + (part === "am" ? "ertalab" : "tushdan keyin") + ". " + site.url() + "/#/account");
+    if (clinic.tg_chat) await N.tgSend(clinic.tg_chat, "Shifokor: yangi qabul so‘rovi №" + r.rows[0].n + ". " + name + ", " + N.dayUz(day) + ", " + (part === "am" ? "ertalab" : "tushdan keyin") + (doc ? ", shifokor: " + doc.name : "") + ". " + site.url() + "/#/account");
+    if (doc) await notifyUser(doc.id, "Shifokor: " + clinic.name + " orqali sizga qabul so‘rovi №" + r.rows[0].n + ": " + name + ", " + N.dayUz(day) + ", " + (part === "am" ? "ertalab" : "tushdan keyin") + ". Soatni klinika tasdiqlaydi.");
     return { id: r.rows[0].id };
   },
 
@@ -51,6 +64,7 @@ const actions = {
     if (!r.rows[0]) throw new Fail(409, "closed");
     const a = r.rows[0];
     await tellPatient(a, "Shifokor: " + a.clinic_name + " qabulingizni tasdiqladi: " + N.dayUz(a.day) + ", soat " + a.appt_time + "." + (a.note ? " " + a.note : ""));
+    if (a.doctor_id) await notifyUser(a.doctor_id, "Shifokor: " + a.clinic_name + " qabulni tasdiqladi: " + a.name + ", " + N.dayUz(a.day) + ", soat " + a.appt_time + ".");
     return { ok: true };
   },
 
@@ -71,6 +85,7 @@ const actions = {
     if (!r.rows[0]) throw new Fail(409, "closed");
     const a = r.rows[0];
     await notifyUser(a.clinic_id, "Shifokor: so‘rov №" + a.n + " bekor qilindi (" + a.name + ", " + N.dayUz(a.day) + ").");
+    if (a.doctor_id) await notifyUser(a.doctor_id, "Shifokor: " + a.clinic_name + " dagi qabul so‘rovi №" + a.n + " bekor qilindi (" + a.name + ", " + N.dayUz(a.day) + ").");
     return { ok: true };
   }
 };

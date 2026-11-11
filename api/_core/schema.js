@@ -115,6 +115,10 @@ alter table app_reviews add column if not exists s_wait smallint check (s_wait b
 -- tg_chat: the Telegram chat that gets this user's notices, linked through tg_code (a one-hour code, stored hashed).
 alter table app_users add column if not exists verified_at timestamptz;
 alter table app_users add column if not exists verified_fac text;
+-- a visit request may name one of the clinic's doctors (the doctor sees it in their panel; the clinic still sets the hour)
+alter table app_appts add column if not exists doctor_id uuid references app_users (id) on delete set null;
+alter table app_appts add column if not exists doctor_name text check (doctor_name is null or char_length(doctor_name) <= 200);
+create index if not exists app_appts_doctor_idx on app_appts (doctor_id);
 alter table app_users add column if not exists tg_chat bigint;
 alter table app_users add column if not exists tg_code text;
 alter table app_users add column if not exists tg_code_at timestamptz;

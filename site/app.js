@@ -213,7 +213,7 @@
   function phAv(u, i) { return '<span class="pav2" style="background:' + AVC[i % 4] + '">' + esc(initials(u.name)) + "</span>"; }
   function phFind() {
     var t = L(), ds = phoneDocs();
-    return phn('<div class="pbar"><img src="icon.svg" alt=""><b>Shifokor</b></div><div class="psearch">' + ic("search") + "<span>" + t.ph_search + '</span></div><div class="pchips"><span class="on">' + t.docsp.pediatrics + "</span><span>" + t.docsp.gyn + "</span><span>" + t.docsp.gp + "</span></div>" +
+    return phn('<div class="pbar"><img src="icon.svg?v=3" alt=""><b>Shifokor</b></div><div class="psearch">' + ic("search") + "<span>" + t.ph_search + '</span></div><div class="pchips"><span class="on">' + t.docsp.pediatrics + "</span><span>" + t.docsp.gyn + "</span><span>" + t.docsp.gp + "</span></div>" +
       ds.map(function (u, i) { var r = ratingOf(u.id); return '<div class="pdoc">' + phAv(u, i) + "<div><b>" + esc(u.name) + "</b><small>" + esc(specName(u.profile || {})) + "</small>" + (r.n ? '<i class="pst">★ ' + avgTxt(r.avg) + "</i>" : "") + "</div></div>"; }).join("") +
       '<div class="pbtn">' + t.ph_steps[0][1] + "</div>");
   }
@@ -229,7 +229,7 @@
   }
   function phHome() {
     var t = L(), tiles = [["video", t.ph_tiles[0]], ["search", t.ph_tiles[1]], ["tag", t.ph_tiles[2]], ["heart", t.ph_tiles[3]]];
-    return phn('<div class="pbar"><img src="icon.svg" alt=""><b>Shifokor</b></div><p class="phello">' + t.ph_hello + '</p><div class="ptiles">' + tiles.map(function (x) { return "<span><i>" + ic(x[0]) + "</i>" + x[1] + "</span>"; }).join("") + "</div>" +
+    return phn('<div class="pbar"><img src="icon.svg?v=3" alt=""><b>Shifokor</b></div><p class="phello">' + t.ph_hello + '</p><div class="ptiles">' + tiles.map(function (x) { return "<span><i>" + ic(x[0]) + "</i>" + x[1] + "</span>"; }).join("") + "</div>" +
       '<b class="psub">' + t.nav_consult + '</b><div class="pcards"><span>' + ic("chat") + "<b>" + t.docsp.gp + "</b><small>" + t.cs_types.text[0] + "</small></span><span>" + ic("video") + "<b>" + t.ph_spec + "</b><small>" + t.cs_types.video[0] + "</small></span></div>" +
       '<div class="pbanner">' + ic("heart") + "<span>" + t.ona_home_h + "</span></div>");
   }
@@ -391,10 +391,18 @@
         (AI.msgs.length ? '<button type="button" class="aix" data-act="aireset" title="' + esc(t.ai_new) + '" aria-label="' + esc(t.ai_new) + '">↺</button>' : "") + '<button type="button" class="aix" data-act="aiclose" aria-label="' + esc(t.ai_close) + '">×</button></header>' +
         '<div class="aimsgs" aria-live="polite">' + hello + msgs + (AI.busy ? '<div class="aimsg ai aiwait">' + t.ai_wait + "</div>" : "") + "</div>" +
         '<form class="aiform" id="aiform" novalidate><label class="vh" for="ai-in">' + t.ai_label + '</label><textarea id="ai-in" rows="2" maxlength="800" placeholder="' + esc(t.ai_ph) + '"></textarea><button class="btn sm" type="submit"' + (AI.busy ? " disabled" : "") + ">" + t.ai_send + "</button></form>" +
-        '<p class="aifine">' + t.ai_note + ' <b><a href="tel:103">' + t.ai_em_short + "</a></b></p></section>" : "") +
+        '<p class="aifine"><span class="ainote-l">' + t.ai_note + '</span><span class="ainote-s">' + t.ai_note_s + '</span> <b><a href="tel:103">' + t.ai_em_short + "</a></b></p></section>" : "") +
       '<button type="button" class="aifab' + (AI.open ? " on" : "") + '" data-act="aiopen" aria-expanded="' + AI.open + '" aria-controls="aip"><span class="aifab-ic">' + ic("chat") + "</span><b>Shifo_AI</b></button>";
-    var ni = $("ai-in"); if (ni) { ni.value = val; if (had || keep === "") ni.focus(); }
+    document.body.classList.toggle("has-ai", !box.hidden);
+    document.body.classList.toggle("ai-lock", !box.hidden && AI.open && aiPhone());
+    var ni = $("ai-in"); if (ni) { ni.value = val; if ((had || keep === "") && !(aiPhone() && keep === "" && !had && !AI.msgs.length)) ni.focus(); }
     var ml = box.querySelector(".aimsgs"); if (ml) ml.scrollTop = ml.scrollHeight;
+  }
+  /* on a phone the open chat fills the screen; it follows the visible area, so the box stays above the keyboard */
+  var aiPhone = function () { return !!(window.matchMedia && matchMedia("(max-width: 600px)").matches); };
+  if (window.visualViewport) {
+    var aiVv = function () { var v = window.visualViewport, r = document.documentElement.style; r.setProperty("--vvh", v.height + "px"); r.setProperty("--vvt", v.offsetTop + "px"); var ml = document.querySelector(".aimsgs"); if (ml && AI.open) ml.scrollTop = ml.scrollHeight; };
+    window.visualViewport.addEventListener("resize", aiVv); window.visualViewport.addEventListener("scroll", aiVv); aiVv();
   }
   /* after each page draw: redraw only when the language or the visibility changed, so typing and scrolling stay put */
   function aiSync() { var box = $("shifoai"); if (!box || AI.lang !== lang || box.hidden === aiShown()) aiDraw(); }
@@ -1164,7 +1172,7 @@
       '<label class="sel chkf"><input type="checkbox" id="df-fem"' + (q.fem ? " checked" : "") + "> " + t.df_fem + '</label><div class="dfgo"><button class="btn" type="submit">' + ic("search") + t.df_go + "</button>" + (any ? '<a class="btn ghost" href="#/doctors">' + t.df_clear + "</a>" : "") + "</div></form>";
     /* one page for choosing a doctor and applying: the first free doctor, or any card's button, opens the application over this list */
     return '<div class="band deep ochero' + (any ? " searching" : "") + '"><div class="wrap bhead"><div class="eyebrow">' + t.nv_clinic + "</div><h1>" + t.oc_page_h + '</h1><p class="sub">' + t.oc_page_p + '</p><ol class="ocsteps">' + t.oc_page_steps.map(function (x, i) { return "<li><b>" + (i + 1) + "</b><span>" + x + "</span></li>"; }).join("") + '</ol><p style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap"><a class="btn light big" href="#/consult?' + qs(Object.assign({}, dfKeep(), { now: "1" })) + '">' + ic("video") + t.asap_now[0] + '</a><a class="btn ghost" style="color:var(--deep-ink);border-color:var(--deep-line)" href="#/register" data-regrole-link="doctor">' + t.reg_doc_cta + "</a></p></div></div>" +
-      (any ? "" : hcCards()) + '<div class="wrap pad" style="padding-top:8px"><h2 class="subh">' + t.nv_panel + "</h2>" + filters + (ss.length ? '<p class="symhint">' + ic("search") + " " + t.sym_hint(esc(q.q), ss.map(function (k) { return t.docsp[k]; }).join(", ")) + "</p>" : "") + (list.some(function (u) { return u.sample; }) ? '<p class="note-box" style="margin:16px 0 0">' + t.smp_dir + "</p>" : "") + '<div class="results" style="padding:14px 0 0">' + (list.length ? '<p class="dfcount">' + t.df_found(list.length) + "</p>" + list.map(docCard).join("") : any ? '<div class="empty">' + t.df_none + ' <a href="#/doctors">' + t.df_clear + "</a></div>" + (near.length ? '<h2 class="subh" style="margin:22px 0 4px">' + t.df_near + "</h2>" + near.map(docCard).join("") : "") : '<div class="empty">' + t.no_doctors + "</div>") + "</div>" +
+      (any ? "" : hcCards()) + '<div class="wrap pad" style="padding-top:8px"><h2 class="subh">' + t.nv_panel + "</h2>" + filters + (ss.length ? '<p class="symhint">' + ic("search") + " " + t.sym_hint(esc(q.q), ss.map(function (k) { return t.docsp[k]; }).join(", ")) + "</p>" : "") + (list.some(function (u) { return u.sample; }) ? '<p class="fine smpline">' + t.smp_dir + "</p>" : "") + '<div class="results" style="padding:14px 0 0">' + (list.length ? '<p class="dfcount">' + t.df_found(list.length) + "</p>" + list.map(docCard).join("") : any ? '<div class="empty">' + t.df_none + ' <a href="#/doctors">' + t.df_clear + "</a></div>" + (near.length ? '<h2 class="subh" style="margin:22px 0 4px">' + t.df_near + "</h2>" + near.map(docCard).join("") : "") : '<div class="empty">' + t.no_doctors + "</div>") + "</div>" +
       '<h2 style="margin:40px 0 14px;font-size:1.4rem">' + t.clinics_reg_h + '</h2><div class="results" style="padding:0">' + (clinics.length ? clinics.map(function (c) { var pr = c.profile || {}; return '<article class="fcard"><div class="ficon c-' + (pr.ctype || "clinic") + '">' + ic(CAT_IC[pr.ctype || "clinic"]) + '</div><div class="fmain"><h3><a href="#/c/' + c.id + '">' + esc(c.name) + '</a></h3><div class="spec">' + t.cat[pr.ctype || "clinic"] + '</div><div class="badges">' + (c.verified ? vBadge(c) : "") + "</div>" + (pr.district && disByCode[pr.district] ? '<div class="meta">' + ic("pin") + esc(nmL(disByCode[pr.district]) + ", " + nmL(REG[disByCode[pr.district].r])) + "</div>" : "") + '</div><div class="facts"><a class="btn ghost sm" href="#/c/' + c.id + '">' + t.view + "</a></div></article>"; }).join("") : '<div class="empty">' + t.no_clinics_reg + "</div>") + "</div></div>";
   }
 
@@ -1437,7 +1445,8 @@
   function openCall(c, role) {
     var t = L();
     if (!window.ShifokorCall) return;
-    ShifokorCall.open({ cid: c.id, role: role, media: c.type === "video" ? "video" : "audio", title: t.cs_no(c.n), peer: role === "d" ? c.name : c.doctorName, t: t, demo: !BE,
+    var onChat = BE ? function (text) { var mu = me(); BE.addMessage(c.id, role, mu ? mu.name : "", text).catch(function () {}); } : null;   /* messages written during the call stay in the consultation's chat */
+    ShifokorCall.open({ cid: c.id, role: role, media: c.type === "video" ? "video" : "audio", title: t.cs_no(c.n), peer: role === "d" ? c.name : c.doctorName, t: t, demo: !BE, onChat: onChat,
       done: function (sec) { if (sec) toast(t.cl_ended(Math.floor(sec / 60) + ":" + pad(sec % 60))); render(true); } });
     render(true);
   }
@@ -1814,7 +1823,7 @@
     var d = c.doctorId ? userById(c.doctorId) : null, row = function (k, v) { return v ? "<tr><th>" + k + "</th><td>" + v + "</td></tr>" : ""; };
     var docMsgs = (c.msgs || []).filter(function (m) { return m.from === "d" && m.text; });
     return '<div class="noprint sumtools"><a class="btn ghost sm" href="' + acc(u.role === "patient" ? "/record" : "/patients") + '">‹ ' + t.sum_back + '</a><button class="btn sm" type="button" data-act="print">' + ic("file") + t.sum_print + "</button></div>" +
-      '<article class="sumdoc"><header class="sumhead"><img src="icon.svg" alt="" width="40" height="40"><div><b>Shifokor</b><small>shifokor.com</small></div><div class="sumno"><small>' + t.sum_h + '</small><b class="nums">№ ' + esc(String(c.n || "")) + "</b></div></header>" +
+      '<article class="sumdoc"><header class="sumhead"><img src="icon.svg?v=3" alt="" width="40" height="40"><div><b>Shifokor</b><small>shifokor.com</small></div><div class="sumno"><small>' + t.sum_h + '</small><b class="nums">№ ' + esc(String(c.n || "")) + "</b></div></header>" +
       "<h1>" + t.sum_h + "</h1>" +
       '<table class="sumtab">' + row(t.sum_patient, esc(c.name) + (c.age !== "" ? ", " + t.pro_age(c.age) : "") + (c.sex ? ", " + t.cs_sexes[c.sex] : "")) + row(t.sum_date, esc(fmt(new Date(c.closedAt || c.at), { day: "numeric", month: "long" })) + " " + new Date(c.closedAt || c.at).getFullYear()) +
         row(t.sum_doctor, esc(c.doctorName || (d && d.name) || "") + (d ? " — " + esc(specName(d.profile || {})) : "")) + row(t.sum_type, t.cs_types[c.type] ? t.cs_types[c.type][0] : "") + "</table>" +
@@ -1973,7 +1982,7 @@
     var t = L(), u = me(), role = u.role, items = PNAV[role] || PNAV.patient, nNew = role === "doctor" ? proMine(u).filter(function (c) { return c.status === "new"; }).length : role === "clinic" ? appts().filter(function (a) { return a.clinicId === u.id && a.status === "new" && apOpen(a); }).length : 0;
     var link = function (x) { var on = x[2] === pg.key; return '<a href="' + (x[0].indexOf("/admin") === 0 ? "#" + x[0] : acc(x[0])) + '"' + (on ? ' aria-current="page"' : "") + ">" + ic(x[1]) + "<span>" + t.pn_t[x[2]] + "</span>" + ((x[2] === "requests" || x[2] === "crequests") && nNew ? '<b class="pronum">' + nNew + "</b>" : "") + "</a>"; };
     var title = (items.concat(PNAV.admin).filter(function (x) { return x[2] === pg.key; })[0] || [])[2];
-    return '<div class="pshell"><aside class="pside" id="pside"><div class="pbrandrow"><a class="pbrand" href="' + acc("/") + '"><img src="icon.svg" alt="" width="36" height="36"><span><b>Shifokor</b><small>' + t.pn_role[role] + '</small></span></a><button class="pico pclose" type="button" data-act="pnav" aria-label="' + esc(t.ap_x) + '"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
+    return '<div class="pshell"><aside class="pside" id="pside"><div class="pbrandrow"><a class="pbrand" href="' + acc("/") + '"><img src="icon.svg?v=3" alt="" width="36" height="36"><span><b>Shifokor</b><small>' + t.pn_role[role] + '</small></span></a><button class="pico pclose" type="button" data-act="pnav" aria-label="' + esc(t.ap_x) + '"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
       '<nav aria-label="' + esc(t.pro_panel) + '">' + items.map(link).join("") + (u.admin ? '<p class="pgroup">' + t.pn_admin + "</p>" + PNAV.admin.map(link).join("") : "") +
       '<p class="pgroup"></p>' + (role === "patient" ? '<a href="#/">' + ic("search") + "<span>" + t.pn_site + "</span></a>" : "") + '<button class="pnavout" type="button" data-act="logout"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg><span>' + t.logout + "</span></button></nav>" +
       '<div class="puser">' + avatarOf(u, "sm") + '<div><b>' + esc(u.name) + "</b><small>" + esc(role === "doctor" ? specName(u.profile || {}) : u.email || fmtPhone(u.phone || "")) + '</small></div><button class="pico" type="button" data-act="logout" title="' + esc(t.logout) + '" aria-label="' + esc(t.logout) + '"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg></button></div></aside>' +
@@ -2499,7 +2508,7 @@
     if (PANEL) {
       var pg = panelPage(path, q);
       if (pg.redirect) { location.replace(location.pathname + location.search + pg.redirect); return; }
-      html = pg.bare ? '<div class="pbare"><a class="pbrand" href="#/"><img src="icon.svg" alt="" width="36" height="36"><span><b>Shifokor</b></span></a>' + pg.body + "</div>" : panelShell(pg); route = "account";
+      html = pg.bare ? '<div class="pbare"><a class="pbrand" href="#/"><img src="icon.svg?v=3" alt="" width="36" height="36"><span><b>Shifokor</b></span></a>' + pg.body + "</div>" : panelShell(pg); route = "account";
     }
     else if (path === "/search") html = viewSearch(q);
     else if (path.indexOf("/p/") === 0) html = viewProfile(path.slice(3), q);

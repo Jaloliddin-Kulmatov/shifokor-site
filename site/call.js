@@ -14,6 +14,7 @@
     flip: '<path d="M4 8h3.5l2-3h5l2 3H20v11H4z"/><path d="M9 13a3 3 0 015-2.2M15 13a3 3 0 01-5 2.2M14 9.5v1.5h-1.5M10 16.5V15h1.5"/>',
     end: '<path d="M3 14.5c5-5 13-5 18 0l-2.5 2.5-3.5-2v-2.5a12 12 0 00-6 0V15l-3.5 2z"/>',
     chat: '<path d="M4 5h16v11H8l-4 4z"/>',
+    min: '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>',
     expand: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/>'
   };
@@ -79,10 +80,12 @@
       '<div class="call-bar">' +
         '<button type="button" class="cb" data-c="mic"></button>' +
         (video ? '<button type="button" class="cb" data-c="cam"></button><button type="button" class="cb" data-c="flip" hidden title="' + esc(t.cl_flip) + '" aria-label="' + esc(t.cl_flip) + '">' + ic("flip") + "</button>" : "") +
-        '<button type="button" class="cb" data-c="mini" title="' + esc(t.cl_mini) + '" aria-label="' + esc(t.cl_mini) + '">' + ic("chat") + "</button>" +
+        '<button type="button" class="cb" data-c="chat" title="' + esc(t.cl_chat) + '" aria-label="' + esc(t.cl_chat) + '" aria-expanded="false">' + ic("chat") + "</button>" +
+        '<button type="button" class="cb" data-c="mini" title="' + esc(t.cl_mini) + '" aria-label="' + esc(t.cl_mini) + '">' + ic("min") + "</button>" +
         '<button type="button" class="cb end" data-c="end" title="' + esc(t.cl_end) + '" aria-label="' + esc(t.cl_end) + '">' + ic("end") + "</button>" +
         '<button type="button" class="cb" data-c="full" title="' + esc(t.cl_full) + '" aria-label="' + esc(t.cl_full) + '">' + ic("expand") + "</button></div>" +
-      '<p class="call-note">' + esc(t.cl_note) + (o.demo ? " " + esc(t.cl_demo) : "") + "</p>";
+      '<p class="call-note">' + esc(t.cl_note) + (o.demo ? " " + esc(t.cl_demo) : "") + "</p>" +
+      '<div class="call-chat" hidden><div class="cc-list" aria-live="polite"><p class="cc-empty">' + esc(t.cl_chat_empty) + '</p></div><form class="cc-form" novalidate><label class="vh" for="cc-in">' + esc(t.cl_chat_ph) + '</label><input id="cc-in" class="cc-in" maxlength="500" autocomplete="off" placeholder="' + esc(t.cl_chat_ph) + '"><button type="submit" class="cc-send">' + esc(t.cl_send) + "</button></form></div>";
     document.body.appendChild(el);
     var q = function (c) { return el.querySelector(c); };
     var them = q(".call-them"), mine = q(".call-me"), stEl = q(".call-st"), timeEl = q(".call-time"), flag = q(".call-flag"), tap = q(".call-tap");
@@ -113,7 +116,7 @@
     function ctl(dc) {
       s.dc = dc;
       dc.onopen = tellState;
-      dc.onmessage = function (e) { try { var m = JSON.parse(e.data); s.them = { mic: m.mic !== false, cam: m.cam !== false }; view(); } catch (x) {} };
+      dc.onmessage = function (e) { try { var m = JSON.parse(e.data); if (m.chat) { chatAdd(false, m.chat); return; } s.them = { mic: m.mic !== false, cam: m.cam !== false }; view(); } catch (x) {} };
     }
 
     function getMedia() {
@@ -244,7 +247,8 @@
       var c = b.dataset.c, a = s.local && s.local.getAudioTracks()[0], v = s.local && s.local.getVideoTracks()[0];
       if (c === "end") end();
       else if (c === "retry") { b.remove(); start(); }
-      else if (c === "mini") { el.classList.add("mini"); q('[data-c="full"]').focus(); }
+      else if (c === "chat") chatShow(chatBox.hidden);
+      else if (c === "mini") { chatShow(false); el.classList.add("mini"); q('[data-c="full"]').focus(); }
       else if (c === "full") { el.classList.remove("mini"); q('[data-c="end"]').focus(); }
       else if (c === "mic" && (a || s.lk)) { s.mic = !s.mic; if (s.lk) s.lk.localParticipant.setMicrophoneEnabled(s.mic).catch(warn); else { a.enabled = s.mic; tellState(); } btns(); }
       else if (c === "cam" && (v || s.lk)) { s.cam = !s.cam; if (s.lk) s.lk.localParticipant.setCameraEnabled(s.cam).catch(warn); else { v.enabled = s.cam; tellState(); } btns(); }
@@ -296,8 +300,10 @@
       room.on(E.Reconnecting, function () { if (!s.closed) status(video ? t.cl_weak_v : t.cl_weak, "wait"); });
       room.on(E.Reconnected, peerIn);
       room.on(E.Disconnected, function () { if (!s.closed && s.lk === room) { status(t.cl_fail, "err"); btns(); } });
+      room.on(E.DataReceived, function (payload, p, kind, topic) { if (topic !== "chat") return; try { var m = JSON.parse(new TextDecoder().decode(payload)); if (m.chat) chatAdd(false, m.chat); } catch (e) {} });
       room.on(E.LocalTrackPublished, function (pub) { if (pub.track && pub.track.kind === "video") pub.track.attach(mine); syncLocal(); });
       status(t.cl_connecting, "wait");
+      var note = q(".call-note"); if (note && t.cl_note_lk) note.textContent = t.cl_note_lk;
       return room.connect(info.url, info.token).then(function () {
         return room.localParticipant.setMicrophoneEnabled(true, { echoCancellation: true, noiseSuppression: true, autoGainControl: true });
       }).then(function () {
@@ -316,6 +322,26 @@
       if (!pub || !pub.track) return;
       pub.track.restartTrack({ facingMode: next }).then(function () { s.facing = next; pub.track.attach(mine); el.classList.toggle("back", next === "environment"); btns(); }, warn);
     }
+    /* messages during the call: over LiveKit's data channel, or the direct connection's control channel. For a
+       consultation, o.onChat also saves each sent message in its chat, so it stays after the call. */
+    var chatBox = q(".call-chat"), chatList = q(".cc-list"), chatIn = q(".cc-in"), chatBtn = q('[data-c="chat"]'), unread = 0;
+    function chatAdd(mine, text) {
+      text = String(text || "").slice(0, 500); if (!text) return;
+      var em = chatList.querySelector(".cc-empty"); if (em) em.remove();
+      var d = document.createElement("div"); d.className = "cc-msg" + (mine ? " me" : ""); d.textContent = text; chatList.appendChild(d); chatList.scrollTop = chatList.scrollHeight;
+      if (!mine && chatBox.hidden) { unread++; chatBtn.setAttribute("data-n", unread); }
+    }
+    function chatSend(text) {
+      text = String(text || "").trim().slice(0, 500); if (!text) return false;
+      var sent = false, body = JSON.stringify({ chat: text });
+      if (s.lk) { s.lk.localParticipant.publishData(new TextEncoder().encode(body), { reliable: true, topic: "chat" }).catch(warn); sent = true; }
+      else if (s.dc && s.dc.readyState === "open") { try { s.dc.send(body); sent = true; } catch (e) { warn(e); } }
+      if (!sent && !o.onChat) { status(t.cl_chat_wait, "wait"); return false; }
+      chatAdd(true, text); if (o.onChat) o.onChat(text);
+      return true;
+    }
+    function chatShow(on) { chatBox.hidden = !on; chatBtn.setAttribute("aria-expanded", String(on)); el.classList.toggle("chat-on", on); if (on) { unread = 0; chatBtn.removeAttribute("data-n"); chatIn.focus(); chatList.scrollTop = chatList.scrollHeight; } }
+    q(".cc-form").addEventListener("submit", function (e) { e.preventDefault(); e.stopPropagation(); if (chatSend(chatIn.value)) chatIn.value = ""; });
     function fail(e) {
       if (s.lk) { try { s.lk.disconnect(); } catch (x) {} s.lk = null; }
 

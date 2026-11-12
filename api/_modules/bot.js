@@ -78,6 +78,20 @@ async function myVisits(chat, u) {
   return send(chat, "Klinikaga yozilishlar:\n\n" + r.map((a) => "№" + a.n + " · " + (u.role === "patient" ? a.clinic_name : a.name) + "\n   " + day(a.day) + ", " + (a.appt_time ? "soat " + a.appt_time : a.part === "am" ? "ertalab" : "tushdan keyin") + " · " + (AP_ST[a.status] || a.status)).join("\n\n"), open("Saytda ochish", "/#/account/visits"));
 }
 
+// the site's sample doctors (made up, marked "Namuna", can't be booked), so a specialty with no real doctor yet
+// still shows what a listing looks like; read once from site/samples.js
+let SAMPLES = null;
+function samplesOf(spec) {
+  if (!SAMPLES) {
+    SAMPLES = [];
+    try {
+      const sb = { window: {} };
+      require("vm").runInNewContext(require("fs").readFileSync(require("path").join(__dirname, "../../site/samples.js"), "utf8"), sb, { timeout: 2000 });
+      SAMPLES = ((sb.window.SHIFOKOR_SAMPLES || {}).d || []).filter((d) => d.role === "doctor" && d.profile).map((d) => ({ id: d.id, name: d.name, spec: d.profile.spec, years: d.profile.years, cp: d.profile.cp || {} }));
+    } catch (e) { console.error("samples", e.message); }
+  }
+  return SAMPLES.filter((d) => d.spec === spec);
+}
 function specButtons() {
   const keys = Object.keys(SPEC), rows = [];
   for (let i = 0; i < keys.length; i += 2) rows.push(keys.slice(i, i + 2).map((k) => ({ text: SPEC[k], callback_data: "ds:" + k })));
@@ -87,9 +101,14 @@ async function doctors(chat, spec, intro) {
   const r = (await q("select id, name, profile, verified_at from app_users where role = 'doctor' and profile->>'spec' = $1 order by verified_at is null, updated_at desc limit 6", [spec])).rows;
   const price = (p) => { const c = (p && p.cp) || {}, v = ["text", "video"].map((k) => c[k]).filter((x) => x !== "" && x != null && isFinite(Number(x))).map(Number); return v.length ? (Math.min(...v) === 0 ? "bepul" : String(Math.min(...v)).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " so‘mdan") : ""; };
   const head = (intro ? intro + "\n\n" : "") + SPEC[spec] + ":";
-  if (!r.length) return send(chat, head + " hozircha saytda yo‘q.", open("Barcha shifokorlar", "/#/doctors"));
-  return send(chat, head + "\n\n" + r.map((d) => "• " + d.name + (d.verified_at ? " ✔️" : "") + (d.profile && d.profile.years ? " · " + d.profile.years + " yil tajriba" : "") + (price(d.profile) ? " · " + price(d.profile) : "")).join("\n"),
-    { inline_keyboard: r.map((d) => [{ text: "👤 " + cut(d.name, 30), url: url("/shifokor/" + d.id) }, { text: "📝 Yozilish", callback_data: "bd:" + d.id }]) });
+  const sm = samplesOf(spec).slice(0, Math.max(0, 6 - r.length));
+  const line = (d, verified) => "• " + d.name + (verified ? " ✔️" : "") + (d.profile && d.profile.years ? " · " + d.profile.years + " yil tajriba" : "") + (price(d.profile) ? " · " + price(d.profile) : "");
+  const text = head + (r.length ? "\n\n" + r.map((d) => line(d, d.verified_at)).join("\n") : "") +
+    (sm.length ? "\n\n" + (r.length ? "" : "Haqiqiy shifokorlar tez orada qo‘shiladi. ") + "Namuna profillar (ko‘rish uchun, ular bilan yozilib bo‘lmaydi):\n" + sm.map((d) => line({ name: d.name, profile: { years: d.years, cp: d.cp } }) + " · namuna").join("\n") : r.length ? "" : " hozircha saytda yo‘q.") +
+    "\n\nAriza yuborsangiz, bo‘sh " + SPEC[spec].toLowerCase() + " qabul qiladi.";
+  return send(chat, text, { inline_keyboard: r.map((d) => [{ text: "👤 " + cut(d.name, 30), url: url("/shifokor/" + d.id) }, { text: "📝 Yozilish", callback_data: "bd:" + d.id }])
+    .concat(sm.map((d) => [{ text: "👤 " + cut(d.name, 28) + " (namuna)", url: url("/#/doc/" + d.id) }]))
+    .concat([[{ text: "📝 " + SPEC[spec] + "ga ariza yuborish", callback_data: "ba:" + spec }]]) });
 }
 
 // Shifo_AI in the chat; a linked user's last few messages give it context (kept in tg_state)
@@ -135,8 +154,9 @@ async function bookStart(chat, u) {
 // online: specialty → doctor → chat or video → day and time from the doctor's hours → the problem → confirm
 async function bookDoctors(chat, spec) {
   const r = (await q("select id, name, profile, verified_at from app_users where role = 'doctor' and profile->>'spec' = $1 and profile->'modes' ? 'on' and (imported_at is null or claimed_at is not null) order by verified_at is null, updated_at desc limit 8", [spec])).rows;
-  if (!r.length) return send(chat, SPEC[spec] + ": hozircha onlayn maslahat beradigan shifokor yo‘q.", { inline_keyboard: [[{ text: "Boshqa mutaxassis", callback_data: "bk:on" }]] });
-  return send(chat, SPEC[spec] + " — shifokorni tanlang:", { inline_keyboard: r.map((d) => { const p = [priceOf(d.profile, "text"), priceOf(d.profile, "video")].filter((x) => x != null); return [{ text: cut(d.name, 28) + (d.verified_at ? " ✔️" : "") + (p.length ? " · " + (Math.min(...p) === 0 ? "bepul" : sum(Math.min(...p))) : ""), callback_data: "bd:" + d.id }]; }) });
+  const any = [{ text: "🌐 Istalgan " + SPEC[spec].toLowerCase() + " (birinchi qabul qilgan)", callback_data: "ba:" + spec }];
+  if (!r.length) return send(chat, SPEC[spec] + ": hozircha alohida tanlanadigan shifokor yo‘q. Ariza yuborsangiz, bo‘sh " + SPEC[spec].toLowerCase() + " qabul qiladi.", { inline_keyboard: [any, [{ text: "Boshqa mutaxassis", callback_data: "bk:on" }]] });
+  return send(chat, SPEC[spec] + " — shifokorni tanlang:", { inline_keyboard: [any].concat(r.map((d) => { const p = [priceOf(d.profile, "text"), priceOf(d.profile, "video")].filter((x) => x != null); return [{ text: cut(d.name, 28) + (d.verified_at ? " ✔️" : "") + (p.length ? " · " + (Math.min(...p) === 0 ? "bepul" : sum(Math.min(...p))) : ""), callback_data: "bd:" + d.id }]; })) });
 }
 async function bookDoctor(chat, u, id) {
   const d = (await q("select id, name, profile from app_users where id = $1 and role = 'doctor' and (imported_at is null or claimed_at is not null)", [id])).rows[0];
@@ -174,7 +194,7 @@ async function bookTimes(chat, u, st, day) {
   return send(chat, "⏰ " + dayLabel(day) + " — vaqtni tanlang:", { inline_keyboard: rows(d.slots.slice(0, 24).map((ms) => ({ text: when(ms).split(", ")[1], callback_data: "bsl:" + ms })), 4).concat([[{ text: "← Boshqa kun", callback_data: "bk:days" }]]) });
 }
 async function bookConfirm(chat, u, st) {
-  const d = (await q("select name, profile from app_users where id = $1", [st.doc])).rows[0] || { name: "", profile: {} };
+  const d = st.doc ? (await q("select name, profile from app_users where id = $1", [st.doc])).rows[0] || { name: "", profile: {} } : { name: "Istalgan " + (SPEC[st.spec] || "shifokor").toLowerCase() + " — birinchi qabul qilgan", profile: {} };
   const p = priceOf(d.profile, st.type);
   return send(chat, "Tekshiring:\n\n👨‍⚕️ " + d.name + "\n" + (st.type === "video" ? "📹 Video maslahat" : "💬 Chat maslahat") + (p != null ? " · " + (p === 0 ? "bepul" : sum(p)) : "") + "\n🗓 " + (st.slot ? when(st.slot) : "vaqtni shifokor bilan kelishasiz") + "\n✍️ " + cut(st.text, 300) + (p ? "\n\nTo‘lov shifokor arizani qabul qilgach." : ""),
     { inline_keyboard: [[{ text: "✅ Yuborish", callback_data: "bk:ok" }], [{ text: "❌ Bekor qilish", callback_data: "bk:x" }]] });
@@ -182,7 +202,7 @@ async function bookConfirm(chat, u, st) {
 async function bookSend(chat, u, st) {
   const C = require("./consults").actions;
   try {
-    const r = await C.create_consult({ c: { type: st.type, who: "self", name: u.name, phone: "", complaint: st.text, since: 1, doc: st.doc, slot: st.slot ? new Date(st.slot).toISOString() : "" } }, u);
+    const r = await C.create_consult({ c: { type: st.type, who: "self", name: u.name, phone: "", complaint: st.text, since: 1, doc: st.doc || "", spec: st.spec || "", asap: !st.doc, slot: st.slot ? new Date(st.slot).toISOString() : "" } }, u);
     await bkSet(u, null);
     return send(chat, "✅ Ariza yuborildi" + (st.slot ? " — " + when(st.slot) : "") + ". Shifokor qabul qilsa yoki javob yozsa, shu yerga xabar keladi.", { inline_keyboard: [[{ text: "Arizani ko‘rish", callback_data: "cv:" + r.id }]] });
   } catch (e) {
@@ -222,7 +242,7 @@ async function visitSend(chat, u, st) {
 }
 // the booking buttons; true when handled
 async function bookButton(chat, u, data) {
-  const k = /^(bk|bs|bd|bt|bday|bsl|bp|bvd|bvp|bvt|bv):([A-Za-z0-9:_-]{1,40})$/.exec(data);
+  const k = /^(bk|bs|bd|ba|bt|bday|bsl|bp|bvd|bvp|bvt|bv):([A-Za-z0-9:_-]{1,40})$/.exec(data);
   if (!k) return false;
   if (!u) { await menu(chat, null); return true; }
   const [, a, v] = k, st = bkGet(u) || {};
@@ -231,8 +251,13 @@ async function bookButton(chat, u, data) {
   if (a === "bk" && v === "in") { await bkSet(u, null); await bookPlaces(chat, u); return true; }
   if (a === "bs" && SPEC[v]) { await bookDoctors(chat, v); return true; }
   if (a === "bd" && /^[0-9a-f-]{36}$/.test(v)) { await bookDoctor(chat, u, v); return true; }
+  if (a === "ba" && SPEC[v]) { await bkSet(u, { f: "c", doc: "", spec: v }); await send(chat, "🌐 " + SPEC[v] + ": arizangizni bo‘sh shifokor qabul qiladi.\n\nMaslahat turini tanlang:", { inline_keyboard: [[{ text: "💬 Chat", callback_data: "bt:text" }, { text: "📹 Video", callback_data: "bt:video" }]] }); return true; }
   if (st.f === "c") {
-    if (a === "bt" && (v === "text" || v === "video")) { st.type = v; await bkSet(u, st); await bookDays(chat, u, st); return true; }
+    if (a === "bt" && (v === "text" || v === "video")) {
+      st.type = v;
+      if (!st.doc) { st.slot = 0; st.wait = "text"; await bkSet(u, st); await send(chat, "✍️ Muammongizni qisqacha yozing (masalan: «3 kundan beri yo‘tal va isitma»). Vaqtni shifokor bilan chatda kelishasiz.", { inline_keyboard: [[{ text: "❌ Bekor qilish", callback_data: "bk:x" }]] }); return true; }
+      await bkSet(u, st); await bookDays(chat, u, st); return true;
+    }
     if (a === "bk" && v === "days") { await bookDays(chat, u, st); return true; }
     if (a === "bday" && /^\d{10,14}$/.test(v)) { await bookTimes(chat, u, st, Number(v)); return true; }
     if (a === "bsl" && /^\d{10,14}$/.test(v)) { st.slot = Number(v); st.wait = "text"; await bkSet(u, st); await send(chat, "🗓 " + when(st.slot) + "\n\n✍️ Endi muammongizni qisqacha yozing (masalan: «3 kundan beri yo‘tal va isitma»).", { inline_keyboard: [[{ text: "❌ Bekor qilish", callback_data: "bk:x" }]] }); return true; }
@@ -288,7 +313,7 @@ async function botMessage(m) {
 // menu buttons under a message: cv (show an application), cr (answer in it), ds (doctors of a specialty); true when handled
 async function botButton(cb) {
   const data = String(cb.data || ""), chat = cb.message && cb.message.chat && cb.message.chat.id;
-  if (chat && /^(bk|bs|bd|bt|bday|bsl|bp|bvd|bvp|bvt|bv):/.test(data)) {
+  if (chat && /^(bk|bs|bd|ba|bt|bday|bsl|bp|bvd|bvp|bvt|bv):/.test(data)) {
     await N.tgApi("answerCallbackQuery", { callback_query_id: cb.id }).catch(() => {});
     const bu = await userOf(chat);
     if (data === "bk:start") { await bookStart(chat, bu); return true; }

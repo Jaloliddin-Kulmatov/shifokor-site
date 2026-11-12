@@ -125,5 +125,10 @@
       "path": "/api/daily",
       "schedule": "0 5 * * *"
     }
-  ]
+  ],
+  "functions": {
+    "api/app.js": {
+      "includeFiles": "site/samples.js"
+    }
+  }
 }

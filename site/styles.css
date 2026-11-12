@@ -1826,3 +1826,22 @@ audio.voice { display: block; width: 240px; max-width: 100%; height: 36px; margi
 .ofaddr { display: flex; gap: 10px; align-items: flex-start; margin: 6px 0 8px; }
 .ofaddr svg { flex: none; margin-top: 3px; color: var(--accent); }
 .ofaddr span { display: grid; gap: 2px; }
+
+/* "Sinab ko'rish": the guide page and the sandbox bar */
+.trypage h1 { margin: 6px 0 10px; }
+.trypage .lead { max-width: 760px; font-size: 1.08rem; }
+.trygrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 22px 0 28px; }
+.trycard { display: grid; gap: 10px; align-content: start; padding: 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--card, transparent); }
+.trycard h3 { margin: 0; }
+.trycard p { margin: 0; color: var(--muted); }
+.trycard .btn { justify-self: start; margin-top: 4px; }
+.trysteps { display: grid; gap: 10px; padding-left: 22px; max-width: 860px; margin: 10px 0 22px; }
+.demobar { position: fixed; left: 50%; transform: translateX(-50%); bottom: 16px; z-index: 60; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center;
+  max-width: calc(100vw - 24px); padding: 8px 10px 8px 14px; border-radius: 999px; background: #0f4c4f; color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,.28); font-size: .88rem; }
+.demobar .dmt { font-weight: 700; margin-right: 2px; }
+.demobar .dmroles { display: inline-flex; gap: 4px; background: rgba(255,255,255,.12); border-radius: 999px; padding: 3px; }
+.demobar button, .demobar a { font: inherit; color: #fff; background: transparent; border: 0; border-radius: 999px; padding: 6px 10px; cursor: pointer; text-decoration: none; }
+.demobar .dmroles button[aria-pressed="true"] { background: #fff; color: #0f4c4f; font-weight: 700; }
+.demobar .dmx { background: rgba(255,255,255,.14); }
+.demobar a:hover, .demobar button:hover { text-decoration: underline; }
+@media (max-width: 899px) { .demobar { bottom: calc(env(safe-area-inset-bottom, 0px) + 80px); flex-wrap: nowrap; gap: 4px; padding: 5px; font-size: .82rem; } .demobar .dmt, .demobar .dmhelp { display: none; } .demobar button { padding: 6px 9px; } }

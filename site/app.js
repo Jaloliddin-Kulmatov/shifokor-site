@@ -69,9 +69,10 @@
   var AS = { step: 1, f: { sp: "dental" }, pick: null, done: null };   /* village assist */
 
   var K = { bookings: "shifokor-bookings", status: "shifokor-status", prices: "shifokor-prices", conf: "shifokor-conf", reports: "shifokor-reports" };
+  var PFX = window.SH_DEMO ? "demo:" : "";   /* "Sinab ko'rish": the sandbox keeps its data under its own keys */
   var store = {
-    get: function (k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } },
-    set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+    get: function (k, d) { try { var v = JSON.parse(localStorage.getItem(PFX + k)); return v == null ? d : v; } catch (e) { return d; } },
+    set: function (k, v) { try { localStorage.setItem(PFX + k, JSON.stringify(v)); } catch (e) {} }
   };
   var bookings = function () { return store.get(K.bookings, []); };
   var saveBookings = function (l) { store.set(K.bookings, l); };
@@ -353,8 +354,9 @@
     var t = L(); text = String(text || "").trim(); if (AI.busy || text.length < 3) return;
     AI.msgs.push({ role: "user", content: text }); AI.busy = true; AI.open = true; aiDraw("");
     var done = function (m) { AI.msgs.push(Object.assign({ role: "assistant" }, m)); AI.busy = false; aiDraw(); };
-    if (!BE) { done(aiLocal(text)); return; }
-    BE.aiFind(AI.msgs.slice(-8).map(function (m) { return { role: m.role, content: m.content }; }), lang).then(function (a) { done({ content: a.reply, spec: a.spec, service: a.service, inperson: a.inperson, emergency: a.emergency }); },
+    var aiCall = BE ? BE.aiFind : window.SB_AI;
+    if (!aiCall) { done(aiLocal(text)); return; }
+    aiCall(AI.msgs.slice(-8).map(function (m) { return { role: m.role, content: m.content }; }), lang).then(function (a) { done({ content: a.reply, spec: a.spec, service: a.service, inperson: a.inperson, emergency: a.emergency }); },
       function (x) { done(x && x.code === "limit" ? { content: t.ai_limit } : aiLocal(text)); });
   }
   function aiDoc(u) {
@@ -1301,7 +1303,7 @@
       '<label class="sel chkf"><input type="checkbox" id="df-on"' + (q.on ? " checked" : "") + "> " + t.df_online + "</label>" +
       '<label class="sel chkf"><input type="checkbox" id="df-fem"' + (q.fem ? " checked" : "") + "> " + t.df_fem + '</label><div class="dfgo"><button class="btn" type="submit">' + ic("search") + t.df_go + "</button>" + (any ? '<a class="btn ghost" href="#/doctors">' + t.df_clear + "</a>" : "") + "</div></form>";
     /* one page for choosing a doctor and applying: the first free doctor, or any card's button, opens the application over this list */
-    return '<div class="band deep ochero' + (any ? " searching" : "") + '"><div class="wrap bhead"><div class="eyebrow">' + t.nv_clinic + "</div><h1>" + t.oc_page_h + '</h1><p class="sub">' + t.oc_page_p + '</p><ol class="ocsteps">' + t.oc_page_steps.map(function (x, i) { return "<li><b>" + (i + 1) + "</b><span>" + x + "</span></li>"; }).join("") + '</ol><p style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap"><a class="btn light big" href="#/consult?' + qs(Object.assign({}, dfKeep(), { now: "1" })) + '">' + ic("video") + t.asap_now[0] + '</a><a class="btn ghost" style="color:var(--deep-ink);border-color:var(--deep-line)" href="#/register" data-regrole-link="doctor">' + t.reg_doc_cta + "</a></p></div></div>" +
+    return '<div class="band deep ochero' + (any ? " searching" : "") + '"><div class="wrap bhead"><div class="eyebrow">' + t.nv_clinic + "</div><h1>" + t.oc_page_h + '</h1><p class="sub">' + t.oc_page_p + '</p><ol class="ocsteps">' + t.oc_page_steps.map(function (x, i) { return "<li><b>" + (i + 1) + "</b><span>" + x + "</span></li>"; }).join("") + '</ol><p style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap"><a class="btn light big" href="#/consult?' + qs(Object.assign({}, dfKeep(), { now: "1" })) + '">' + ic("video") + t.asap_now[0] + '</a></p></div></div>' +
       (any ? "" : hcCards()) + '<div class="wrap pad" style="padding-top:8px"><h2 class="subh">' + t.nv_panel + "</h2>" + filters + (ss.length ? '<p class="symhint">' + ic("search") + " " + t.sym_hint(esc(q.q), ss.map(function (k) { return t.docsp[k]; }).join(", ")) + "</p>" : "") + (list.some(function (u) { return u.sample; }) ? '<p class="fine smpline">' + t.smp_dir + "</p>" : "") + '<div class="results" style="padding:14px 0 0">' + (list.length ? '<p class="dfcount">' + t.df_found(list.length) + "</p>" + list.map(docCard).join("") : any ? '<div class="empty">' + t.df_none + ' <a href="#/doctors">' + t.df_clear + "</a></div>" + (near.length ? '<h2 class="subh" style="margin:22px 0 4px">' + t.df_near + "</h2>" + near.map(docCard).join("") : "") : '<div class="empty">' + t.no_doctors + "</div>") + "</div>" +
       '<h2 style="margin:40px 0 14px;font-size:1.4rem">' + t.clinics_reg_h + '</h2><div class="results" style="padding:0">' + (clinics.length ? clinics.map(function (c) { var pr = c.profile || {}; return '<article class="fcard"><div class="ficon c-' + (pr.ctype || "clinic") + '">' + ic(CAT_IC[pr.ctype || "clinic"]) + '</div><div class="fmain"><h3><a href="#/c/' + c.id + '">' + esc(c.name) + '</a></h3><div class="spec">' + t.cat[pr.ctype || "clinic"] + '</div><div class="badges">' + (c.verified ? vBadge(c) : "") + "</div>" + (pr.district && disByCode[pr.district] ? '<div class="meta">' + ic("pin") + esc(nmL(disByCode[pr.district]) + ", " + nmL(REG[disByCode[pr.district].r])) + "</div>" : "") + '</div><div class="facts"><a class="btn ghost sm" href="#/c/' + c.id + '">' + t.view + "</a></div></article>"; }).join("") : '<div class="empty">' + t.no_clinics_reg + "</div>") + "</div></div>";
   }
@@ -2710,6 +2712,7 @@
     else if (path === "/ona") { html = viewOna(); route = "ona"; }
     else if (path === "/consult") { html = viewDoctors(q) + viewConsult(q, true); route = "consult"; }
     else if (path === "/about") { html = viewAbout(); route = "about"; }
+    else if (path === "/try") { html = viewTry(); route = "try"; }
     else if (path === "/specialists") { html = viewSpecialists(); route = "specialists"; }
     else if (path === "/services") { html = viewServices(); route = "services"; }
     else if (path === "/calltest" || path.indexOf("/calltest/") === 0) { html = viewCallTest(path.slice(10)); route = "calltest"; }
@@ -2740,12 +2743,58 @@
     hdr();
     aiSync();
     tbDraw();
+    demoBar();
     closeMenu();
     if (keepScroll) window.scrollTo(0, y); else { window.scrollTo(0, 0); $("app").focus({ preventScroll: true }); }
     if (Date.now() - CS_FOCUS < 1500) { var csTa = $("csmsg-in"); if (csTa) csTa.focus(); }   /* a page can draw twice after a move, so this holds briefly */
     if (!keepScroll && $("ap-h")) { $("ap-h").setAttribute("tabindex", "-1"); $("ap-h").focus({ preventScroll: true }); }
     if (!keepScroll && (q.doc || q.book) && (path.indexOf("/c/") === 0 || path.indexOf("/f/") === 0 || path.indexOf("/doc/") === 0) && $("book")) { $("book").scrollIntoView(); setTimeout(function () { var el = $("book"); if (el) el.scrollIntoView(); }, 350); }   /* "book with this doctor" from a doctor's page lands on the form */
     if (!keepScroll && path === "/about" && q.s && $("ab-" + q.s)) { $("ab-" + q.s).scrollIntoView(); setTimeout(function () { var el = $("ab-" + q.s); if (el) el.scrollIntoView(); }, 350); }
+  }
+  /* ---------------- "Sinab ko'rish": a ready patient, doctor and clinic, only in this browser ---------------- */
+  var DEMO = !!window.SH_DEMO, DM = { patient: "dm-pat", doctor: "dm-doc", clinic: "dm-cli" };
+  function demoSeed() {
+    if (users().some(function (u) { return u.id === DM.doctor; })) return;
+    var now = Date.now(), tl = L(), dn = "Dilnoza Karimova", cn = "Farg‘ona Shifo klinikasi", pn = "Malika Tursunova", ph = "998935556677";
+    var day = function (n) { return iso(dayAt(n)); }, ul = users();
+    ul.push({ id: DM.clinic, role: "clinic", name: cn, email: "klinika@demo.shifokor.com", phone: "998901112233", tg: "", pw: "", created: day(0), updated: day(0), verified: true, emailVerified: true,
+      profile: { ctype: "polyclinic", own: "p", region: "UZ30", addr: "Farg‘ona sh., Mustaqillik ko‘chasi 10", hours: "Du–Sh 8:00–18:00", about: "Namuna klinika (sinov rejimi).", svc: [] } });
+    ul.push({ id: DM.doctor, role: "doctor", name: dn, email: "shifokor@demo.shifokor.com", phone: "998902223344", tg: "", pw: "", created: day(0), updated: day(0), verified: true, emailVerified: true,
+      profile: { spec: "pediatrics", years: 9, sex: "f", langs: ["uz", "ru"], modes: ["in", "on"], region: "UZ30", bio: "Bolalar shifokori. Namuna profil (sinov rejimi).", cp: { text: 50000, video: 80000 }, reply: "3",
+        hours: { days: [1, 2, 3, 4, 5, 6], from: "09:00", to: "17:00", len: 30 }, office: { on: true, addr: "Farg‘ona sh., Al-Farg‘oniy ko‘chasi 5, 2-qavat", hours: "Du–Ju 9:00–17:00" }, work: [{ t: "c", id: DM.clinic }], svc: [] } });
+    ul.push({ id: DM.patient, role: "patient", name: pn, email: "", phone: ph, tg: "", pw: "", created: day(0), updated: day(0), profile: { region: "UZ30" } });
+    store.set(KU, ul);
+    store.set(KSTA, demoStaff().concat([{ id: "dm-st", clinicId: DM.clinic, doctorId: DM.doctor, phone: "998902223344", branchId: "", status: "active" }]));
+    var t0 = now - 3 * 864e5, cl = consults();
+    cl.push({ id: "dm-c1", n: 1001, at: t0, userId: DM.patient, wantAt: 0, type: "text", who: "other", name: "Aziz", age: 4, sex: "m", phone: ph, region: "UZ30", district: "", complaint: "Ikki kundan beri isitma (38,2) va yo‘tal, ishtahasi past.", since: "1-3", chronic: "", meds: "", allergy: "", spec: "pediatrics", doc: DM.doctor, asap: false, slotAt: 0,
+      status: "done", outcome: 0, doctorId: DM.doctor, doctorName: dn, price: 50000, payStatus: "paid", closedAt: t0 + 3600e3,
+      msgs: [{ from: "s", text: tl.cs_sent, at: t0 }, { from: "s", text: tl.cs_accepted(dn), at: t0 + 600e3 }, { from: "d", name: dn, text: "Assalomu alaykum! Nafas qisishi, toshma yoki qusish bormi? Ko‘p suyuqlik ichyaptimi?", at: t0 + 900e3 },
+        { from: "p", name: pn, text: "Yo‘q, faqat isitma va yo‘tal. Suv ichyapti.", at: t0 + 1500e3 },
+        { from: "d", name: dn, text: "Xulosa: shamollash belgilariga o‘xshaydi. Ko‘p suyuqlik va dam olish. Isitma 3 kundan oshsa yoki nafas qisilsa, yuzma-yuz ko‘rikka keling; ahvol og‘irlashsa, 103 ga qo‘ng‘iroq qiling. (Namuna xulosa.)", at: t0 + 3000e3 },
+        { from: "s", text: tl.cs_finished(tl.on_out[0]), at: t0 + 3600e3 }] });
+    cl.push({ id: "dm-c2", n: 1002, at: now - 1200e3, userId: DM.patient, wantAt: 0, type: "video", who: "self", name: pn, age: 31, sex: "f", phone: ph, region: "UZ30", district: "", complaint: "Bir haftadan beri bosh og‘rig‘i, ayniqsa kechqurun. Bosim o‘lchamadim.", since: "4-7", chronic: "", meds: "", allergy: "", spec: "", doc: DM.doctor, asap: false, slotAt: 0,
+      status: "new", doctorId: "", doctorName: "", msgs: [{ from: "s", text: tl.cs_sent, at: now - 1200e3 }] });
+    saveConsults(cl);
+    var al = appts();
+    al.push({ id: "dm-a1", n: 5001, at: now - 7200e3, userId: DM.patient, clinicId: DM.clinic, clinicName: cn, fac: "", day: apDays(3)[2], part: "am", ptime: "10:00", who: "other", name: "Aziz", phone: ph, spec: "pediatrics", reason: "Bolani ko‘rikka olib kelish", doctorId: DM.doctor, doctorName: dn, status: "new", time: "", note: "" });
+    saveAppts(al);
+  }
+  function demoAs(role) { demoSeed(); store.set(KS, DM[role] || DM.patient); AP = null; APX = null; go("#/account"); }
+  function viewTry() {
+    var t = L(), u = me();
+    var card = function (k, icn) { return '<div class="trycard"><span class="icobox">' + ic(icn) + "</span><h3>" + t.dm_roles[k] + "</h3><p>" + t.dm_role_p[k] + '</p><button class="btn" type="button" data-act="' + (DEMO ? "demo-as" : "demo-go") + '" data-role="' + k + '">' + t.dm_enter(t.dm_roles[k]) + "</button></div>"; };
+    return '<div class="wrap pad trypage"><p class="eyebrow">' + t.dm_eyebrow + "</p><h1>" + t.dm_h + '</h1><p class="lead">' + t.dm_p + "</p>" +
+      '<div class="trygrid">' + card("patient", "heart") + card("doctor", "shield") + card("clinic", "hosp") + "</div>" +
+      "<h2>" + t.dm_steps_h + '</h2><ol class="trysteps">' + t.dm_steps.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ol>" +
+      '<div class="note-box"><b>' + t.dm_note_h + '</b><p style="margin:6px 0 0">' + t.dm_note_p + "</p></div>" +
+      (DEMO ? '<p style="margin-top:16px"><button class="btn ghost" type="button" data-act="demo-exit">' + t.dm_exit_long + "</button></p>" : "") + "</div>";
+  }
+  function demoBar() {
+    if (!DEMO) return;
+    var b = $("demobar"); if (!b) { b = document.createElement("div"); b.id = "demobar"; b.className = "demobar"; b.setAttribute("role", "region"); document.body.appendChild(b); }
+    var t = L(), u = me(), r = u ? u.role : "";
+    b.setAttribute("aria-label", t.dm_bar);
+    b.innerHTML = '<b class="dmt">' + t.dm_bar + '</b><span class="dmroles">' + ["patient", "doctor", "clinic"].map(function (k) { return '<button type="button" data-act="demo-as" data-role="' + k + '" aria-pressed="' + (r === k) + '">' + t.dm_roles[k] + "</button>"; }).join("") + '</span><a class="dmhelp" href="#/try">' + t.dm_help + '</a><button type="button" class="dmx" data-act="demo-exit">' + t.dm_exit + "</button>";
   }
   /* after signing in or registering, go back to the page the visitor was on (an application they started, say) */
   var NEXT_K = "shifokor-next";
@@ -3091,6 +3140,9 @@
       savePrefs(); render(true); toast(t.set_saved); return;
     }
     if (ds.setlang) { lang = ds.setlang; try { localStorage.setItem("shifokor-lang", lang); } catch (x) {} render(true); return; }
+    if (ds.act === "demo-go") { try { localStorage.setItem("shifokor-demo", "1"); sessionStorage.setItem("shifokor-demo-as", ds.role || "patient"); } catch (x) {} location.hash = "#/try"; location.reload(); return; }
+    if (ds.act === "demo-as") { demoAs(ds.role); return; }
+    if (ds.act === "demo-exit") { try { localStorage.removeItem("shifokor-demo"); } catch (x) {} location.hash = "#/"; location.reload(); return; }
     if (ds.act === "forgetloc") { POS = null; try { sessionStorage.removeItem("shifokor-pos"); } catch (x) {} toast(t.set_loc_done); render(true); return; }
     if (ds.act === "cleardata") { SET_ASK = true; render(true); return; }
     if (ds.act === "cleardata-no") { SET_ASK = false; render(true); return; }
@@ -3496,9 +3548,11 @@
     if (modal) closeModal(); else if (om) { closeMenu(); om.previousElementSibling.focus(); } else if ($("ap-h")) go(apClose());
   });
   /* another tab booked or changed something: refresh so a taken slot disappears here too */
-  window.addEventListener("storage", function (e) { if (e.key && e.key.indexOf("shifokor-") === 0) rerender(); });
+  window.addEventListener("storage", function (e) { if (e.key && (e.key.indexOf("shifokor-") === 0 || e.key.indexOf("demo:shifokor-") === 0)) rerender(); });
   window.addEventListener("hashchange", function () { voDrop(); RS = null; CX = null; PH = null; cancelAsk = null; apAsk = null; APX = null; RR = null; PO.form = null; PO.del = ""; IM.del = ""; ON.urgent = ON.ok = ON.del = false; ON.famUrl = ""; render(false); });
 
+  /* entering the sandbox reloads the page: seed it and sign in as the role the visitor picked */
+  if (DEMO) { var dmAs = ""; try { dmAs = sessionStorage.getItem("shifokor-demo-as") || ""; sessionStorage.removeItem("shifokor-demo-as"); } catch (x) {} demoSeed(); if (dmAs) { store.set(KS, DM[dmAs] || DM.patient); location.hash = "#/account"; } }
   render(false);
   /* a patient anywhere on the site hears about a doctor's call once per ring */
   var rung = {};

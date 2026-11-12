@@ -4,6 +4,17 @@
    Server data is mirrored into the same localStorage keys the app already reads, so the views stay unchanged. */
 (function () {
   var C = window.SHIFOKOR_CONFIG || {};
+  /* "Sinab ko'rish": a sandbox for judges and visitors. Accounts and requests stay in this browser under their own keys,
+     nothing reaches real users; only Shifo_AI asks the server (as a visitor, with the visitor's daily limit). */
+  var DEMO = false; try { DEMO = localStorage.getItem("shifokor-demo") === "1"; } catch (e) {}
+  if (DEMO) {
+    window.SH_DEMO = true; window.SB = null;
+    if (C.api) window.SB_AI = function (messages, l) {
+      return fetch(C.api, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "ai_find", messages: messages, lang: l }) })
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) { var e = new Error(j.error || "server"); e.code = j.error || "server"; throw e; } return j; }); });
+    };
+    return;
+  }
   if (!C.api) { window.SB = null; return; }
 
   var TK = "shifokor-token", photos = {}, token = null, uid = null, listeners = [], ready = false, busy = null, last = "", notify = { tg: false, sms: false }, pay = { payme: false, click: false }, earn = null, ona = { preg: null, mothers: [] };

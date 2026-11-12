@@ -156,8 +156,12 @@ async function bookStart(chat, u) {
 async function bookDoctors(chat, spec) {
   const r = (await q("select id, name, profile, verified_at from app_users where role = 'doctor' and profile->>'spec' = $1 and profile->'modes' ? 'on' and (imported_at is null or claimed_at is not null) order by verified_at is null, updated_at desc limit 8", [spec])).rows;
   const any = [{ text: "🌐 Istalgan " + SPEC[spec].toLowerCase() + " (birinchi qabul qilgan)", callback_data: "ba:" + spec }];
-  if (!r.length) return send(chat, SPEC[spec] + ": hozircha alohida tanlanadigan shifokor yo‘q. Ariza yuborsangiz, bo‘sh " + SPEC[spec].toLowerCase() + " qabul qiladi.", { inline_keyboard: [any, [{ text: "Boshqa mutaxassis", callback_data: "bk:on" }]] });
-  return send(chat, SPEC[spec] + " — shifokorni tanlang:", { inline_keyboard: [any].concat(r.map((d) => { const p = [priceOf(d.profile, "text"), priceOf(d.profile, "video")].filter((x) => x != null); return [{ text: cut(d.name, 28) + (d.verified_at ? " ✔️" : "") + (p.length ? " · " + (Math.min(...p) === 0 ? "bepul" : sum(Math.min(...p))) : ""), callback_data: "bd:" + d.id }]; })) });
+  // sample doctors fill the list so it never looks empty; they open on the site and say plainly they can't be booked
+  const sm = samplesOf(spec).slice(0, Math.max(0, 5 - r.length));
+  const smText = sm.length ? "\n\nNamuna profillar (ko‘rish uchun, ular bilan yozilib bo‘lmaydi):\n" + sm.map((d) => { const p = [d.cp.text, d.cp.video].filter((x) => x !== "" && x != null && isFinite(Number(x))).map(Number); return "• " + d.name + (d.years ? " · " + d.years + " yil" : "") + (p.length ? " · " + sum(Math.min(...p)) + "dan" : "") + " · namuna"; }).join("\n") : "";
+  const smKb = sm.map((d) => [{ text: "👤 " + cut(d.name, 26) + " (namuna)", url: url("/#/doc/" + d.id) }]);
+  if (!r.length) return send(chat, SPEC[spec] + ": haqiqiy shifokorlar tez orada qo‘shiladi. Hozir ariza yuborsangiz, birinchi bo‘sh " + SPEC[spec].toLowerCase() + " qabul qiladi." + smText, { inline_keyboard: [any].concat(smKb, [[{ text: "Boshqa mutaxassis", callback_data: "bk:on" }]]) });
+  return send(chat, SPEC[spec] + " — shifokorni tanlang:" + smText, { inline_keyboard: [any].concat(r.map((d) => { const p = [priceOf(d.profile, "text"), priceOf(d.profile, "video")].filter((x) => x != null); return [{ text: cut(d.name, 28) + (d.verified_at ? " ✔️" : "") + (p.length ? " · " + (Math.min(...p) === 0 ? "bepul" : sum(Math.min(...p))) : ""), callback_data: "bd:" + d.id }]; })).concat(smKb) });
 }
 async function bookDoctor(chat, u, id) {
   const d = (await q("select id, name, profile from app_users where id = $1 and role = 'doctor' and (imported_at is null or claimed_at is not null)", [id])).rows[0];

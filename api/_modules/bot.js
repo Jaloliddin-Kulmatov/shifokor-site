@@ -52,7 +52,8 @@ async function linkContact(m) {
 async function myConsults(chat, u) {
   const doc = u.role === "doctor";
   const r = (await q("select id, n, status, type, doctor_name, name, created_at from app_consults where " + (doc ? "doctor_id = $1" : "patient_id = $1") + " order by created_at desc limit 8", [u.id])).rows;
-  if (!r.length) return send(chat, doc ? "Sizda hali qabul qilingan ariza yo‘q." : "Sizda hali ariza yo‘q. Shifokorga yozish uchun saytda ariza yuboring.", open(doc ? "Arizalarni ochish" : "Ariza yuborish", doc ? "/#/account/requests" : "/#/consult"));
+  if (!r.length) return doc ? send(chat, "Sizda hali qabul qilingan ariza yo‘q.", open("Arizalarni ochish", "/#/account/requests"))
+    : send(chat, "Sizda hali ariza yo‘q. Shu yerning o‘zida shifokorga yozing: mutaxassisni tanlaysiz, muammoni yozasiz, keyin shifokor bilan shu chatda yozishasiz.", { inline_keyboard: [[{ text: "📝 Onlayn ariza yuborish", callback_data: "bk:on" }], [{ text: "🤖 Qaysi shifokor kerakligini bilmayman", callback_data: "bk:ai" }]] });
   return send(chat, (doc ? "Bemorlaringiz arizalari:" : "Arizalaringiz:") + "\n\n" + r.map((c) => "№" + c.n + " · " + (CS_ST[c.status] || c.status) + (doc ? " · " + c.name : c.doctor_name ? " · " + c.doctor_name : "")).join("\n") + "\n\nBatafsil ko‘rish uchun tanlang:",
     { inline_keyboard: r.map((c) => [{ text: "№" + c.n + " — " + cut(doc ? c.name : c.doctor_name || "shifokor kutilmoqda", 30), callback_data: "cv:" + c.id }]) });
 }
@@ -66,15 +67,15 @@ async function showConsult(chat, u, id) {
   const text = "Ariza №" + c.n + " · " + (CS_ST[c.status] || c.status) + "\n" + (c.type === "video" ? "Video maslahat" : "Matnli maslahat") + (c.doctor_name ? " · " + c.doctor_name : "") +
     (c.slot_at ? "\n🗓 " + when(c.slot_at) : c.want_at ? "\n🗓 Qulay vaqt: " + when(c.want_at) : "") + "\n\n" + (lines.length ? lines.join("\n") : "Hali xabar yo‘q.") +
     (last && last.body ? "\n\n📝 Xulosa: " + cut(last.body, 900) : "");
-  const can = c.status === "accepted" && !(u.id === c.doctor_id && c.pay_status === "due");
-  const kb = (can ? [[{ text: "✍️ Javob yozish", callback_data: "cr:" + c.id }]] : []).concat([[{ text: "🌐 Saytda ochish (rasm, qo‘ng‘iroq)", url: url("/#/consult/" + c.id) }]]);
+  const can = (c.status === "accepted" || (c.status === "new" && u.id === c.patient_id)) && !(u.id === c.doctor_id && c.pay_status === "due");
+  const kb = (can ? [[{ text: u.id === c.patient_id && c.status === "new" ? "✍️ Qo‘shimcha yozish" : "💬 Chatni ochish", callback_data: "cr:" + c.id }]] : []).concat([[{ text: "🌐 Saytda ochish (rasm, qo‘ng‘iroq)", url: url("/#/consult/" + c.id) }]]);
   return send(chat, text, { inline_keyboard: kb });
 }
 
 async function myVisits(chat, u) {
   const col = u.role === "clinic" ? "clinic_id" : u.role === "doctor" ? "doctor_id" : "patient_id";
   const r = (await q("select n, clinic_name, day, part, appt_time, status, name from app_appts where " + col + " = $1 order by day desc limit 8", [u.id])).rows;
-  if (!r.length) return send(chat, "Klinikaga yozilishlar hali yo‘q.", open("Klinikaga yozilish", "/#/find"));
+  if (!r.length) return u.role === "patient" ? send(chat, "Klinikaga yozilishlar hali yo‘q.", { inline_keyboard: [[{ text: "🏥 Yuzma-yuz qabulga yozilish", callback_data: "bk:in" }], [{ text: "💻 Onlayn maslahat", callback_data: "bk:on" }]] }) : send(chat, "Klinikaga yozilishlar hali yo‘q.");
   return send(chat, "Klinikaga yozilishlar:\n\n" + r.map((a) => "№" + a.n + " · " + (u.role === "patient" ? a.clinic_name : a.name) + "\n   " + day(a.day) + ", " + (a.appt_time ? "soat " + a.appt_time : a.part === "am" ? "ertalab" : "tushdan keyin") + " · " + (AP_ST[a.status] || a.status)).join("\n\n"), open("Saytda ochish", "/#/account/visits"));
 }
 
@@ -204,7 +205,7 @@ async function bookSend(chat, u, st) {
   try {
     const r = await C.create_consult({ c: { type: st.type, who: "self", name: u.name, phone: "", complaint: st.text, since: 1, doc: st.doc || "", spec: st.spec || "", asap: !st.doc, slot: st.slot ? new Date(st.slot).toISOString() : "" } }, u);
     await bkSet(u, null);
-    return send(chat, "✅ Ariza yuborildi" + (st.slot ? " — " + when(st.slot) : "") + ". Shifokor qabul qilsa yoki javob yozsa, shu yerga xabar keladi.", { inline_keyboard: [[{ text: "Arizani ko‘rish", callback_data: "cv:" + r.id }]] });
+    return send(chat, "✅ Ariza yuborildi" + (st.slot ? " — " + when(st.slot) : "") + ". Shifokor qabul qilsa yoki javob yozsa, shu yerga xabar keladi.", { inline_keyboard: [[{ text: "💬 Chatni ochish", callback_data: "cr:" + r.id }], [{ text: "Arizani ko‘rish", callback_data: "cv:" + r.id }]] });
   } catch (e) {
     if (e.code === "slot_taken" || e.code === "slot") { st.slot = 0; await bkSet(u, st); await send(chat, "Bu vaqt hozirgina band bo‘ldi. Boshqa vaqtni tanlang."); return bookDays(chat, u, st); }
     return send(chat, e.code === "complaint" ? "Muammoni biroz batafsilroq yozing." : "Yuborib bo‘lmadi. Saytda urinib ko‘ring.", open("Saytda ariza yuborish", "/#/consult"));
@@ -248,6 +249,7 @@ async function bookButton(chat, u, data) {
   const [, a, v] = k, st = bkGet(u) || {};
   if (a === "bk" && v === "x") { await bkSet(u, null); await send(chat, "Bekor qilindi.", MENU); return true; }
   if (a === "bk" && v === "on") { await bkSet(u, null); await send(chat, "Qaysi mutaxassis kerak? Bilmasangiz, «🤖 Shifo_AI» ga muammoingizni yozing.", { inline_keyboard: rows(Object.keys(SPEC).map((s2) => ({ text: SPEC[s2], callback_data: "bs:" + s2 })), 2) }); return true; }
+  if (a === "bk" && v === "ai") { await bkSet(u, null); await send(chat, "🤖 Muammongizni o‘z so‘zingiz bilan yozing (masalan: «bolamning isitmasi bor, 2 kundan beri»). Shifo_AI qaysi shifokor kerakligini aytadi va yozilishni taklif qiladi.", MENU); return true; }
   if (a === "bk" && v === "in") { await bkSet(u, null); await bookPlaces(chat, u); return true; }
   if (a === "bs" && SPEC[v]) { await bookDoctors(chat, v); return true; }
   if (a === "bd" && /^[0-9a-f-]{36}$/.test(v)) { await bookDoctor(chat, u, v); return true; }
@@ -290,7 +292,9 @@ async function bookText(chat, u, text) {
 async function botMessage(m) {
   const chat = m.chat.id, text = String(m.text || "").trim(), u = await userOf(chat);
   if (/^\/(start|menu)$/.test(text)) { if (u) await setState(u.id, null); return menu(chat, u); }
-  if (/^\/cancel$/.test(text) || text === "❌ Bekor qilish") { if (u) await setState(u.id, null); return send(chat, "Bekor qilindi.", u ? MENU : null); }
+  if (/^\/cancel$/.test(text) || text === "❌ Bekor qilish" || text === "❌ Chatdan chiqish") { if (u) await setState(u.id, null); return send(chat, text === "❌ Chatdan chiqish" ? "Chatdan chiqdingiz. Shifokor yozsa, shu yerga xabar keladi." : "Bekor qilindi.", u ? MENU : null); }
+  // people who still have the old keyboard get the new one (with booking) once
+  if (u && !(u.profile || {}).tgm2) { await q("update app_users set profile = profile || '{\"tgm2\": 1}'::jsonb where id = $1", [u.id]); u.profile = Object.assign({}, u.profile, { tgm2: 1 }); if (!/^reply:/.test(u.tg_state || "")) await send(chat, "Menyu yangilandi: endi shifokorga shu botda yozilasiz va u bilan shu yerda yozishasiz — «📝 Shifokorga yozilish».", MENU); }
   if (!u) return text ? ai(chat, null, text) : menu(chat, null);
   if (text === "📝 Shifokorga yozilish" || text === "/yozilish") return bookStart(chat, u);
   if (text === "📋 Arizalarim" || text === "/arizalar") { await setState(u.id, null); return myConsults(chat, u); }
@@ -303,11 +307,11 @@ async function botMessage(m) {
   const reply = /^reply:([0-9a-f-]{36})$/.exec(u.tg_state || "");
   if (reply && text) {
     const C = require("./consults").actions;
-    try { await C.message({ id: reply[1], body: text }, u); await setState(u.id, null); return send(chat, "✅ Yuborildi.", { inline_keyboard: [[{ text: "Arizani ko‘rish", callback_data: "cv:" + reply[1] }]] }); }
+    try { await C.message({ id: reply[1], body: text }, u); return send(chat, "✅ Yuborildi. Yana yozishingiz mumkin; javob shu yerga keladi.", { keyboard: [["❌ Chatdan chiqish"]], resize_keyboard: true, is_persistent: true }); }
     catch (e) { await setState(u.id, null); return send(chat, e.code === "closed" ? "Bu maslahat yopilgan." : e.code === "unpaid" ? "Bemor hali to‘lov qilmagan." : "Yuborib bo‘lmadi. Saytda urinib ko‘ring.", MENU); }
   }
   if (text) return ai(chat, u, text);
-  return send(chat, "Rasm va ovozli xabarni saytdagi chatda yuboring.", MENU);
+  return send(chat, "Rasm va ovozli xabarni saytdagi chatda yuboring.", reply ? { keyboard: [["❌ Chatdan chiqish"]], resize_keyboard: true, is_persistent: true } : MENU);
 }
 
 // menu buttons under a message: cv (show an application), cr (answer in it), ds (doctors of a specialty); true when handled
@@ -327,9 +331,16 @@ async function botButton(cb) {
   if (!u) { await menu(chat, null); return true; }
   if (k[1] === "cv") await showConsult(chat, u, k[2]);
   else {
-    const c = (await q("select id, n, status from app_consults where id = $1 and (patient_id = $2 or doctor_id = $2)", [k[2], u.id])).rows[0];
-    if (!c || c.status !== "accepted") await send(chat, "Bu arizaga hozir yozib bo‘lmaydi.");
-    else { await setState(u.id, "reply:" + c.id); await send(chat, "✍️ №" + c.n + " uchun xabaringizni yozing. Bekor qilish: /cancel", { keyboard: [["❌ Bekor qilish"]], resize_keyboard: true, one_time_keyboard: true }); }
+    const c = (await q("select id, n, status, patient_id, doctor_id, doctor_name, pay_status from app_consults where id = $1 and (patient_id = $2 or doctor_id = $2)", [k[2], u.id])).rows[0];
+    const open = c && (c.status === "accepted" || (c.status === "new" && c.patient_id === u.id));
+    if (!open) await send(chat, c && (c.status === "done" || c.status === "referred" || c.status === "cancelled") ? "Bu maslahat yopilgan." : "Bu arizaga hozir yozib bo‘lmaydi.");
+    else if (c.doctor_id === u.id && c.pay_status === "due") await send(chat, "Bemor hali to‘lov qilmagan: to‘lovdan keyin yozasiz.");
+    else {
+      await setState(u.id, "reply:" + c.id);
+      const ms = (await q("select kind, body from app_messages where consult_id = $1 and body <> '' order by id desc limit 4", [c.id])).rows.reverse();
+      const who = c.patient_id === u.id ? (c.doctor_name ? "👨‍⚕️ " + c.doctor_name : "Shifokor hali qabul qilmagan: yozganingiz arizaga qo‘shiladi, shifokor qabul qilgach ko‘radi.") : "🙂 Bemor";
+      await send(chat, "💬 Ariza №" + c.n + " chati · " + who + (ms.length ? "\n\n" + ms.map((m) => (m.kind === "s" ? "ℹ️ " : m.kind === "d" ? "👨‍⚕️ " : "🙂 ") + cut(m.body, 300)).join("\n") : "") + "\n\n✍️ Xabaringizni yozing. Har bir xabar shu chatga boradi; chiqish uchun «❌ Chatdan chiqish».", { keyboard: [["❌ Chatdan chiqish"]], resize_keyboard: true, is_persistent: true });
+    }
   }
   return true;
 }

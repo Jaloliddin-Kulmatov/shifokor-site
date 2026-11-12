@@ -118,9 +118,11 @@ const actions = {
     if (kind === "d") {
       // an email only for the first reply in half an hour, so a long chat doesn't fill the inbox
       const mailNow = !c.mail_at || Date.now() - new Date(c.mail_at).getTime() > 30 * 60e3;
-      const sent = await notifyUser(c.patient_id, "Shifokor: shifokor " + me.name + " " + what + " (ariza №" + c.n + "). " + link, { link, button: "Javobni ochish", mail: mailNow ? "Shifokor " + me.name + " sizga javob yozdi" : "" });
+      const sent = await notifyUser(c.patient_id, "Shifokor: shifokor " + me.name + " " + what + " (ariza №" + c.n + "). " + link, { link, button: "Javobni ochish", mail: mailNow ? "Shifokor " + me.name + " sizga javob yozdi" : "",
+        tgText: "👨‍⚕️ " + me.name + " · ariza №" + c.n + "\n\n" + (body || (photo ? "[rasm]" : "[ovozli xabar]")), kb: [[{ text: "✍️ Javob yozish", callback_data: "cr:" + c.id }, { text: "🌐 Saytda ochish", url: link }]] });
       if (sent && mailNow) await q("update app_consults set mail_at = now() where id = $1", [c.id]);
-    } else if (c.doctor_id) await notifyUser(c.doctor_id, "Shifokor: bemor " + what + " (ariza №" + c.n + "). " + link, { link, button: "Arizani ochish" });
+    } else if (c.doctor_id) await notifyUser(c.doctor_id, "Shifokor: bemor " + what + " (ariza №" + c.n + "). " + link, { link, button: "Arizani ochish",
+      tgText: "🙂 " + c.name + " · ariza №" + c.n + "\n\n" + (body || (photo ? "[rasm]" : "[ovozli xabar]")), kb: [[{ text: "✍️ Javob yozish", callback_data: "cr:" + c.id }, { text: "🌐 Saytda ochish", url: link }]] });
     return { ok: true, file: fileId };
   },
 

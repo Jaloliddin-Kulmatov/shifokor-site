@@ -14,7 +14,8 @@ async function notifyUser(id, text, o) {
   if (!r) return false;
   // phones and browsers with notifications on get it too (never blocks the rest)
   try { await require("../_modules/push").pushUser(id, { title: "Shifokor", body: String(text).replace(/^Shifokor:\s*/, ""), url: o.link ? String(o.link).replace(/^https?:\/\/[^/]+/, "") || "/#/account" : "/#/account" }); } catch (e) { console.error("push", e && e.message); }
-  if (r.tg_chat && (await N.tgSend(r.tg_chat, text, o.link ? { reply_markup: { inline_keyboard: [[{ text: o.button || "Ochish", url: o.link }]] } } : null))) return true;
+  const tgText = o.tgText || text;
+  if (r.tg_chat && (await N.tgSend(r.tg_chat, tgText, o.kb ? { reply_markup: { inline_keyboard: o.kb } } : o.link ? { reply_markup: { inline_keyboard: [[{ text: o.button || "Ochish", url: o.link }]] } } : null))) return true;
   if (o.mail && r.email && N.MAIL) return N.mail(r.email, o.mail, text + (o.link && text.indexOf(o.link) < 0 ? "\n\n" + o.link : "") + "\n\nShifokor · shifokor.com");
   return false;
 }

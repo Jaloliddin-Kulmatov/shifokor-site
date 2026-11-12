@@ -22,8 +22,11 @@ const actions = {
     need(me);
     const a = b.a || {};
     if (!UUID.test(String(a.clinic || ""))) bad("clinic");
-    const clinic = (await q("select id, role, name, profile, verified_at, verified_fac, tg_chat from app_users where id = $1 and role = 'clinic'", [a.clinic])).rows[0];
+    // the place is a clinic, or a doctor who sees patients at their own office (turned on in their profile, with an address)
+    const clinic = (await q("select id, role, name, profile, verified_at, verified_fac, tg_chat from app_users where id = $1 and role in ('clinic', 'doctor')", [a.clinic])).rows[0];
     if (!clinic) bad("clinic");
+    const office = clinic.role === "doctor";
+    if (office) { const o = (clinic.profile || {}).office || {}; if (!o.on || !str(o.addr, 200)) bad("clinic"); }
     if (clinic.id === me.id) throw new Fail(403, "forbidden");
     if (!isVerified(clinic)) throw new Fail(403, "unverified");
     const day = dayOf(a.day);
@@ -40,8 +43,8 @@ const actions = {
     const name = str(a.name, 200) || bad("name");
     const phone = phoneOf(a.phone) || bad("phone");
     // a doctor the patient picked: they must work at this clinic (joined its staff, or name it on their profile)
-    let doc = null;
-    if (a.doctor) {
+    let doc = office ? { id: clinic.id, name: clinic.name, profile: clinic.profile } : null;
+    if (a.doctor && !office) {
       if (!UUID.test(String(a.doctor))) bad("doctor");
       const fac = clinic.profile && clinic.profile.fac ? String(clinic.profile.fac) : null;
       doc = (await q(
@@ -59,7 +62,7 @@ const actions = {
       [me.id, clinic.id, clinic.name, opt(a.fac, 40), day, part, who, name, phone, spec, opt(a.reason, 500), doc ? doc.id : null, doc ? doc.name : null, ptime]
     );
     if (clinic.tg_chat) await N.tgSend(clinic.tg_chat, "Shifokor: yangi qabul so‘rovi №" + r.rows[0].n + ". " + name + ", " + N.dayUz(day) + ", " + (part === "am" ? "ertalab" : "tushdan keyin") + (ptime ? " (taxminan " + ptime + ")" : "") + (doc ? ", shifokor: " + doc.name : "") + ". " + site.url() + "/#/account");
-    if (doc) await notifyUser(doc.id, "Shifokor: " + clinic.name + " orqali sizga qabul so‘rovi №" + r.rows[0].n + ": " + name + ", " + N.dayUz(day) + ", " + (part === "am" ? "ertalab" : "tushdan keyin") + ". Soatni klinika tasdiqlaydi.");
+    if (doc && !office) await notifyUser(doc.id, "Shifokor: " + clinic.name + " orqali sizga qabul so‘rovi №" + r.rows[0].n + ": " + name + ", " + N.dayUz(day) + ", " + (part === "am" ? "ertalab" : "tushdan keyin") + ". Soatni klinika tasdiqlaydi.");
     return { id: r.rows[0].id };
   },
 
@@ -72,7 +75,7 @@ const actions = {
     if (!r.rows[0]) throw new Fail(409, "closed");
     const a = r.rows[0];
     await tellPatient(a, "Shifokor: " + a.clinic_name + " qabulingizni tasdiqladi: " + N.dayUz(a.day) + ", soat " + a.appt_time + "." + (a.note ? " " + a.note : ""));
-    if (a.doctor_id) await notifyUser(a.doctor_id, "Shifokor: " + a.clinic_name + " qabulni tasdiqladi: " + a.name + ", " + N.dayUz(a.day) + ", soat " + a.appt_time + ".");
+    if (a.doctor_id && a.doctor_id !== a.clinic_id) await notifyUser(a.doctor_id, "Shifokor: " + a.clinic_name + " qabulni tasdiqladi: " + a.name + ", " + N.dayUz(a.day) + ", soat " + a.appt_time + ".");
     return { ok: true };
   },
 
@@ -93,7 +96,7 @@ const actions = {
     if (!r.rows[0]) throw new Fail(409, "closed");
     const a = r.rows[0];
     await notifyUser(a.clinic_id, "Shifokor: so‘rov №" + a.n + " bekor qilindi (" + a.name + ", " + N.dayUz(a.day) + ").");
-    if (a.doctor_id) await notifyUser(a.doctor_id, "Shifokor: " + a.clinic_name + " dagi qabul so‘rovi №" + a.n + " bekor qilindi (" + a.name + ", " + N.dayUz(a.day) + ").");
+    if (a.doctor_id && a.doctor_id !== a.clinic_id) await notifyUser(a.doctor_id, "Shifokor: " + a.clinic_name + " dagi qabul so‘rovi №" + a.n + " bekor qilindi (" + a.name + ", " + N.dayUz(a.day) + ").");
     return { ok: true };
   }
 };

@@ -1,7 +1,7 @@
 // Vercel build step: writes site/config.js.
 // If a database connection string is set (DATABASE_URL, POSTGRES_URL or SUPABASE_DB_URL), the site uses the
 // server API at /api/app. The connection string itself is never written into the site: only the server reads it.
-import { writeFileSync } from "node:fs";
+import { writeFileSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 
 const env = process.env;
@@ -28,6 +28,21 @@ writeFileSync(
   "/* Written at build time by scripts/write-config.mjs. No secrets here: the server holds the connection string. */\n" +
     "window.SHIFOKOR_CONFIG = " + JSON.stringify({ api: conn ? "/api/app" : "", google: conn ? google : "" }) + ";\n"
 );
+// Faster first load on slow mobile networks: on Vercel, the site's own scripts (about 45 small files) are joined, in the
+// same order, into one file, and index.html loads that one instead. Locally nothing changes (separate files).
+if (env.VERCEL) {
+  try {
+    const html = readFileSync("site/index.html", "utf8");
+    const tag = /<script src="([a-z0-9-]+\.js)\?v=[^"]*"><\/script>\n?/g;
+    const files = [...html.matchAll(tag)].map((m) => m[1]);
+    const code = files.map((f) => "/* " + f + " */\n" + readFileSync("site/" + f, "utf8") + "\n;").join("\n");
+    const v = createHash("sha256").update(code).digest("hex").slice(0, 12);
+    writeFileSync("site/bundle.js", code);
+    let first = true;
+    writeFileSync("site/index.html", html.replace(tag, () => { if (!first) return ""; first = false; return '<script src="bundle.js?v=' + v + '"></script>\n'; }));
+    console.log("write-config: joined " + files.length + " scripts into bundle.js (" + Math.round(code.length / 1024) + " KB)");
+  } catch (e) { console.warn("write-config: couldn't join the scripts, the site loads them one by one: " + e.message); }
+}
 // Telegram notices: on a production deploy, point the bot's webhook at this site. Failing here never fails the build.
 const tg = (env.TELEGRAM_BOT_TOKEN || "").trim(), host = (env.VERCEL_PROJECT_PRODUCTION_URL || "").trim();
 if (tg && conn && host && env.VERCEL_ENV === "production") {

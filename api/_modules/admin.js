@@ -92,6 +92,48 @@ const actions = {
     return { ok: true };
   },
 
+  // the numbers for the admin's overview page: accounts, requests, visits, money, Shifo_AI, the last 14 days
+  async admin_stats(b, me) {
+    requireAdmin(me);
+    const rows = async (sql) => (await q(sql)).rows;
+    const [users, cons, ctype, appts, money, rv, ai, push, spec, region, d1, d2, d3, recent] = await Promise.all([
+      rows("select role, count(*)::int as n, count(*) filter (where created_at > now() - interval '7 days')::int as week, count(*) filter (where verified_at is not null)::int as verified, count(*) filter (where tg is not null and tg <> '')::int as tg from app_users group by role"),
+      rows("select status, count(*)::int as n from app_consults group by status"),
+      rows("select type, count(*)::int as n from app_consults group by type"),
+      rows("select status, count(*)::int as n from app_appts group by status"),
+      rows("select count(*) filter (where pay_status = 'paid')::int as n, coalesce(sum(price) filter (where pay_status = 'paid'), 0)::bigint as paid, coalesce(sum(fee) filter (where pay_status = 'paid'), 0)::bigint as fee from app_consults"),
+      rows("select count(*)::int as n, coalesce(round(avg(stars)::numeric, 1), 0)::float as avg from app_reviews where not hidden"),
+      rows("select coalesce(sum(n), 0)::int as n, coalesce(sum(n) filter (where day > current_date - 7), 0)::int as week from app_ai_use"),
+      rows("select count(*)::int as n from app_push"),
+      rows("select spec, count(*)::int as n from app_consults where spec is not null and spec <> '' group by spec order by 2 desc limit 6"),
+      rows("select region, count(*)::int as n from app_consults where region is not null and region <> '' group by region order by 2 desc limit 6"),
+      rows("select created_at::date::text as day, count(*)::int as n from app_users where created_at > current_date - 13 group by 1"),
+      rows("select created_at::date::text as day, count(*)::int as n from app_consults where created_at > current_date - 13 group by 1"),
+      rows("select created_at::date::text as day, count(*)::int as n from app_appts where created_at > current_date - 13 group by 1"),
+      rows("select id, role, name, created_at from app_users order by created_at desc limit 12")
+    ]);
+    const days = [];
+    const by = (list) => Object.fromEntries(list.map((r) => [r.day, r.n]));
+    const u = by(d1), c = by(d2), a = by(d3);
+    for (let i = 13; i >= 0; i--) {
+      const day = new Date(Date.now() - i * 864e5).toISOString().slice(0, 10);
+      days.push({ day, users: u[day] || 0, consults: c[day] || 0, appts: a[day] || 0 });
+    }
+    return { users, consults: cons, types: ctype, appts, money: money[0], reviews: rv[0], ai: ai[0], push: push[0].n, spec, region, days, recent };
+  },
+
+  // removes an account for good, with everything that belongs to it (requests, chats, visits, reviews). Not an admin's.
+  async admin_delete_user(b, me) {
+    requireAdmin(me);
+    if (!UUID.test(String(b.id || ""))) bad("id");
+    if (b.id === me.id) bad("self");
+    const u = (await q("select id, email, phone from app_users where id = $1", [b.id])).rows[0];
+    if (!u) throw new Fail(404, "not_found");
+    if (isAdmin(u)) bad("admin");
+    await q("delete from app_users where id = $1", [b.id]);
+    return { ok: true };
+  },
+
   // points the bot at this deployment (the build does this too, when it can)
   async admin_tg_setup(b, me) {
     requireAdmin(me);

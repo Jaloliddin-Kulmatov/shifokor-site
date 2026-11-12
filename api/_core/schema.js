@@ -437,4 +437,15 @@ alter table app_pw_resets enable row level security;
 alter table app_tg_logins enable row level security;
 alter table app_docs enable row level security;
 alter table app_ai_use enable row level security;
+-- phone notifications (Web Push): one row per browser or app that turned them on
+create table if not exists app_push (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references app_users (id) on delete cascade,
+  endpoint text not null unique check (char_length(endpoint) <= 1000),
+  p256dh text not null check (char_length(p256dh) <= 120),
+  auth text not null check (char_length(auth) <= 40),
+  created_at timestamptz not null default now()
+);
+create index if not exists app_push_user_idx on app_push (user_id);
+alter table app_push enable row level security;
 `;

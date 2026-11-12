@@ -2,7 +2,7 @@
    internet. Pages come from the network first (so a new version shows at once) and from the cache when offline;
    files with a version in their address (?v=...) and images come from the cache, refreshed in the background.
    The server's answers (/api/) are never cached: they are personal and must be current. */
-var CACHE = "shifokor-v1", MAX = 160;
+var CACHE = "shifokor-v2", MAX = 160;
 self.addEventListener("install", function (e) {
   self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(["/", "/icon.svg", "/icon-192.png"]); }).catch(function () {}));
@@ -24,5 +24,19 @@ self.addEventListener("fetch", function (e) {
       var net = fetch(req).then(function (r) { if (r.ok) { c.put(req, r.clone()); trim(c); } return r; });
       return hit ? (net.catch(function () {}), hit) : net;
     });
+  }));
+});
+
+/* phone notifications: show the notice; tapping it opens (or focuses) the page it's about */
+self.addEventListener("push", function (e) {
+  var d = {}; try { d = e.data ? e.data.json() : {}; } catch (x) { d = { body: e.data ? e.data.text() : "" }; }
+  e.waitUntil(self.registration.showNotification(d.title || "Shifokor", { body: d.body || "Sizga yangi xabar bor", icon: "/icon-192.png", badge: "/icon-192.png", data: { url: d.url || "/#/account" }, tag: "shifokor", renotify: true }));
+});
+self.addEventListener("notificationclick", function (e) {
+  e.notification.close();
+  var url = new URL((e.notification.data && e.notification.data.url) || "/#/account", self.location.origin).href;
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (list) {
+    for (var i = 0; i < list.length; i++) { if (list[i].url.indexOf(self.location.origin) === 0 && "focus" in list[i]) { list[i].navigate(url).catch(function () {}); return list[i].focus(); } }
+    return self.clients.openWindow(url);
   }));
 });

@@ -23,6 +23,24 @@
     endo: [["Qandli diabet nazorati", 1.1, 1], ["Qalqonsimon bez tahlillari", 1, 1], ["Vazn va ovqatlanish bo‘yicha maslahat", 1, 1], ["Yuzma-yuz ko‘rik", 1.8, 0]],
     psych: [["Stress va xavotir bo‘yicha suhbat", 1, 1], ["Uyqu va kayfiyat bo‘yicha suhbat", 1, 1], ["Qayta suhbat", 0.8, 1], ["Yuzma-yuz uchrashuv", 1.5, 0]]
   };
+  /* 30 more sample doctors in Fergana region, where the pilot starts. Made up like the rest: names, years and prices
+     are invented, every one is marked "Namuna" and can't be booked. The bio is the one of the first sample with the same specialty. */
+  (function () {
+    var specs = ["pediatrics", "gyn", "therapist", "gp", "pediatrics", "endo", "cardio", "derm", "ent", "neuro", "gyn", "pediatrics", "dental", "eye", "uro",
+      "psych", "therapist", "gp", "surgery", "endo", "pediatrics", "gyn", "cardio", "derm", "neuro", "ent", "therapist", "pediatrics", "gp", "psych"];
+    var mf = ["Bobur", "Azizbek", "Jasur", "Ulug‘bek", "Rustam", "Akmal", "Farrux", "Doniyor", "Otabek", "Bekzod", "Anvar", "Murodjon", "Sanjar", "Islombek", "Sherzodbek"];
+    var ff = ["Nilufar", "Dilfuza", "Gulnora", "Zarina", "Mohira", "Feruza", "Nodira", "Shahnoza", "Kamola", "Madina", "Sevara", "Umida", "Dildora", "Barno", "Lola"];
+    var sn = ["Karim", "Yusup", "Ergash", "Tursun", "Mirza", "Abdulla", "Xolmat", "Sobir", "Qodir", "Rasul", "Nazar", "Usmon", "Haydar", "Sharip", "Ahmad"];
+    var bio = {}; D.forEach(function (d) { if (!bio[d.profile.spec]) bio[d.profile.spec] = d.profile.bio; });
+    specs.forEach(function (sp, i) {
+      var f = sp === "gyn" || (sp !== "uro" && i % 2 === 1), first = (f ? ff : mf)[(i * 7) % 15], last = sn[(i * 11 + 3) % 15] + (f ? "ova" : "ov");
+      var base = 40000 + ((i * 13) % 9) * 5000 + (["cardio", "neuro", "endo", "psych"].indexOf(sp) > -1 ? 15000 : 0);
+      D.push({ id: "smp" + (300 + i), role: "doctor", sample: true, verified: false, name: first + " " + last,
+        profile: { spec: sp, years: 3 + (i * 7) % 26, sex: f ? "f" : "m", langs: i % 3 ? ["uz", "ru"] : ["uz"], region: "UZ30", modes: ["in", "on"], bio: bio[sp] || "",
+          ohours: ["Du–Ju, 9:00–17:00", "Du–Sh, 14:00–20:00", "Har kuni, 18:00–22:00"][i % 3], reply: ["1", "3", "24"][i % 3], work: [], svc: [],
+          cp: { text: base, audio: "", video: base + 30000 } } });
+    });
+  })();
   D.forEach(function (d) {
     var pr = d.profile, list = SVC_BY_SPEC[pr.spec], cp = pr.cp || {};
     if (!list || (pr.svc && pr.svc.length)) return;
@@ -32,5 +50,27 @@
       return { name: x[0], price: Math.max(20000, Math.round(base * x[1] / 5000) * 5000), online: !!x[2] };
     });
   });
+  /* every sample doctor gets an illustrated avatar (a drawing, clearly not a photo of a real person): a doctor's coat,
+     skin and hair picked from the id, so it stays the same on every visit */
+  (function () {
+    var BG = ["#E3F2F1", "#FDEBD8", "#E8EAF6", "#FCE4EC", "#E8F5E9", "#FFF4D6", "#E1F0FA"], SK = ["#F3CFA6", "#E8B98A", "#D29A6A", "#B97A4F", "#F6D9BC"];
+    var HR = ["#2B1B12", "#3B2416", "#1B1B1B", "#5A3825", "#4A2E1F"], SC = ["#0F4C4F", "#3CC4C0", "#4F6BDB", "#C2185B", "#2E7D32"];
+    /* FNV-1a, with a different salt for each feature, so neighbouring ids look different */
+    var hash = function (s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h; };
+    var pick = function (id, salt, n) { return hash(salt + ":" + id + ":" + salt) % n; };
+    function svg(d) {
+      var f = (d.profile || {}).sex === "f", bg = BG[pick(d.id, "bg", 7)], sk = SK[pick(d.id, "skin", 5)], hr = HR[pick(d.id, "hair", 5)], sc = SC[pick(d.id, "scrub", 5)], scarf = f && pick(d.id, "scarf", 3) === 0;
+      var back = f ? (scarf ? '<path d="M18 30c0-12 6-18 14-18s14 6 14 18v14H18z" fill="' + sc + '"/>' : '<path d="M20 29c0-11 5-16 12-16s12 5 12 16v13c-2 0-4-2-4-4V27c-3-3-6-4-8-4s-5 1-8 4v11c0 2-2 4-4 4z" fill="' + hr + '"/>') : "";
+      var front = scarf ? '<path d="M21.5 27c1-7 5-11 10.5-11s9.5 4 10.5 11c-2-3-6-5-10.5-5s-8.5 2-10.5 5z" fill="' + sc + '"/>'
+        : f ? '<path d="M21.5 27c0-7 4.5-11.5 10.5-11.5S42.5 20 42.5 27c-3-4-6.5-5.5-10.5-5.5S24.5 23 21.5 27z" fill="' + hr + '"/>'
+        : '<path d="M21.5 26c0-8 4.5-12 10.5-12s10.5 4 10.5 12c-2-3.5-5.5-5-10.5-5s-8.5 1.5-10.5 5z" fill="' + hr + '"/>';
+      return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="' + bg + '"/>' + back +
+        '<path d="M9 64c0-11 10-18 23-18s23 7 23 18z" fill="#FFFFFF"/><path d="M26.5 46.5L32 56l5.5-9.5z" fill="' + sc + '"/>' +
+        '<path d="M23 48c-3 6-1 11 4 12" stroke="#4B5563" stroke-width="1.6" fill="none" stroke-linecap="round"/><circle cx="27.5" cy="60" r="1.8" fill="#4B5563"/>' +
+        '<rect x="28" y="36" width="8" height="10" rx="3" fill="' + sk + '"/><ellipse cx="32" cy="28" rx="10.5" ry="12" fill="' + sk + '"/>' + front +
+        '<circle cx="28.2" cy="29" r="1.25" fill="#2B2B2B"/><circle cx="35.8" cy="29" r="1.25" fill="#2B2B2B"/><path d="M28.8 34c1.9 1.6 4.5 1.6 6.4 0" stroke="#9A5B45" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>';
+    }
+    D.forEach(function (d) { if (!d.photoUrl) d.photoUrl = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg(d)); });
+  })();
   window.SHIFOKOR_SAMPLES = { d: D, r: R };
 })();

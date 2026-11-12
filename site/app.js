@@ -11,6 +11,8 @@
   /* ---------------- icons ---------------- */
   var ICONS = {
     send: '<path d="M21 3L3 10.5l7 2.5 2.5 7z"/><path d="M10 13l5-5"/>',
+    chart: '<path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/>',
+    trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
     cal: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/>',
     camera: '<path d="M4 8h3.5l2-3h5l2 3H20v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
     hosp: '<rect x="4" y="7" width="16" height="14" rx="2"/><path d="M12 10v6M9 13h6M9 7V4h6v3"/>',
@@ -1113,6 +1115,11 @@
   function viewDoc(id) {
     var t = L(), u = userById(id); if (!u || u.role !== "doctor") return '<div class="wrap pad"><div class="empty">' + t.not_found + "</div></div>";
     var pr = u.profile || {}, langs = (pr.langs || []).map(function (l) { return { kaa: "Qaraqalpaq", tg: "Tojik" }[l] || t.lg[l]; }).join(", ");
+    /* phones: the doctor's two main actions stay at the bottom of the screen while reading the profile */
+    var dbar = (function () { if (u.sample && !offersCp(u)) return ""; var on = isOnline(u) || (u.sample && offersCp(u)), bp = bookPlaces(u);
+      var b1 = on ? '<a class="btn" href="#/consult?' + qs({ doc: u.id }) + '">' + ic("chat") + t.pr_consult + "</a>" : "";
+      var b2 = hasOffice(u) ? '<a class="btn' + (on ? " ghost" : "") + '" href="#book" data-scroll="book">' + ic("cal") + t.of_btn + "</a>" : bp.length ? '<a class="btn' + (on ? " ghost" : "") + '" href="' + (bp.length === 1 ? bookHref(bp[0], u) : "#clinicbook") + '"' + (bp.length === 1 ? "" : ' data-scroll="clinicbook"') + ">" + ic("cal") + t.of_btn + "</a>" : "";
+      return b1 || b2 ? '<div class="docbar-sp" aria-hidden="true"></div><div class="docbar">' + b1 + b2 + "</div>" : ""; })();
     var region = pr.district && disByCode[pr.district] ? nmL(disByCode[pr.district]) + ", " + nmL(REG[disByCode[pr.district].r]) : pr.region && regByCode[pr.region] ? nmL(regByCode[pr.region]) : "";
     return '<div class="wrap"><a class="back" href="#/doctors">‹ ' + t.nav_doctors + '</a><div class="pf"><div><div class="who">' + personAv(u) + "<div><h1>" + esc(u.name) + '</h1><div class="spec">' + esc(specName(pr)) + (pr.years ? " · " + t.exp(pr.years) : "") + '</div><div class="badges">' + (u.sample ? smpBadge() : '<span class="badge">' + t.on_sh + "</span>" + vBadge(u)) + (ratingOf(u.id).n ? '<a href="#reviews" data-scroll="reviews" class="badge plain rbadge">' + ratingLine(u.id) + "</a>" : "") + (isOnline(u) ? '<span class="badge plain">' + ic("video") + t.online_b + "</span>" : "") + "</div>" + (u.sample ? "" : shareBtn("/shifokor/" + u.id, u.name)) + "</div></div>" +
       (u.pending ? '<p class="note-box">' + t.im_pending_note + "</p>" : "") + (u.sample ? '<p class="note-box">' + t.smp_note + ' <a href="#/doctors?' + qs({ s: pr.spec }) + '">' + t.smp_real + "</a></p>" : "") +
@@ -1126,7 +1133,7 @@
       (pr.edu ? '<div class="sect"><h2>' + t.sec_bg + '</h2><p class="pre">' + esc(pr.edu) + "</p></div>" : "") +
       '<div class="sect"><dl class="kv">' + (langs ? "<dt>" + t.p_langs + "</dt><dd>" + esc(langs) + "</dd>" : "") + (region ? "<dt>" + t.p_area + "</dt><dd>" + esc(region) + "</dd>" : "") + (pr.lic ? "<dt>" + t.d_lic + "</dt><dd>" + esc(pr.lic) + (u.verified ? "" : ' <span class="muted">· ' + t.verified_no + "</span>") + "</dd>" : "") + "</dl></div>" +
       '<p class="fine" style="margin-top:20px">' + t.acc_demo + (u.updated ? " · " + t.updated(fmt(fromIso(u.updated), { day: "numeric", month: "short" })) : "") + "</p></div>" +
-      '<aside class="stick"><h2>' + esc(u.name) + "</h2>" + (function () { var f = !u.sample && isOnline(u) ? freeDays(u) : null, nx = f && f.days.length ? f.days[0].slots.filter(function (x) { return !x.busy; })[0] : null; return nx ? '<p class="cpaside"><small>' + t.sl_next + "</small><b>" + esc(slotTxt(nx.ms)) + "</b></p>" : ""; })() + (cpMin(u) != null ? '<p class="cpaside"><small>' + t.cp_h + "</small><b>" + (cpMin(u) === 0 ? t.free_c : esc(t.cp_from(num(cpMin(u)) + " " + unit()))) + "</b>" + (pr.reply ? '<span class="muted">' + t.reply_txt(pr.reply) + "</span>" : "") + "</p>" : "") + '<div class="stack">' + (isOnline(u) ? '<a class="btn" href="#/consult?' + qs({ doc: u.id }) + '">' + ic("chat") + t.cs_req_doc + "</a>" : "") + (function () { var bp = bookPlaces(u); return hasOffice(u) ? '<a class="btn ' + (isOnline(u) ? "ghost" : "") + '" href="#book" data-scroll="book">' + ic("cal") + t.of_btn + "</a>" : bp.length === 1 ? '<a class="btn ' + (isOnline(u) ? "ghost" : "") + '" href="' + bookHref(bp[0], u) + '">' + ic("cal") + t.ap_doc_btn + "</a>" : bp.length ? '<a class="btn ' + (isOnline(u) ? "ghost" : "") + '" href="#clinicbook" data-scroll="clinicbook">' + ic("cal") + t.ap_doc_btn + "</a>" : ""; })() + tgBtn(u) + "</div></aside></div></div>";
+      '<aside class="stick"><h2>' + esc(u.name) + "</h2>" + (function () { var f = !u.sample && isOnline(u) ? freeDays(u) : null, nx = f && f.days.length ? f.days[0].slots.filter(function (x) { return !x.busy; })[0] : null; return nx ? '<p class="cpaside"><small>' + t.sl_next + "</small><b>" + esc(slotTxt(nx.ms)) + "</b></p>" : ""; })() + (cpMin(u) != null ? '<p class="cpaside"><small>' + t.cp_h + "</small><b>" + (cpMin(u) === 0 ? t.free_c : esc(t.cp_from(num(cpMin(u)) + " " + unit()))) + "</b>" + (pr.reply ? '<span class="muted">' + t.reply_txt(pr.reply) + "</span>" : "") + "</p>" : "") + '<div class="stack">' + (isOnline(u) ? '<a class="btn" href="#/consult?' + qs({ doc: u.id }) + '">' + ic("chat") + t.cs_req_doc + "</a>" : "") + (function () { var bp = bookPlaces(u); return hasOffice(u) ? '<a class="btn ' + (isOnline(u) ? "ghost" : "") + '" href="#book" data-scroll="book">' + ic("cal") + t.of_btn + "</a>" : bp.length === 1 ? '<a class="btn ' + (isOnline(u) ? "ghost" : "") + '" href="' + bookHref(bp[0], u) + '">' + ic("cal") + t.ap_doc_btn + "</a>" : bp.length ? '<a class="btn ' + (isOnline(u) ? "ghost" : "") + '" href="#clinicbook" data-scroll="clinicbook">' + ic("cal") + t.ap_doc_btn + "</a>" : ""; })() + tgBtn(u) + "</div></aside></div></div>" + dbar;
   }
   function cpBlock(u) {
     var t = L(), pr = u.profile || {}, c = cpOf(pr); if (!offersCp(u)) return "";
@@ -1935,7 +1942,7 @@
     patient: [["/", "home", "home"], ["/consults", "chat", "consults"], ["/record", "file", "record"], ["/visits", "cal", "visits"], ["/meds", "flask", "meds"], ["/ona", "heart", "ona"], ["/settings", "user", "settings"], ["/prefs", "gear", "prefs"]],
     doctor: [["/", "home", "home"], ["/requests", "chat", "requests"], ["/schedule", "cal", "schedule"], ["/patients", "heart", "patients"], ["/earnings", "card", "earnings"], ["/reviews", "star", "reviews"], ["/settings", "user", "settings"], ["/prefs", "gear", "prefs"]],
     clinic: [["/", "home", "home"], ["/requests", "bell", "crequests"], ["/calendar", "cal", "ccalendar"], ["/team", "heart", "cdoctors"], ["/branches", "pin", "cbranches"], ["/reviews", "star", "reviews"], ["/settings", "user", "settings"], ["/prefs", "gear", "prefs"]],
-    admin: [["/admin", "shield", "a_chk"], ["/admin?tab=pay", "card", "a_pay"], ["/admin?tab=import", "plus", "a_import"], ["/admin?tab=meds", "flask", "a_meds"]]
+    admin: [["/admin?tab=stats", "chart", "a_stats"], ["/admin", "shield", "a_chk"], ["/admin?tab=pay", "card", "a_pay"], ["/admin?tab=import", "plus", "a_import"], ["/admin?tab=meds", "flask", "a_meds"]]
   };
   var siteUrl = function (hash) { return hash || "#/"; };
   function pHead(title, desc, actions) { return '<div class="phead"><div><h1>' + title + "</h1>" + (desc ? "<p>" + desc + "</p>" : "") + "</div>" + (actions ? '<div class="btns">' + actions + "</div>" : "") + "</div>"; }
@@ -1949,7 +1956,7 @@
     var orders = medOrders().filter(function (o) { return o.status !== "delivered" && o.status !== "cancelled" && mine.some(function (c) { return c.id === o.consultId; }); });
     var aps = appts().filter(function (a) { return a.userId === u.id && a.status !== "cancelled" && a.status !== "declined"; });
     return pHead(t.pro_hello(esc(u.name.split(" ")[0])), t.pn_pat_p, '<a class="btn" href="' + siteUrl("#/consult?now=1") + '">' + ic("video") + t.asap_now[0] + '</a><a class="btn ghost" href="' + siteUrl("#/doctors") + '">' + ic("search") + t.hf_go + "</a>") +
-      '<div class="pstats">' + pStat("chat", t.pn_st_open, open.length, "", acc("/consults")) + pStat("cal", t.pn_st_next, next ? esc(slotShort(next.slotAt)) : "—", next ? esc(next.doctorName || "") : "", next ? "#/consult/" + next.id : "") + pStat("flask", t.pn_st_meds, orders.length, "", acc("/meds")) + pStat("hosp", t.pn_st_visits, aps.length, "", acc("/visits")) + "</div>" +
+      puCard() + '<div class="pstats">' + pStat("chat", t.pn_st_open, open.length, "", acc("/consults")) + pStat("cal", t.pn_st_next, next ? esc(slotShort(next.slotAt)) : "—", next ? esc(next.doctorName || "") : "", next ? "#/consult/" + next.id : "") + pStat("flask", t.pn_st_meds, orders.length, "", acc("/meds")) + pStat("hosp", t.pn_st_visits, aps.length, "", acc("/visits")) + "</div>" +
       pCard(t.pn_open_h, open.length ? '<div class="visits">' + open.sort(function (a, b) { return (a.slotAt || a.at) - (b.slotAt || b.at); }).map(csRow).join("") + "</div>" : pEmpty("chat", t.pn_open_none, t.pn_open_none_p, '<a class="btn" href="' + siteUrl("#/doctors") + '">' + t.hf_go + "</a>"), '<a class="linkbtn" href=acc("/consults")>' + t.pro_all + "</a>");
   }
   function pPatientConsults(u) {
@@ -2154,7 +2161,7 @@
     if (path.indexOf("/summary/") === 0) return { body: pSummary(u, path.slice(9)), key: role === "patient" ? "record" : "patients" };
     if (path === "/prefs") return { body: pHead(t.pn_t.prefs, t.set_p) + '<div class="acc">' + settingsCard(true) + "</div>", key: "prefs" };
     if (path.indexOf("/consult/") === 0) return { body: viewConsultThread(path.slice(9)), key: role === "doctor" ? "requests" : role === "clinic" ? "requests" : "consults" };
-    if (path === "/admin") return { body: viewAdmin(q), key: "a_" + (q.tab === "pay" ? "pay" : q.tab === "import" ? "import" : q.tab === "meds" ? "meds" : "chk") };
+    if (path === "/admin") return { body: viewAdmin(q), key: "a_" + (q.tab === "stats" ? "stats" : q.tab === "pay" ? "pay" : q.tab === "import" ? "import" : q.tab === "meds" ? "meds" : "chk") };
     if (path === "/settings") { PRO_FORM = true; try { return { body: pHead(t.pro_t.profile, t.pn_set_p, role !== "patient" ? '<a class="btn ghost" href="' + siteUrl(role === "doctor" ? "#/doc/" + u.id : "#/c/" + u.id) + '">' + t.acc_view + "</a>" : "") + (role === "doctor" ? liveCard(u) + myClinicsCard(u) : "") + (role !== "patient" ? docsCard(u) : "") + viewAccount(), key: "settings" }; } finally { PRO_FORM = false; } }
     var page = path.slice(1) || "home";
     if (role === "doctor") {
@@ -2223,7 +2230,7 @@
     var pr = u.profile || {}, cp = cpOf(pr), todo = [[!!u.photoUrl, t.pro_do_photo], [!!pr.lic, t.pro_do_lic], [!!pr.bio, t.pro_do_bio], [CS_KINDS.some(function (k) { return cp[k] != null; }), t.pro_do_price], [!!hoursOf(pr), t.pro_do_hours]].concat(BE && BE.notify().tg ? [[!!u.tgLinked, t.pro_do_tg]] : []);
     var done = todo.filter(function (x) { return x[0]; }).length;
     return inviteCards(u) + '<div class="prohello"><div><h1>' + t.pro_hello(esc(u.name.split(" ")[0] === "Dr" ? u.name : u.name.split(" ")[0])) + '</h1><p class="muted">' + esc(fmt(tkDate(Date.now()), { weekday: "long", day: "numeric", month: "long" })) + " · " + esc(specName(pr)) + "</p></div></div>" +
-      liveCard(u) +
+      liveCard(u) + puCard() +
       '<div class="prostats">' + stats.map(function (x) { return '<a class="prostat" href="#/pro?tab=' + x[2] + '"><b class="nums">' + x[0] + "</b><span>" + x[1] + "</span></a>"; }).join("") + "</div>" + docVisits(u, false) +
       (done < todo.length ? '<div class="dcard protodo"><div class="sechead"><h2>' + t.pro_todo_h + '</h2><span class="muted nums">' + done + " / " + todo.length + '</span></div><div class="pbar2"><i style="width:' + Math.round(done / todo.length * 100) + '%"></i></div><ul>' + todo.map(function (x) { return '<li class="' + (x[0] ? "ok" : "") + '">' + ic(x[0] ? "check" : "plus") + "<span>" + x[1] + "</span></li>"; }).join("") + '</ul><a class="btn sm" href="#/pro?tab=profile">' + t.pro_todo_go + "</a></div>" : "") +
       '<div class="progrid"><section><div class="sechead"><h2>' + t.pro_today_h + '</h2><a class="linkbtn" href="#/pro?tab=schedule">' + t.pro_all + "</a></div>" + (todays.length ? '<div class="protimeline">' + todays.map(function (c) { return '<a class="tlrow" href="#/consult/' + c.id + '"><b class="nums">' + hhmm(c.slotAt) + "</b><span>" + esc(c.name) + '<small class="muted"> · ' + t.cs_types[c.type][0] + "</small></span>" + csBadge(c.status) + "</a>"; }).join("") + "</div>" : '<p class="muted">' + t.pro_today_none + "</p>") + "</section>" +
@@ -2342,7 +2349,53 @@
     all('a[href="#/visits"]').forEach(function (a) { if (n.v) a.setAttribute("data-n", n.v); else a.removeAttribute("data-n"); });
     all(".admlink").forEach(function (al) { al.hidden = !(mu && mu.admin); });
   }
-  var ADM = { list: null, busy: false, err: "" };
+  var ADM = { list: null, busy: false, err: "", del: "" };
+  /* the admin's overview: numbers from the server, loaded when the page opens */
+  var ST = { data: null, busy: false, err: "" };
+  function stLoad() { if (!BE || ST.busy) return; ST.busy = true; BE.adminStats().then(function (j) { ST.data = j; ST.err = ""; }, function (x) { ST.err = beMsg(L(), x); }).then(function () { ST.busy = false; if (current.path === "/admin") render(true); }); }
+  function admDelRow(x) {
+    var t = L(); if (ADM.del !== x.id) return "";
+    return '<div class="confirm-row admdelq"><b>' + t.st_del_q(esc(x.name)) + '</b><button class="btn danger sm" type="button" data-admdel="yes" data-id="' + x.id + '">' + t.st_del_yes + '</button><button class="btn ghost sm" type="button" data-admdel="no">' + t.v_keep + "</button></div>";
+  }
+  function viewStats() {
+    var t = L();
+    if (!ST.data) { stLoad(); return ST.err ? '<p class="err">' + esc(ST.err) + "</p>" : '<p class="muted">…</p>'; }
+    var d = ST.data, sum = function (l) { return (l || []).reduce(function (a, r) { return a + r.n; }, 0); };
+    var role = function (r) { return (d.users || []).filter(function (x) { return x.role === r; })[0] || { n: 0, week: 0, verified: 0, tg: 0 }; };
+    var st = function (l, k) { return ((l || []).filter(function (x) { return x.status === k; })[0] || { n: 0 }).n; };
+    var P = role("patient"), D = role("doctor"), C = role("clinic"), nc = sum(d.consults), na = sum(d.appts);
+    var som = function (n) { return Number(n || 0).toLocaleString("ru-RU").replace(/,/g, " ") + " " + t.st_som; };
+    var tile = function (icon, label, big, note) { return '<div class="sttile"><span class="icobox">' + ic(icon) + '</span><div><div class="stbig">' + big + '</div><div class="stlbl">' + label + "</div>" + (note ? '<div class="fine">' + note + "</div>" : "") + "</div></div>"; };
+    var tiles = '<div class="stgrid">' +
+      tile("user", t.st_pat, P.n, t.st_week(P.week)) +
+      tile("shield", t.st_doc, D.n, t.st_ver(D.verified) + " · " + t.st_week(D.week)) +
+      tile("hosp", t.st_cli, C.n, t.st_ver(C.verified)) +
+      tile("chat", t.st_cons, nc, t.st_cons_n(st(d.consults, "new"), st(d.consults, "accepted"), st(d.consults, "done"))) +
+      tile("cal", t.st_appts, na, t.st_appts_n(st(d.appts, "new"), st(d.appts, "confirmed"))) +
+      tile("star", t.st_rv, (d.reviews || {}).n || 0, (d.reviews || {}).n ? "★ " + d.reviews.avg : "") +
+      tile("heart", "Shifo_AI", (d.ai || {}).n || 0, t.st_ai((d.ai || {}).week || 0)) +
+      tile("card", t.st_money, som((d.money || {}).paid), t.st_money_n((d.money || {}).n || 0, som((d.money || {}).fee))) +
+      tile("bell", t.st_reach, (P.tg + D.tg + C.tg), t.st_reach_n(d.push || 0)) +
+      "</div>";
+    /* the last 14 days: one row of bars for each */
+    var days = d.days || [];
+    var bars = function (key, label, cls) {
+      var max = Math.max.apply(null, days.map(function (x) { return x[key]; }).concat([1])), tot = days.reduce(function (a, x) { return a + x[key]; }, 0);
+      return '<div class="stdrow"><div class="stdh"><b>' + label + '</b><span class="muted">' + t.st_14(tot) + '</span></div><div class="stbars ' + cls + '">' + days.map(function (x) {
+        var dt = new Date(x.day + "T12:00:00"), lbl = fmt(dt, { day: "numeric", month: "short" });
+        return '<div class="stbar" title="' + esc(lbl) + ": " + x[key] + '"><i style="height:' + (x[key] ? Math.max(6, Math.round(x[key] / max * 100)) : 0) + '%"></i><span>' + (x[key] || "") + "</span></div>";
+      }).join("") + '</div><div class="staxis"><span>' + esc(days.length ? fmt(new Date(days[0].day + "T12:00:00"), { day: "numeric", month: "short" }) : "") + "</span><span>" + t.st_today + "</span></div></div>";
+    };
+    var top = function (h, list, name) { return '<div class="dcard"><h2 class="subh" style="margin:0 0 10px">' + h + "</h2>" + (list && list.length ? '<ol class="sttop">' + list.map(function (r) { return "<li><span>" + esc(name(r)) + "</span><b>" + r.n + "</b></li>"; }).join("") + "</ol>" : '<p class="muted">' + t.adm_none + "</p>") + "</div>"; };
+    var recent = '<div class="dcard"><h2 class="subh" style="margin:0 0 10px">' + t.st_recent + '</h2><ul class="strecent">' + (d.recent || []).map(function (r) {
+      var link = r.role === "doctor" ? "#/doc/" + r.id : r.role === "clinic" ? "#/c/" + r.id : "";
+      return "<li><span class=\"badge\">" + t.role[r.role] + "</span> " + (link ? '<a href="' + link + '">' + esc(r.name) + "</a>" : esc(r.name)) + ' <span class="muted">· ' + fmt(new Date(r.created_at), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) + "</span></li>";
+    }).join("") + "</ul></div>";
+    return (ST.err ? '<p class="err">' + esc(ST.err) + "</p>" : "") + tiles +
+      '<div class="dcard stchart"><div class="sechead" style="margin:0 0 6px"><h2 class="subh" style="margin:0">' + t.st_days + '</h2><button class="btn ghost sm" type="button" data-act="st-reload">' + t.st_reload + "</button></div>" + bars("users", t.st_new_users, "c1") + bars("consults", t.st_cons, "c2") + bars("appts", t.st_appts, "c3") + "</div>" +
+      '<div class="stcols">' + top(t.st_top_spec, d.spec, function (r) { return specName({ spec: r.spec }) || r.spec; }) + top(t.st_top_reg, d.region, function (r) { return regByCode[r.region] ? nmL(regByCode[r.region]) : r.region; }) + recent + "</div>" +
+      '<p class="fine" style="margin-top:14px">' + t.st_note + "</p>";
+  }
   function admLoad() {
     if (!BE || ADM.busy) return; ADM.busy = true;
     BE.adminList().then(function (j) { ADM.list = j.users || []; ADM.reviews = j.reviews || []; ADM.docs = j.docs || []; ADM.tg = j.webhook; ADM.err = ""; }, function (x) { ADM.err = beMsg(L(), x); ADM.list = ADM.list || []; }).then(function () { ADM.busy = false; if (current.path === "/admin") render(true); });
@@ -2507,10 +2560,11 @@
       '<form class="form" id="claimform" novalidate style="margin-top:18px"><div class="fld"><label for="cl-pw">' + t.im_pw + '</label><input id="cl-pw" type="password" autocomplete="new-password" minlength="6"></div><div class="fld"><label for="cl-pw2">' + t.im_pw2 + '</label><input id="cl-pw2" type="password" autocomplete="new-password" minlength="6"></div>' +
       '<label class="chk"><input type="checkbox" id="cl-ok"><span>' + t.im_claim_agree + '</span></label><div class="err" id="cl-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.im_claim_go + '</button></form><p class="fine" style="margin-top:12px">' + t.im_claim_fine + "</p></div>";
   }
-  var admTabs = function (cur) { var t = L(); return '<div class="chips admtabs">' + [["chk", t.adm_tab_chk], ["pay", t.adm_tab_pay], ["import", t.adm_tab_import], ["meds", t.adm_tab_meds]].map(function (x) { return '<button class="chip" type="button" data-admtab="' + x[0] + '" aria-pressed="' + (cur === x[0]) + '">' + x[1] + "</button>"; }).join("") + "</div>"; };
+  var admTabs = function (cur) { var t = L(); return '<div class="chips admtabs">' + [["stats", t.st_tab], ["chk", t.adm_tab_chk], ["pay", t.adm_tab_pay], ["import", t.adm_tab_import], ["meds", t.adm_tab_meds]].map(function (x) { return '<button class="chip" type="button" data-admtab="' + x[0] + '" aria-pressed="' + (cur === x[0]) + '">' + x[1] + "</button>"; }).join("") + "</div>"; };
   function viewAdmin(q) {
     var t = L(), u = me();
     if (!BE || !u || !u.admin) return '<div class="wrap pad"><div class="empty">' + t.adm_forbidden + "</div></div>";
+    if (q && q.tab === "stats") return '<div class="wrap pad" style="max-width:1080px">' + admTabs("stats") + '<h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.st_h + '</h1><p class="lead">' + t.st_p + "</p>" + viewStats() + "</div>";
     if (q && q.tab === "import") return '<div class="wrap pad" style="max-width:980px">' + admTabs("import") + '<h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.im_h + "</h1>" + viewImport() + "</div>";
     if (q && q.tab === "meds") return '<div class="wrap pad" style="max-width:900px">' + admTabs("meds") + '<h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.mo_h + "</h1>" + viewMedOrders() + "</div>";
     if (q && q.tab === "pay") return '<div class="wrap pad" style="max-width:900px">' + admTabs("pay") + '<h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.po_h + "</h1>" + viewPayouts() + "</div>";
@@ -2528,7 +2582,7 @@
       if (x.role === "doctor" && pr.region && regByCode[pr.region]) facts.push([t.f_region, esc(nmL(regByCode[pr.region]))]);
       facts.push([t.adm_since, esc(fmt(new Date(x.created_at), { day: "numeric", month: "short" }))]);
       return '<div class="dcard admrow"><div class="sechead" style="margin:0"><div><div class="eyebrow">' + t.role[x.role] + "</div><h3>" + '<a href="#/' + (x.role === "clinic" ? "c/" : "doc/") + x.id + '">' + esc(x.name) + "</a> " + vBadge(x) + "</h3></div>" +
-        '<div class="btns">' + (x.verified ? "" : '<button class="btn sm" type="button" data-adm="ok" data-id="' + x.id + '">' + ic("check") + t.adm_ok + "</button>") + '<button class="btn ghost sm" type="button" data-adm="no" data-id="' + x.id + '">' + (x.verified ? t.adm_revoke : t.adm_no) + "</button></div></div>" +
+        '<div class="btns">' + (x.verified ? "" : '<button class="btn sm" type="button" data-adm="ok" data-id="' + x.id + '">' + ic("check") + t.adm_ok + "</button>") + '<button class="btn ghost sm" type="button" data-adm="no" data-id="' + x.id + '">' + (x.verified ? t.adm_revoke : t.adm_no) + "</button>" + '<button class="btn ghost sm admdel" type="button" data-admdel="ask" data-id="' + x.id + '" aria-label="' + esc(t.st_del) + '">' + ic("trash") + "</button></div></div>" + admDelRow(x) +
         '<dl class="kv" style="margin-top:10px">' + facts.map(function (r) { return "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>"; }).join("") + "</dl></div>";
     };
     var pend = ADM.list.filter(function (x) { return !x.verified; }), done = ADM.list.filter(function (x) { return x.verified; });
@@ -2567,6 +2621,39 @@
     return '<div class="setrow"><div><h3>' + t.ins_h + "</h3>" + (note ? '<p class="muted">' + note + "</p>" : "") + "</div><div>" + body + "</div></div>";
   }
   /* the settings card: on the site's settings page and in every panel */
+  /* ---------------- phone notifications (Web Push): this browser or the Android app ---------------- */
+  var PU = { on: false, checked: false };
+  var puSupported = function () { return !!(BE && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window); };
+  var b64uBytes = function (s) { s = s.replace(/-/g, "+").replace(/_/g, "/"); s += "====".slice(0, (4 - s.length % 4) % 4); var b = atob(s), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; };
+  function puCheck() { if (!puSupported()) return; navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription(); }).then(function (s) { PU.on = !!s; PU.checked = true; render(true); }, function () {}); }
+  function puEnable() {
+    var t = L();
+    if (!puSupported()) { toast(t.pu_unsup); return; }
+    Notification.requestPermission().then(function (p) {
+      if (p !== "granted") { toast(p === "denied" ? t.pu_blocked : t.pu_notyet); render(true); return; }
+      return BE.pushKey().then(function (j) {
+        if (!j || !j.key) { toast(t.pu_nosrv); return; }
+        return navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uBytes(j.key) }); })
+          .then(function (s) { return BE.pushSub(s.toJSON()); }).then(function () { PU.on = true; toast(t.pu_done); render(true); });
+      });
+    }).catch(function () { toast(t.pu_err); });
+  }
+  function puDisable() {
+    var t = L();
+    navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription(); }).then(function (s) { if (!s) return; var ep = s.endpoint; return s.unsubscribe().then(function () { return BE.pushUnsub(ep); }); })
+      .then(function () { PU.on = false; toast(t.pu_off_done); render(true); }, function () { toast(t.pu_err); });
+  }
+  function puRow() {
+    var t = L(); if (!BE || !me()) return "";
+    var st = !puSupported() ? t.pu_unsup : Notification.permission === "denied" ? t.pu_blocked : PU.on ? t.pu_is_on : t.pu_is_off;
+    var btn = puSupported() && Notification.permission !== "denied" ? (PU.on ? '<button class="btn ghost sm" type="button" data-act="pu-off">' + t.pu_turn_off + "</button>" : '<button class="btn sm" type="button" data-act="pu-on">' + ic("bell") + t.pu_turn_on + "</button>") : "";
+    return [t.pu_row, btn, st];
+  }
+  /* a one-time nudge on the panel's home page */
+  function puCard() {
+    var t = L(); if (!puSupported() || !PU.checked || PU.on || Notification.permission !== "default" || PREF.puHide) return "";
+    return '<section class="dcard pucard"><span class="icobox">' + ic("bell") + '</span><div><h2>' + t.pu_card_h + '</h2><p class="muted">' + t.pu_card_p + '</p></div><div class="btns"><button class="btn" type="button" data-act="pu-on">' + t.pu_turn_on + '</button><button class="btn ghost" type="button" data-act="pu-hide">' + t.pu_later + "</button></div></section>";
+  }
   function settingsCard(inPanel) {
     var t = L(), u = me(), hasPos = false;
     try { hasPos = !!sessionStorage.getItem("shifokor-pos"); } catch (e) {}
@@ -2580,6 +2667,7 @@
       (inPanel ? "" : row(t.set_map, seg("map", ["on", "off"], mapOn ? "on" : "off", t.maps)) +
       row(t.set_loc, '<button class="btn ghost sm" type="button" data-act="forgetloc"' + (hasPos ? "" : " disabled") + ">" + t.set_loc_btn + "</button>", hasPos ? t.set_loc_p : t.set_loc_none)) +
       row(t.set_acc, accRow, u ? esc(u.name) : "") +
+      (function () { var r = puRow(); return r ? row(r[0], r[1], r[2]) : ""; })() +
       row(t.ct_row, '<a class="btn ghost sm" href="#/calltest">' + ic("video") + t.ct_row_btn + "</a>", t.ct_row_p) +
       row(t.set_data, clear, t.set_data_p) + "</div>";
   }
@@ -2713,6 +2801,7 @@
     else if (path === "/consult") { html = viewDoctors(q) + viewConsult(q, true); route = "consult"; }
     else if (path === "/about") { html = viewAbout(); route = "about"; }
     else if (path === "/try") { html = viewTry(); route = "try"; }
+    else if (path === "/privacy") { html = viewPrivacy(); route = "privacy"; }
     else if (path === "/specialists") { html = viewSpecialists(); route = "specialists"; }
     else if (path === "/services") { html = viewServices(); route = "services"; }
     else if (path === "/calltest" || path.indexOf("/calltest/") === 0) { html = viewCallTest(path.slice(10)); route = "calltest"; }
@@ -2789,8 +2878,14 @@
       '<div class="note-box"><b>' + t.dm_note_h + '</b><p style="margin:6px 0 0">' + t.dm_note_p + "</p></div>" +
       (DEMO ? '<p style="margin-top:16px"><button class="btn ghost" type="button" data-act="demo-exit">' + t.dm_exit_long + "</button></p>" : "") + "</div>";
   }
+  /* privacy policy and terms of use: what is collected, who sees it, where it is kept */
+  function viewPrivacy() {
+    var t = L();
+    return '<div class="wrap pad legal"><h1>' + t.lg_h + '</h1><p class="muted">' + t.lg_date + "</p>" + t.lg_sec.map(function (x) { return "<section><h2>" + x[0] + "</h2><p>" + x[1] + "</p></section>"; }).join("") + "</div>";
+  }
   function demoBar() {
     if (!DEMO) return;
+    document.body.classList.add("demo-on");
     var b = $("demobar"); if (!b) { b = document.createElement("div"); b.id = "demobar"; b.className = "demobar"; b.setAttribute("role", "region"); document.body.appendChild(b); }
     var t = L(), u = me(), r = u ? u.role : "";
     b.setAttribute("aria-label", t.dm_bar);
@@ -3098,6 +3193,12 @@
     }
     if (ds.act === "gunlink" && BE) { if (current.path === "/account" || current.path === "/pro") accCollect(); el.disabled = true; BE.googleUnlink().then(function () { toast(t.g_unlinked); render(true); }, function (x) { el.disabled = false; toast(gMsg(t, x)); }); return; }
     if (ds.act === "tgunlink" && BE) { if ((current.path === "/account" || current.path === "/pro")) accCollect(); BE.tgUnlink().then(function () { NT_WAIT = false; render(true); }, function (x) { toast(beMsg(t, x)); }); return; }
+    if (ds.act === "st-reload") { ST.data = null; render(true); return; }
+    if (ds.admdel) {
+      if (ds.admdel === "ask") { ADM.del = ds.id; render(true); return; }
+      if (ds.admdel === "no") { ADM.del = ""; render(true); return; }
+      if (ds.admdel === "yes" && BE) { el.disabled = true; BE.adminDelete(ds.id).then(function () { ADM.del = ""; ADM.list = null; ST.data = null; BE.refresh().catch(function () {}); toast(t.st_deleted); render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
+    }
     if (ds.adm && BE) { el.disabled = true; BE.adminVerify(ds.id, ds.adm === "ok").then(function () { toast(ds.adm === "ok" ? t.adm_ok_done : t.adm_no_done); ADM.list = null; BE.refresh().catch(function () {}); render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
     if (ds.act === "admtg" && BE) { BE.adminTgSetup().then(function (j) { toast(t.adm_tg_ok(j.bot)); }, function (x) { toast(beMsg(t, x)); }); return; }
     if (ds.act === "apcancel-no") { apAsk = null; render(true); return; }
@@ -3140,6 +3241,9 @@
       savePrefs(); render(true); toast(t.set_saved); return;
     }
     if (ds.setlang) { lang = ds.setlang; try { localStorage.setItem("shifokor-lang", lang); } catch (x) {} render(true); return; }
+    if (ds.act === "pu-on") { puEnable(); return; }
+    if (ds.act === "pu-off") { puDisable(); return; }
+    if (ds.act === "pu-hide") { PREF.puHide = 1; savePrefs(); render(true); return; }
     if (ds.act === "demo-go") { try { localStorage.setItem("shifokor-demo", "1"); sessionStorage.setItem("shifokor-demo-as", ds.role || "patient"); } catch (x) {} location.hash = "#/try"; location.reload(); return; }
     if (ds.act === "demo-as") { demoAs(ds.role); return; }
     if (ds.act === "demo-exit") { try { localStorage.removeItem("shifokor-demo"); } catch (x) {} location.hash = "#/"; location.reload(); return; }
@@ -3565,6 +3669,9 @@
   window.addEventListener("storage", function (e) { if (e.key && (e.key.indexOf("shifokor-") === 0 || e.key.indexOf("demo:shifokor-") === 0)) rerender(); });
   window.addEventListener("hashchange", function () { voDrop(); RS = null; CX = null; PH = null; cancelAsk = null; apAsk = null; APX = null; RR = null; PO.form = null; PO.del = ""; IM.del = ""; ON.urgent = ON.ok = ON.del = false; ON.famUrl = ""; render(false); });
 
+  /* scrolled past the top: the floating Shifo_AI button shows just its icon (its label returns on hover or focus) */
+  (function () { var on = false, chk = function () { var y = window.scrollY > 240; if (y !== on) { on = y; document.body.classList.toggle("scrolled", y); } }; window.addEventListener("scroll", chk, { passive: true }); chk(); })();
+  puCheck();
   /* entering the sandbox reloads the page: seed it and sign in as the role the visitor picked */
   if (DEMO) { var dmAs = ""; try { dmAs = sessionStorage.getItem("shifokor-demo-as") || ""; sessionStorage.removeItem("shifokor-demo-as"); } catch (x) {} demoSeed(); if (dmAs) { store.set(KS, DM[dmAs] || DM.patient); location.hash = "#/account"; } }
   render(false);

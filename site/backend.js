@@ -116,6 +116,9 @@
     signUp: async function (o) { var j = await call("signup", o); setToken(j.token); await refresh(); return { needsConfirm: false }; },
     signIn: async function (id, password) { var j = await call("login", { id: id, password: password }); setToken(j.token); await refresh(); },
     signOut: async function () { try { await call("logout"); } catch (e) {} setToken(null); await refresh(); },
+    pushKey: function () { return call("push_key"); },
+    pushSub: function (sub) { return call("push_sub", { sub: sub }); },
+    pushUnsub: function (endpoint) { return call("push_unsub", { endpoint: endpoint }); },
     deleteAccount: async function () { await call("delete_account"); setToken(null); await refresh(); },
     saveProfile: async function (u) { await call("save_profile", u); await refresh(); },
     createConsult: async function (r, notes) { var j = await call("create_consult", { c: r, notes: notes || [] }); await refresh(); return j.id; },
@@ -157,6 +160,8 @@
     tgLink: async function () { return (await call("tg_link")).url; },
     tgUnlink: async function () { await call("tg_unlink"); await refresh(); },
     adminList: function () { return call("admin_list"); },
+    adminStats: function () { return call("admin_stats"); },
+    adminDelete: function (id) { return call("admin_delete_user", { id: id }); },
     adminReview: function (id, hidden) { return call("admin_review", { id: id, hidden: hidden }); },
     /* o: { consult | appt, stars, body, anon } */
     reviewCreate: async function (o) { await call("review_create", o); await refresh(); },

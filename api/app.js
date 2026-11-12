@@ -40,6 +40,7 @@ const ACTIONS = Object.assign({},
   require("./_modules/clinics").actions,
   require("./_modules/docs").actions,
   require("./_modules/ai").actions,
+  require("./_modules/push").actions,
   M.actions,   // medicine lists and home delivery requests
   O.actions    // "Onalar uchun": pregnancy profile, check-ins, family member
 );

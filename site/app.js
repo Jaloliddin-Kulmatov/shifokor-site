@@ -1457,8 +1457,8 @@
         (CSPH.length < PH_FORM_MAX ? '<label class="phadd"><input type="file" accept="image/*" id="cs-ph" class="vh" multiple>' + ic("camera") + "<span>" + t.ph_add + "</span></label>" : "") + '</div><p class="fine">' + t.ph_form_p(PH_FORM_MAX) + " " + t.ph_privacy + "</p></div>" +
       '</fieldset>' +
       '<fieldset class="accsec"><legend>' + t.cs_pat_h + '</legend><div class="seg" role="group" style="margin-bottom:14px">' + ["self", "child", "other"].map(function (k) { return '<button type="button" data-csfor="' + k + '" aria-pressed="' + (c.who === k) + '">' + t.cs_for[k] + "</button>"; }).join("") + "</div>" +
-      '<div class="two">' + fi("cs-name", t.cs_pname, c.name, "text", ' autocomplete="name"') + fi("cs-age", t.cs_age, c.age, "number", ' min="0" max="120" inputmode="numeric"') + "</div>" +
-      '<details class="csmore" id="cs-more"' + (c.who !== "self" || !okPhone(c.phone) || ($("cs-more") && $("cs-more").open) ? " open" : "") + '><summary>' + t.cs_more_h + '</summary><div class="two"><div class="fld"><label for="cs-sex">' + t.cs_sex + '</label><select id="cs-sex">' + ["f", "m"].map(function (k) { return '<option value="' + k + '"' + (c.sex === k ? " selected" : "") + ">" + t.cs_sexes[k] + "</option>"; }).join("") + "</select></div>" + fi("cs-phone", t.cs_phone, c.phone, "tel", ' inputmode="tel" placeholder="+998" autocomplete="tel"') + "</div>" + dis +
+      '<div class="two">' + fi("cs-name", t.cs_pname, c.name, "text", ' autocomplete="name"') + fi("cs-age", t.cs_age + t.cs_opt, c.age, "number", ' min="0" max="120" inputmode="numeric"') + "</div>" +
+      '<details class="csmore" id="cs-more"' + (c.who !== "self" || ($("cs-more") && $("cs-more").open) ? " open" : "") + '><summary>' + t.cs_more_h + '</summary><div class="two"><div class="fld"><label for="cs-sex">' + t.cs_sex + '</label><select id="cs-sex">' + ["f", "m"].map(function (k) { return '<option value="' + k + '"' + (c.sex === k ? " selected" : "") + ">" + t.cs_sexes[k] + "</option>"; }).join("") + "</select></div>" + fi("cs-phone", t.cs_phone + t.cs_opt, c.phone, "tel", ' inputmode="tel" placeholder="+998" autocomplete="tel"') + "</div>" + dis +
       '<div class="fld"><label for="cs-since">' + t.cs_since + '</label><select id="cs-since">' + t.cs_sinces.map(function (x, i) { return '<option value="' + i + '"' + (String(c.since) === String(i) ? " selected" : "") + ">" + x + "</option>"; }).join("") + "</select></div>" +
       fi("cs-chronic", t.cs_chronic, c.chronic) + '<div class="two">' + fi("cs-meds", t.cs_meds, c.meds) + fi("cs-allergy", t.cs_allergy, c.allergy) + "</div></details></fieldset>" +
       '<fieldset class="accsec"><legend>' + t.cs_doc_h + '</legend><div class="roles two-roles" role="group" style="margin-bottom:14px">' + [["1", t.asap_now, "chat"], ["0", t.asap_pick, "search"]].map(function (x) { return '<button type="button" class="rolecard" data-csasap="' + x[0] + '" aria-pressed="' + (!!c.asap === (x[0] === "1")) + '"><span class="icobox">' + ic(x[2]) + "</span><b>" + x[1][0] + "</b><span>" + x[1][1] + "</span></button>"; }).join("") + "</div>" +
@@ -1614,7 +1614,7 @@
     var dd = c.district && disByCode[c.district], area = dd ? nmL(dd) + ", " + nmL(REG[dd.r]) : c.region && regByCode[c.region] ? nmL(regByCode[c.region]) : "—";
     var row = function (k, v) { return v ? "<dt>" + k + "</dt><dd>" + v + "</dd>" : ""; };
     var due = c.status === "accepted" && c.payStatus === "due";
-    var details = '<dl class="kv">' + row(t.cs_type_lbl, t.cs_types[c.type][0]) + row(t.wt_lbl, c.wantAt && !c.slotAt ? esc(slotTxt(c.wantAt)) : "") + row(t.pay_price, c.price != null && c.status !== "new" ? '<span class="nums">' + esc(money(c.price)) + "</span>" : "") + row(t.cs_for_lbl, t.cs_for[c.who]) + row(t.cs_pname, esc(c.name)) + row(t.cs_age, esc(c.age)) + row(t.cs_sex, t.cs_sexes[c.sex]) + row(t.cs_phone, '<span class="nums">' + esc(isDoc || !c.userId || (u && u.id === c.userId) ? c.phone : maskPhone(c.phone)) + "</span>") + row(t.cs_area, esc(area)) + row(t.cs_since, t.cs_sinces[+c.since]) + "</dl>" +
+    var details = '<dl class="kv">' + row(t.cs_type_lbl, t.cs_types[c.type][0]) + row(t.wt_lbl, c.wantAt && !c.slotAt ? esc(slotTxt(c.wantAt)) : "") + row(t.pay_price, c.price != null && c.status !== "new" ? '<span class="nums">' + esc(money(c.price)) + "</span>" : "") + row(t.cs_for_lbl, t.cs_for[c.who]) + row(t.cs_pname, esc(c.name)) + row(t.cs_age, esc(c.age)) + row(t.cs_sex, t.cs_sexes[c.sex]) + row(t.cs_phone, c.phone ? '<span class="nums">' + esc(isDoc || !c.userId || (u && u.id === c.userId) ? c.phone : maskPhone(c.phone)) + "</span>" : "") + row(t.cs_area, esc(area)) + row(t.cs_since, t.cs_sinces[+c.since]) + "</dl>" +
       '<h3 style="margin:16px 0 6px">' + t.cs_complaint + '</h3><p class="pre">' + esc(c.complaint) + "</p>" +
       '<dl class="kv" style="margin-top:14px">' + row(t.cs_chronic, esc(c.chronic)) + row(t.cs_meds, esc(c.meds)) + row(t.cs_allergy, esc(c.allergy)) + row(t.cs_wanted, c.spec ? t.docsp[c.spec] : t.cs_spec_any) + row(t.cs_doctor, c.doctorId ? '<a href="#/doc/' + c.doctorId + '">' + esc(c.doctorName) + "</a>" : "") + "</dl>";
     var msgs = c.msgs.map(function (m) { if (m.from === "s") return '<div class="sys">' + esc(m.text) + "</div>"; var mine = (isDoc && m.from === "d") || (!isDoc && m.from === "p"); return '<div class="' + (mine ? "me" : "them") + (m.file ? " hasph" : "") + '">' + (m.from === "d" && !mine ? "<b>" + esc(m.name) + "</b>" : "") + (m.file ? (m.fk === "a" ? '<audio class="voice" controls preload="none" data-auid="' + esc(m.file) + '"></audio>' : phImg(m.file)) : "") + esc(m.text || "") + '<small>' + fmt(new Date(m.at), { day: "numeric", month: "short" }) + " " + pad(new Date(m.at).getHours()) + ":" + pad(new Date(m.at).getMinutes()) + "</small></div>"; }).join("");
@@ -3196,8 +3196,22 @@
     if (id === "form") { submitJoin(); return; }
     if (id === "csform") {
       csCollect(); var C = CS, err = $("cs-err");
-      if (!C.name || !(+C.age >= 0 && C.age !== "") || !okPhone(C.phone) || C.complaint.length < 10) { err.textContent = t.cs_err_fill; var dm = $("cs-more"); if (dm && !okPhone(C.phone)) dm.open = true; return; }
-      if (!C.consent) { err.textContent = t.cs_err_consent; return; }
+      /* say which field is missing, mark it and go to it (the phone sits under "more details", so it opens) */
+      var miss = [];
+      if (!C.name) miss.push(["cs-name", t.cs_need.name]);
+      if (C.age !== "" && !(+C.age >= 0 && +C.age <= 120)) miss.push(["cs-age", t.cs_need.age]);   /* optional, but a number if given */
+      var cpd = String(C.phone || "").replace(/\D/g, "");
+      if (cpd && cpd.length !== 9 && !/^\d{7,15}$/.test(cpd)) miss.push(["cs-phone", t.cs_need.phone]);   /* optional; Uzbek or foreign */
+      if (C.complaint.length < 5) miss.push(["cs-complaint", t.cs_need.complaint]);
+      [].forEach.call(document.querySelectorAll("#csform .fld.bad"), function (f) { f.classList.remove("bad"); });
+      if (miss.length) {
+        var dm = $("cs-more"); if (dm && miss.some(function (x) { return x[0] === "cs-phone"; })) dm.open = true;
+        err.innerHTML = t.cs_err_fill2 + "<ul>" + miss.map(function (x) { return "<li>" + x[1] + "</li>"; }).join("") + "</ul>";
+        miss.forEach(function (x) { var el = $(x[0]); if (el && el.closest(".fld")) { el.closest(".fld").classList.add("bad"); el.setAttribute("aria-invalid", "true"); } });
+        var f0 = $(miss[0][0]); if (f0) { f0.scrollIntoView({ block: "center" }); f0.focus({ preventScroll: true }); }
+        return;
+      }
+      if (!C.consent) { err.textContent = t.cs_err_consent; var ccb = $("cs-consent"), ccl = ccb && ccb.closest("label"); if (ccl) ccl.classList.add("bad"); if (ccb) { ccb.scrollIntoView({ block: "center" }); ccb.focus({ preventScroll: true }); } return; }
       var sd = !C.asap && C.doc ? userById(C.doc) : null, sf = sd && !sd.sample ? freeDays(sd) : null;
       if (sf && sf.days && sf.days.length && !C.slot) { err.textContent = t.sl_err; return; }
       if (BE) {

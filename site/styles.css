@@ -1845,3 +1845,8 @@ audio.voice { display: block; width: 240px; max-width: 100%; height: 36px; margi
 .demobar .dmx { background: rgba(255,255,255,.14); }
 .demobar a:hover, .demobar button:hover { text-decoration: underline; }
 @media (max-width: 899px) { .demobar { bottom: calc(env(safe-area-inset-bottom, 0px) + 80px); flex-wrap: nowrap; gap: 4px; padding: 5px; font-size: .82rem; } .demobar .dmt, .demobar .dmhelp { display: none; } .demobar button { padding: 6px 9px; } }
+
+/* a field the form says is missing */
+.fld.bad input, .fld.bad textarea, .fld.bad select { border-color: #dc2626 !important; box-shadow: 0 0 0 3px rgba(220, 38, 38, .15); }
+.err ul { margin: 6px 0 0; padding-left: 20px; }
+label.bad { outline: 2px solid #dc2626; outline-offset: 4px; border-radius: 8px; }

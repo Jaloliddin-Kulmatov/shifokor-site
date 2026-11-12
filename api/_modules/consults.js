@@ -24,9 +24,11 @@ const actions = {
     const age = c.age === "" || c.age == null ? null : Math.round(Number(c.age));
     if (age != null && !(age >= 0 && age <= 130)) bad("age");
     const sex = c.sex === "m" ? "m" : "f";
-    const phone = phoneOf(c.phone) || bad("phone");
+    // phone is optional: empty means the account's own phone (if any); Uzbek numbers get 998, foreign ones (7-15 digits) are kept as they are
+    const pd = String(c.phone || "").replace(/\D/g, "");
+    const phone = !pd ? me.phone || "" : pd.length === 9 ? "998" + pd : /^\d{7,15}$/.test(pd) ? pd : bad("phone");
     const complaint = str(c.complaint, 1500);
-    if (complaint.length < 10) bad("complaint");
+    if (complaint.length < 5) bad("complaint");
     const since = Math.min(4, Math.max(0, Math.round(Number(c.since) || 0)));
     let doc = UUID.test(String(c.doc || "")) ? c.doc : null;
     // an imported doctor who hasn't claimed their profile yet can't answer, so the application goes to any doctor

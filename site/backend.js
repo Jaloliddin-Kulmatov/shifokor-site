@@ -161,6 +161,7 @@
     tgUnlink: async function () { await call("tg_unlink"); await refresh(); },
     adminList: function () { return call("admin_list"); },
     adminStats: function () { return call("admin_stats"); },
+    partnerLead: function (o) { return call("partner_lead", o); },
     adminDelete: function (id) { return call("admin_delete_user", { id: id }); },
     adminReview: function (id, hidden) { return call("admin_review", { id: id, hidden: hidden }); },
     /* o: { consult | appt, stars, body, anon } */

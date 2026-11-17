@@ -96,7 +96,7 @@ const actions = {
   async admin_stats(b, me) {
     requireAdmin(me);
     const rows = async (sql) => (await q(sql)).rows;
-    const [users, cons, ctype, appts, money, rv, ai, push, spec, region, d1, d2, d3, recent] = await Promise.all([
+    const [users, cons, ctype, appts, money, rv, ai, push, spec, region, d1, d2, d3, recent, leads] = await Promise.all([
       rows("select role, count(*)::int as n, count(*) filter (where created_at > now() - interval '7 days')::int as week, count(*) filter (where verified_at is not null)::int as verified, count(*) filter (where tg is not null and tg <> '')::int as tg from app_users group by role"),
       rows("select status, count(*)::int as n from app_consults group by status"),
       rows("select type, count(*)::int as n from app_consults group by type"),
@@ -110,7 +110,8 @@ const actions = {
       rows("select created_at::date::text as day, count(*)::int as n from app_users where created_at > current_date - 13 group by 1"),
       rows("select created_at::date::text as day, count(*)::int as n from app_consults where created_at > current_date - 13 group by 1"),
       rows("select created_at::date::text as day, count(*)::int as n from app_appts where created_at > current_date - 13 group by 1"),
-      rows("select id, role, name, created_at from app_users order by created_at desc limit 12")
+      rows("select id, role, name, created_at from app_users order by created_at desc limit 12"),
+      rows("select kind, name, org, phone, email, city, note, created_at from app_leads order by created_at desc limit 20")
     ]);
     const days = [];
     const by = (list) => Object.fromEntries(list.map((r) => [r.day, r.n]));
@@ -119,7 +120,7 @@ const actions = {
       const day = new Date(Date.now() - i * 864e5).toISOString().slice(0, 10);
       days.push({ day, users: u[day] || 0, consults: c[day] || 0, appts: a[day] || 0 });
     }
-    return { users, consults: cons, types: ctype, appts, money: money[0], reviews: rv[0], ai: ai[0], push: push[0].n, spec, region, days, recent };
+    return { users, consults: cons, types: ctype, appts, money: money[0], reviews: rv[0], ai: ai[0], push: push[0].n, spec, region, days, recent, leads };
   },
 
   // removes an account for good, with everything that belongs to it (requests, chats, visits, reviews). Not an admin's.

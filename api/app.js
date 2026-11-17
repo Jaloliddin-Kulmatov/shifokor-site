@@ -41,6 +41,7 @@ const ACTIONS = Object.assign({},
   require("./_modules/docs").actions,
   require("./_modules/ai").actions,
   require("./_modules/push").actions,
+  require("./_modules/leads").actions,
   M.actions,   // medicine lists and home delivery requests
   O.actions    // "Onalar uchun": pregnancy profile, check-ins, family member
 );
@@ -113,7 +114,7 @@ module.exports = async function handler(req, res) {
   if (!body) return send(res, 400, { error: "invalid" });
   const action = Object.prototype.hasOwnProperty.call(ACTIONS, body.action) ? ACTIONS[body.action] : null;
   if (!action) return send(res, 400, { error: "action" });
-  if (body.action === "ai_find") body._ip = String(req.headers["x-real-ip"] || req.headers["x-forwarded-for"] || "").split(",")[0].trim();   // set here, so a caller can't choose it
+  if (body.action === "ai_find" || body.action === "partner_lead") body._ip = String(req.headers["x-real-ip"] || req.headers["x-forwarded-for"] || "").split(",")[0].trim();   // set here, so a caller can't choose it
   try {
     await migrate();
     await jobs.maybeTick();

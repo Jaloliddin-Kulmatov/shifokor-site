@@ -448,4 +448,20 @@ create table if not exists app_push (
 );
 create index if not exists app_push_user_idx on app_push (user_id);
 alter table app_push enable row level security;
+
+-- partnership requests from the "Hamkorlik" page; ip_hash only to limit how many come from one address
+create table if not exists app_leads (
+  id uuid primary key default gen_random_uuid(),
+  kind text not null check (kind in ('clinic', 'doctor', 'pharmacy', 'lab', 'insurance', 'employer', 'gov', 'other')),
+  name text not null check (char_length(name) between 1 and 120),
+  org text check (org is null or char_length(org) <= 160),
+  phone text check (phone is null or char_length(phone) <= 20),
+  email text check (email is null or char_length(email) <= 254),
+  city text check (city is null or char_length(city) <= 80),
+  note text check (note is null or char_length(note) <= 1000),
+  ip_hash text,
+  created_at timestamptz not null default now()
+);
+create index if not exists app_leads_time_idx on app_leads (created_at desc);
+alter table app_leads enable row level security;
 `;

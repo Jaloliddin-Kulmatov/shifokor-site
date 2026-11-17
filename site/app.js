@@ -340,7 +340,7 @@
       '<div class="wrap tcards homepromise">' + t.tc.map(function (x, i) { return '<div class="tcard"><div class="tcimg t' + i + '">' + ic(["shield", "free", "check"][i]) + "</div><div><b>" + x[0] + "</b><p>" + x[1] + "</p></div></div>"; }).join("") + "</div>" +
       prosSec +
       '<div class="wrap pad"><h2>' + t.faq_short_h + '</h2><div class="faq">' + t.faq_f.map(function (q) { return "<details><summary>" + q[0] + "</summary><p>" + q[1] + "</p></details>"; }).join("") + "</div>" +
-      '<p class="fine credits">' + t.ph_credit + "</p></div>";
+      "</div>" + teamSec("") + '<div class="wrap"><p class="fine credits">' + t.ph_credit + "</p></div>";
   }
   /* ---------------- health services: one card per thing an ordinary person comes for ----------------
      Each card links to real content: the application form, the price list filtered to that service, or the clinics.
@@ -1257,7 +1257,7 @@
       '<div class="wrap pad" id="ab-network"><h2>' + t.nv_network + '</h2><p class="lead">' + t.ab_net_p + '</p><div class="stats">' + stats.map(function (x) { return '<div class="stat1"><b class="nums" data-count="' + String(x[0]).replace(/\D/g, "") + '">' + x[0] + "</b><span>" + x[1] + "</span></div>"; }).join("") + "</div>" +
       '<div class="btns" style="margin-top:20px"><a class="btn" href="#/find">' + ic("hosp") + t.nav_hosp + '</a><a class="btn ghost" href="#/browse/areas">' + ic("pin") + t.br_regions + '</a><a class="btn ghost" href="#/register" data-regrole-link="clinic">' + t.ab_clinic_join + "</a></div></div>" +
       '<div class="band alt" id="ab-faq"><div class="wrap pad"><h2>' + t.nv_faq + '</h2><div class="faq">' + t.faq_f.map(function (q) { return "<details><summary>" + q[0] + "</summary><p>" + q[1] + "</p></details>"; }).join("") + "</div>" +
-      '<p class="joinline">' + t.join_line + ' <a href="#/register" data-regrole-link="doctor">' + t.join_go + "</a></p></div></div>";
+      '<p class="joinline">' + t.join_line + ' <a href="#/register" data-regrole-link="doctor">' + t.join_go + "</a></p></div></div>" + teamSec("ab-team");
   }
   /* "Siz uchun tibbiy yordam" (Doctor Anywhere's "Healthcare for you"): four ways in, with the lowest price among real doctors only */
   var HC_SVG = {
@@ -2935,6 +2935,14 @@
       '<div class="wrap pad"><div class="ptgrid">' + cards + "</div></div>" +
       '<div class="band soft"><div class="wrap pad">' + nums + "</div></div>" +
       '<div class="wrap pad ptsplit"><div><h2>' + t.pt_how_h + "</h2>" + how + '</div><div class="dcard" id="ptbox"><h2>' + t.pt_form_h + "</h2>" + form + "</div></div>";
+  }
+  /* the team, at the bottom of the home and About pages */
+  function teamSec(id) {
+    var t = L(); if (!t.tm) return "";
+    var ini = function (n) { return n.split(" ").map(function (w) { return w.charAt(0); }).join("").slice(0, 2); };
+    return '<div class="wrap pad teamsec"' + (id ? ' id="' + id + '"' : "") + '><div class="sechead"><div><h2>' + t.tm_h + '</h2><p class="lead" style="margin:4px 0 0">' + t.tm_p + "</p></div></div>" +
+      '<div class="teamgrid">' + t.tm.map(function (m, i) { return '<article class="tmcard"><span class="tmav g' + i + '" aria-hidden="true">' + esc(ini(m[0])) + "</span><div><h3>" + esc(m[0]) + '</h3><p class="tmrole">' + esc(m[1]) + "</p>" + (m[2] ? '<p class="muted tmx">' + esc(m[2]) + "</p>" : "") + "</div></article>"; }).join("") + "</div>" +
+      '<p class="joinline" style="margin-top:16px">' + t.tm_join + ' <a href="#/partners">' + t.pt_nav + "</a></p></div>";
   }
   /* a check mark that draws itself, for "done" moments */
   function okDraw() { return '<svg class="okdraw" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="23"/><path d="M15 27l7 7 15-16"/></svg>'; }

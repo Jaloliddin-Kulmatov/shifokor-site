@@ -283,9 +283,11 @@ const actions = {
     const last = (await q("select sent_at from app_email_codes where user_id = $1", [me.id])).rows[0];
     if (last && Date.now() - new Date(last.sent_at).getTime() < 60e3) throw new Fail(429, "wait");
     const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
-    await q("insert into app_email_codes (user_id, email, code_hash, expires_at) values ($1, $2, $3, now() + interval '30 minutes') on conflict (user_id) do update set email = excluded.email, code_hash = excluded.code_hash, expires_at = excluded.expires_at, tries = 0, sent_at = now()", [me.id, me.email, sha(me.id + ":" + code)]);
-    const text = "Shifokor: emailingizni tasdiqlash kodi " + code + ". Kod 30 daqiqa amal qiladi.\nКод подтверждения email: " + code + "\nYour Shifokor email code: " + code + "\n\nAgar siz ro‘yxatdan o‘tmagan bo‘lsangiz, bu xatni e’tiborsiz qoldiring.";
-    const html = '<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px;color:#14302f"><h2 style="margin:0 0 12px">Shifokor</h2><p>Emailingizni tasdiqlash kodi / Код подтверждения / Your code:</p><p style="font-size:32px;letter-spacing:8px;font-weight:700;margin:16px 0">' + code + '</p><p style="color:#5b6b6a">Kod 30 daqiqa amal qiladi. Agar siz ro‘yxatdan o‘tmagan bo‘lsangiz, bu xatni e’tiborsiz qoldiring.</p></div>';
+    const link = crypto.randomBytes(24).toString("base64url");   // one tap in the email confirms too, on any device
+    await q("insert into app_email_codes (user_id, email, code_hash, link_hash, expires_at) values ($1, $2, $3, $4, now() + interval '30 minutes') on conflict (user_id) do update set email = excluded.email, code_hash = excluded.code_hash, link_hash = excluded.link_hash, expires_at = excluded.expires_at, tries = 0, sent_at = now()", [me.id, me.email, sha(me.id + ":" + code), sha(link)]);
+    const url = site.url() + "/#/confirm/" + link;
+    const text = "Shifokor: emailingizni tasdiqlash kodi " + code + ". Kod 30 daqiqa amal qiladi.\nКод подтверждения email: " + code + "\nYour Shifokor email code: " + code + "\n\nBir bosishda tasdiqlash / Подтвердить одним нажатием / Confirm with one tap:\n" + url + "\n\nAgar siz ro‘yxatdan o‘tmagan bo‘lsangiz, bu xatni e’tiborsiz qoldiring.";
+    const html = '<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px;color:#14302f"><h2 style="margin:0 0 12px">Shifokor</h2><p>Emailingizni tasdiqlash kodi / Код подтверждения / Your code:</p><p style="font-size:32px;letter-spacing:8px;font-weight:700;margin:16px 0">' + code + '</p><p style="margin:0 0 16px"><a href="' + url + '" style="display:inline-block;background:#0f766e;color:#fff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:700">Tasdiqlash · Подтвердить · Confirm</a></p><p style="color:#5b6b6a">Kod 30 daqiqa amal qiladi. Agar siz ro‘yxatdan o‘tmagan bo‘lsangiz, bu xatni e’tiborsiz qoldiring.</p></div>';
     if (!(await N.mail(me.email, "Shifokor: tasdiqlash kodi " + code, text, html))) { await q("delete from app_email_codes where user_id = $1", [me.id]); throw new Fail(N.mailBlocked() ? 503 : 502, N.mailBlocked() ? "no_mail" : "mail"); }
     return { sent: true };
   },
@@ -299,6 +301,17 @@ const actions = {
     if (r.code_hash !== sha(me.id + ":" + code)) throw new Fail(400, "code");
     await q("update app_users set email_verified_at = now() where id = $1 and email = $2", [me.id, r.email]);
     await q("delete from app_email_codes where user_id = $1", [me.id]);
+    return { verified: true };
+  },
+  // the one-tap link from the email: the token proves the mailbox, so no sign-in is needed (it may be opened on another device)
+  async email_link(b) {
+    const t = String(b.token || "");
+    if (!/^[A-Za-z0-9_-]{30,40}$/.test(t)) throw new Fail(410, "expired");
+    const r = (await q("select user_id, email, expires_at from app_email_codes where link_hash = $1", [sha(t)])).rows[0];
+    if (!r || new Date(r.expires_at).getTime() < Date.now()) throw new Fail(410, "expired");
+    const u = await q("update app_users set email_verified_at = now() where id = $1 and email = $2 returning id", [r.user_id, r.email]);
+    if (!u.rows[0]) throw new Fail(410, "expired");   // the email was changed since
+    await q("delete from app_email_codes where user_id = $1", [r.user_id]);
     return { verified: true };
   },
 

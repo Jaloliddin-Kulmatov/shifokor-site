@@ -346,6 +346,8 @@ create table if not exists app_email_codes (
   tries int not null default 0,
   sent_at timestamptz not null default now()
 );
+-- the same email also carries a one-click link; only the link's hash is kept
+alter table app_email_codes add column if not exists link_hash text;
 
 -- forgotten passwords: a 6-digit code sent by Telegram, email or SMS, or a one-time link an admin hands over.
 -- Only hashes are kept; a code lasts 30 minutes and 5 tries, a link 3 days.

@@ -907,6 +907,12 @@
       google.accounts.id.renderButton(b, { type: "standard", theme: "outline", size: "large", shape: "pill", text: GMODE === "register" ? "signup_with" : "continue_with", width: Math.min(400, Math.max(220, b.clientWidth || 320)), locale: lang === "uz" ? "uz" : lang });
     }, function () { var b = $("gbtn"); if (b) b.innerHTML = '<p class="fine">' + L().g_unavailable + "</p>"; });
   }
+  var GNEW = null;   /* a Google account with no Shifokor account yet, kept while the person says who they are: { cred, name, email } */
+  function gClaims(cred) { try { var c = JSON.parse(decodeURIComponent(escape(atob(String(cred).split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))))); return { name: String(c.name || ""), email: String(c.email || "") }; } catch (e) { return { name: "", email: "" }; } }
+  function gNewBox() {
+    var t = L(); if (!GNEW) return "";
+    return '<div class="tgbox"><b>' + t.g_new_h(esc(GNEW.email || GNEW.name)) + '</b><p class="muted">' + t.g_new_p + '</p><div class="err" id="gn-err" aria-live="polite"></div><div class="stack"><button class="btn block" type="button" data-gnew="patient">' + t.tl_as_patient + '</button><a class="btn ghost block" href="#/register" data-gnew="pro">' + t.tl_as_pro + "</a></div></div>";
+  }
   function gErr(msg, html) { var el = $(GMODE === "register" ? "r-err" : GMODE === "link" ? "g-err" : "l-err"); if (el) { if (html) el.innerHTML = msg; else el.textContent = msg; } else toast(msg); }
   function gMsg(t, x) { return { google_new: t.g_new, google_exists: t.g_exists, google_taken: t.g_taken, google_only: t.g_only, google: t.g_bad, no_google: t.g_unavailable }[x && x.code] || beMsg(t, x); }
   function onGoogle(resp) {
@@ -923,7 +929,10 @@
     }
     gErr("");
     BE.google(o).then(function () { ACC = null; var mu = me(); toast(t.welcome(mu ? mu.name : "")); go(afterAuth()); },
-      function (x) { gErr(x && x.code === "google_new" ? esc(t.g_new) + ' <a href="#/register">' + t.go_reg + "</a>" : esc(gMsg(t, x)), true); });
+      function (x) {
+        if (x && x.code === "google_new" && GMODE === "login") { var gc = gClaims(cred); GNEW = { cred: cred, name: gc.name, email: gc.email }; render(true); return; }
+        gErr(x && x.code === "google_new" ? esc(t.g_new) + ' <a href="#/register">' + t.go_reg + "</a>" : esc(gMsg(t, x)), true);
+      });
   }
   /* ---------------- "Sign in with Telegram" ----------------
      The browser makes a secret code and the button opens t.me/<bot>?start=login_<code>. In Telegram the person shares
@@ -950,6 +959,7 @@
     var t = L();
     BE.tgLogin(Object.assign({ code: TGL.code }, extra || {})).then(function (j) {
       if (j.status === "wait") { TGL.timer = setTimeout(tglPoll, document.visibilityState === "visible" ? 2000 : 5000); return; }
+      if (j.status === "new" && !extra && current && current.path === "/register" && REGROLE === "patient") { TGL.status = ""; tglPoll({ role: "patient", name: ($("r-name") ? $("r-name").value.trim() : "") || j.name || "" }); return; }
       if (j.status === "new" || j.status === "choose") { TGL.status = j.status; TGL.name = j.name || ""; TGL.accounts = j.accounts || []; render(true); return; }
       tglReset(); ACC = null; var mu = me(); toast(t.welcome(mu ? mu.name : "")); go(afterAuth());
     }, function (x) { TGL.err = x && x.code === "invited" ? t.e_invited : beMsg(t, x); TGL.active = false; tglSave(); render(true); });
@@ -966,11 +976,15 @@
       (TGL.active ? '<div class="tgbox" role="status"><b>' + t.tl_wait_h + '</b><p class="muted">' + t.tl_wait_p + '</p><p><a href="' + href + '" target="_blank" rel="noopener">' + t.tl_again + '</a> · <button class="linkbtn" type="button" data-tgl="cancel">' + t.tl_cancel + "</button></p></div>" : "") +
       (TGL.err ? '<p class="err">' + esc(TGL.err) + "</p>" : "") + "</div>";
   }
-  /* the button with an "or" line; nothing at all until GOOGLE_CLIENT_ID is set on the server */
-  function googleBlock(mode) {
-    var t = L(); if (!GOOGLE) return tgBlock(mode) ? (mode === "register" ? '<div class="ordiv"><span>' + t.g_or + "</span></div>" + tgBlock(mode) : tgBlock(mode) + '<div class="ordiv"><span>' + t.g_or + "</span></div>") : "";
-    var btn = tgBlock(mode) + '<div class="gsign"><div id="gbtn" data-g="' + mode + '"></div>' + (inApp ? '<p class="fine">' + t.g_inapp + "</p>" : "") + "</div>";
-    return mode === "register" ? '<div class="ordiv"><span>' + t.g_or + "</span></div>" + btn + '<p class="fine" style="text-align:center">' + t.g_reg_note + "</p>" : btn + '<div class="ordiv"><span>' + t.g_or + "</span></div>";
+  /* Google and Telegram with an "or" line. top: the patient sign-up shows them first, since nothing else is needed.
+     Nothing at all for Google until GOOGLE_CLIENT_ID is set on the server. */
+  function googleBlock(mode, top) {
+    var t = L(), or = '<div class="ordiv"><span>' + t.g_or + "</span></div>", tg = tgBlock(mode);
+    var btn = tg + (GOOGLE ? '<div class="gsign"><div id="gbtn" data-g="' + mode + '"></div>' + (inApp ? '<p class="fine">' + t.g_inapp + "</p>" : "") + "</div>" : "");
+    if (mode === "login" && GNEW) btn = gNewBox() + btn;
+    if (!btn) return "";
+    if (mode === "register") return top ? btn + or : or + btn + '<p class="fine" style="text-align:center">' + t.g_reg_note + "</p>";
+    return btn + or;
   }
   /* account page: add or remove "Sign in with Google" */
   function googleCard(u) {
@@ -1012,6 +1026,27 @@
       var left = Math.ceil((VER.at + 60e3 - Date.now()) / 1000); b.disabled = left > 0; b.textContent = left > 0 ? L().ev_resend_in(left) : L().ev_resend;
     }, 1000);
   }
+  /* the one-tap link in the email: works signed in or out, on any device */
+  var CF = { token: "", state: "" };
+  function viewConfirmEmail(token) {
+    var t = L();
+    if (!BE) return '<div class="wrap pad" style="max-width:560px"><div class="empty">' + t.ev_cf_demo + "</div></div>";
+    if (CF.token !== token) {
+      CF = { token: token, state: "loading" };
+      BE.emailLink(token).then(function () { CF.state = "ok"; ACC = null; if (BE.userId()) BE.refresh().catch(function () {}); }, function () { CF.state = "bad"; })
+        .then(function () { if (current.path === "/confirm/" + token) render(true); });
+    }
+    var home = BE.userId() ? acc("/") : "#/login", go = BE.userId() ? t.ev_go : t.go_login;
+    if (CF.state === "loading") return '<div class="wrap pad acc" style="max-width:520px"><section class="pcard evcard"><div class="evicon">' + ic("mail") + '</div><p class="lead" style="margin:0">' + t.ev_cf_wait + "</p></section></div>";
+    if (CF.state === "ok") return '<div class="wrap pad acc" style="max-width:520px"><section class="pcard evcard"><div class="evicon">' + ic("check") + "</div><h1>" + t.ev_done + '</h1><p class="lead">' + t.ev_cf_ok + '</p><a class="btn big block" href="' + home + '">' + go + "</a></section></div>";
+    return '<div class="wrap pad acc" style="max-width:520px"><section class="pcard evcard"><div class="evicon">' + ic("mail") + "</div><h1>" + t.ev_cf_bad_h + '</h1><p class="lead">' + t.ev_cf_bad + '</p><a class="btn big block" href="' + (BE.userId() ? acc("/verify") : "#/login") + '">' + t.ev_cf_new + "</a></section></div>";
+  }
+  /* the code form sends itself as soon as the sixth digit is in */
+  document.addEventListener("input", function (e) {
+    var i = e.target; if (!i || i.id !== "ev-code") return;
+    var d = String(i.value).replace(/\D/g, "").slice(0, 6); if (i.value !== d) i.value = d;
+    if (d.length === 6 && i.form) { if (i.form.requestSubmit) i.form.requestSubmit(); else i.form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true })); }
+  });
   function pVerify(u) {
     var t = L();
     if (!u.email) return pHead(t.ev_h, "") + pCard("", pEmpty("mail", t.ev_noemail, t.ev_noemail_p, '<a class="btn" href="' + acc("/settings") + '">' + t.pro_t.profile + "</a>"));
@@ -1031,13 +1066,13 @@
     var t = L(), clinic = REGROLE === "clinic";
     var roles = ["patient", "doctor", "clinic"].map(function (r) { return '<button type="button" class="rolecard" data-regrole="' + r + '" aria-pressed="' + (REGROLE === r) + '"><span class="icobox">' + ic(r === "patient" ? "heart" : r === "doctor" ? "shield" : "hosp") + "</span><b>" + t.role[r] + "</b><span>" + t.role_d[r] + "</span></button>"; }).join("");
     var f = function (id, label, type, extra) { return '<div class="fld"><label for="' + id + '">' + label + '</label><input id="' + id + '" type="' + type + '"' + (extra || "") + "></div>"; };
-    return '<div class="wrap pad acc"><p class="authtop">' + t.have_acc + ' <a href="#/login">' + t.go_login + '</a></p><h1>' + t.reg_h + '</h1><p class="lead">' + t.reg_p + '</p><div class="demo" style="margin:16px 0 22px">' + t.acc_demo + '</div><div class="roles" role="group">' + roles + "</div>" +
+    return '<div class="wrap pad acc"><p class="authtop">' + t.have_acc + ' <a href="#/login">' + t.go_login + '</a></p><h1>' + t.reg_h + '</h1><p class="lead">' + t.reg_p + '</p><div class="demo" style="margin:16px 0 22px">' + t.acc_demo + '</div><div class="roles" role="group">' + roles + "</div>" + (REGROLE === "patient" ? '<div class="onetap">' + googleBlock("register", true) + "</div>" : "") +
       '<form class="form" id="regform" novalidate>' + f("r-name", clinic ? t.f_clinicname : t.f_fullname, "text", ' autocomplete="' + (clinic ? "organization" : "name") + '"') +
       '<div class="two">' + f("r-email", t.f_email, "email", ' autocomplete="email" inputmode="email"') + f("r-phone", t.f_phone2, "tel", ' autocomplete="tel" inputmode="tel" placeholder="+998"') + '</div><p class="fine" style="margin:-4px 0 14px">' + t.or_note + "</p>" +
       f("r-tg", t.f_tg, "text", ' autocomplete="off" placeholder="' + t.f_tg_ph + '"') + regExtra(t) +
       '<div class="two">' + f("r-pw", t.f_pw, "password", ' autocomplete="new-password"') + f("r-pw2", t.f_pw2, "password", ' autocomplete="new-password"') + "</div>" +
       (REGROLE !== "patient" ? '<p class="fine regnote">' + ic("shield") + t.rg_note + "</p>" : "") +
-      '<div class="err" id="r-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.reg_btn + "</button>" + googleBlock("register") + '<p class="muted" style="margin-top:14px;text-align:center">' + t.have_acc + ' <a href="#/login">' + t.go_login + "</a></p></form></div>";
+      '<div class="err" id="r-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.reg_btn + "</button>" + (REGROLE === "patient" ? "" : googleBlock("register")) + '<p class="muted" style="margin-top:14px;text-align:center">' + t.have_acc + ' <a href="#/login">' + t.go_login + "</a></p></form></div>";
   }
   /* ---------------- a forgotten password ----------------
      Step 1: phone or email; a 6-digit code goes out by Telegram, email or SMS (whichever the account has).
@@ -1967,7 +2002,7 @@
      The public site (/) shows doctors and takes applications; everything behind a sign-in lives here, with its own
      sidebar, top bar and pages: patients, doctors, clinics, and admins on top of their role. Same API, same session. */
   var PANEL = false;   /* set on each render: true on account pages */
-  var isPanelPath = function (p) { return p === "/account" || p.indexOf("/account/") === 0 || ["/pro", "/visits", "/admin", "/login", "/register", "/forgot"].indexOf(p) > -1 || p.indexOf("/consult/") === 0 || p.indexOf("/claim/") === 0 || p.indexOf("/reset/") === 0; };
+  var isPanelPath = function (p) { return p === "/account" || p.indexOf("/account/") === 0 || ["/pro", "/visits", "/admin", "/login", "/register", "/forgot"].indexOf(p) > -1 || p.indexOf("/consult/") === 0 || p.indexOf("/claim/") === 0 || p.indexOf("/reset/") === 0 || p.indexOf("/confirm/") === 0; };
   var acc = function (p) { return "#/account" + (p && p !== "/" ? p : ""); };
   var PRO_FORM = false;   /* viewAccount() returns just the profile form, for the panel's settings page */
   var PNAV = {
@@ -2182,6 +2217,7 @@
     if (path.indexOf("/claim/") === 0) return { body: '<div class="pauth">' + viewClaim(path.slice(7)) + "</div>", bare: true };
     if (path === "/forgot") return { body: '<div class="pauth">' + viewForgot() + "</div>", bare: true };
     if (path.indexOf("/reset/") === 0) return { body: '<div class="pauth">' + viewResetLink(path.slice(7)) + "</div>", bare: true };
+    if (path.indexOf("/confirm/") === 0) return { body: '<div class="pauth">' + viewConfirmEmail(path.slice(9)) + "</div>", bare: true };
     if (!u) return { redirect: "#/login" };
     /* links written for the old one-page site, and public pages opened from the panel */
     if (path === "/pro") path = q.tab === "profile" ? "/settings" : "/" + (q.tab && q.tab !== "home" ? q.tab : "");
@@ -3245,6 +3281,13 @@
       var gu = me(); if (!gu) return; var gp = JSON.parse(JSON.stringify(gu.profile || {})); gp.modes = (gp.modes || ["in"]).filter(function (m) { return m !== "on"; }).concat(["on"]);
       if (BE) { el.disabled = true; BE.saveProfile({ role: gu.role, name: gu.name, email: gu.email || "", phone: gu.phone || "", tg: gu.tg || "", profile: gp }).then(function () { ACC = null; toast(t.off_done); render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
       var gl = users(); gl.forEach(function (x) { if (x.id === gu.id) x.profile = gp; }); saveUsers(gl); ACC = null; toast(t.off_done); render(true); return;
+    }
+    if (ds.gnew && GNEW && BE) {
+      if (ds.gnew === "pro") { GNEW = null; return; }   /* the link goes to the sign-up page */
+      el.disabled = true;
+      BE.google({ credential: GNEW.cred, role: "patient" }).then(function () { GNEW = null; ACC = null; var mu = me(); toast(t.welcome(mu ? mu.name : "")); go(afterAuth()); },
+        function (x) { el.disabled = false; var ge = $("gn-err"); if (ge) ge.textContent = x && x.code === "google" ? t.g_bad : gMsg(t, x); });
+      return;
     }
     if (ds.tgl && BE) {
       if (ds.tgl === "go") { TGL.active = true; TGL.err = ""; tglSave(); setTimeout(function () { render(true); tglPoll(); }, 300); return; }   /* the link itself opens Telegram */

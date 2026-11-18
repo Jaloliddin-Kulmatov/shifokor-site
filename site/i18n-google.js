@@ -3,7 +3,7 @@
   var add = function (lang, o) { Object.keys(o).forEach(function (k) { T[lang][k] = o[k]; }); };
 
   add("uz", {
-    g_or: "yoki", g_reg_note: "Avval yuqorida kimligingizni tanlang. Shifokor yoki klinika bo‘lsangiz, majburiy maydonlarni ham to‘ldiring: parol kerak bo‘lmaydi.",
+    g_new_h: function (e) { return "Google tasdiqlandi" + (e ? ": " + e : "") + "."; }, g_new_p: "Bu Google hisobi bilan hali hisob yo‘q. Kim sifatida davom etasiz?", g_or: "yoki", g_reg_note: "Avval yuqorida kimligingizni tanlang. Shifokor yoki klinika bo‘lsangiz, majburiy maydonlarni ham to‘ldiring: parol kerak bo‘lmaydi.",
     g_new: "Bu Google hisobi bilan hali ro‘yxatdan o‘tilmagan. Ro‘yxatdan o‘tish sahifasida kimligingizni tanlang va Google tugmasini bosing.",
     g_exists: "Bu email bilan hisob allaqachon bor. Avval email va parol bilan kiring, keyin «Kabinet»da Google’ni ulang.",
     g_taken: "Bu Google hisobi boshqa Shifokor hisobiga ulangan.", g_only: "Hisobingizga faqat Google orqali kirasiz. Uzishdan oldin «Parolni unutdingizmi?» orqali parol o‘rnating.",
@@ -14,7 +14,7 @@
   });
 
   add("ru", {
-    g_or: "или", g_reg_note: "Сначала выберите выше, кто вы. Если вы врач или клиника, заполните и обязательные поля: пароль не нужен.",
+    g_new_h: function (e) { return "Google подтверждён" + (e ? ": " + e : "") + "."; }, g_new_p: "С этим аккаунтом Google ещё нет аккаунта Shifokor. Продолжить как кто?", g_or: "или", g_reg_note: "Сначала выберите выше, кто вы. Если вы врач или клиника, заполните и обязательные поля: пароль не нужен.",
     g_new: "С этим аккаунтом Google ещё не регистрировались. На странице регистрации выберите, кто вы, и нажмите кнопку Google.",
     g_exists: "Аккаунт с этим email уже есть. Сначала войдите по email и паролю, затем подключите Google в «Кабинете».",
     g_taken: "Этот аккаунт Google уже подключён к другому аккаунту Shifokor.", g_only: "Вы входите только через Google. Перед отключением задайте пароль через «Забыли пароль?».",
@@ -25,7 +25,7 @@
   });
 
   add("en", {
-    g_or: "or", g_reg_note: "First choose above who you are. Doctors and clinics also fill in the required fields: no password needed.",
+    g_new_h: function (e) { return "Google confirmed" + (e ? ": " + e : "") + "."; }, g_new_p: "There’s no Shifokor account with this Google account yet. Continue as who?", g_or: "or", g_reg_note: "First choose above who you are. Doctors and clinics also fill in the required fields: no password needed.",
     g_new: "No one has signed up with this Google account yet. On the sign-up page, choose who you are and press the Google button.",
     g_exists: "An account with this email already exists. Sign in with your email and password first, then connect Google in your account.",
     g_taken: "This Google account is already connected to another Shifokor account.", g_only: "You sign in only with Google. Before disconnecting it, set a password with “Forgot password?”.",

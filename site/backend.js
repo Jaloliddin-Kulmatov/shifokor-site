@@ -176,6 +176,7 @@
     consultRx: async function (cid, rx) { await call("consult_rx", { id: cid, rx: rx }); await refresh(); },
     medOrder: async function (o) { var j = await call("med_order", o); await refresh(); return j; },
     emailCode: function () { return call("email_code"); },
+    emailLink: function (token) { return call("email_link", { token: token }); },
     emailVerify: async function (code) { var j = await call("email_verify", { code: code }); await refresh(); return j; },
     branchSave: async function (o) { var j = await call("branch_save", o); await refresh(); return j; },
     branchDelete: async function (id) { await call("branch_delete", { id: id }); await refresh(); },

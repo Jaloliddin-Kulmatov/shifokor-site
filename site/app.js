@@ -79,7 +79,10 @@
   var bookings = function () { return store.get(K.bookings, []); };
   var saveBookings = function (l) { store.set(K.bookings, l); };
   var BE = window.SB || null;   /* server connection from backend.js, or null in demo mode */
-  function beMsg(t, x) { var c = (x && x.code) || ""; return { exists: t.e_exists, login: t.e_login, email: t.e_email, phone: t.e_phone, tg: t.e_tg, password: t.e_pw, name: t.e_name, contact: t.e_contact, date: t.e_ap_date, limit: t.e_ap_limit, dup: t.e_ap_dup, clinic: t.e_ap_clinic, time: t.e_ap_time, closed: t.e_ap_closed, doctor: t.e_ap_doc, unverified: t.e_ap_unv, no_tg: t.nt_off, forbidden: t.adm_forbidden, reviewed: t.e_reviewed, stars: t.e_stars, photos: t.e_photos, photo: t.ph_bad, slow: t.e_slow, unpaid: t.e_unpaid, paid: t.e_paid, invited: t.e_invited, invite: t.im_bad_link, advice: t.rf2_err, answered: t.e_answered, slot_taken: t.sl_taken, slot: t.sl_bad, voices: t.vo_many, audio: t.vo_bad, open: t.rx_open, address: t.rx_err_fill, region: t.rx_err_fill }[c] || t.be_err; }
+  /* the server's password rule (api/_core/auth.js pwOk), checked here first for a quicker answer */
+  var PW_COMMON = "12345678 123456789 1234567890 87654321 11111111 00000000 password password1 password123 qwerty123 qwertyui qwertyuiop 1q2w3e4r abcd1234 shifokor shifokor1 shifokor123 parol123".split(" ");
+  function pwBad(pw) { return pw.length < 8 || pw.length > 200 || PW_COMMON.indexOf(pw.toLowerCase()) > -1 || /^(.)\1+$/.test(pw); }
+  function beMsg(t, x) { var c = (x && x.code) || ""; return { exists: t.e_exists, login: t.e_login, locked: t.e_locked, no_sms: t.pv_e_sms, sms: t.pv_e_sms, code: t.ev_e_code, expired: t.ev_e_exp, tries: t.ev_e_tries, email: t.e_email, phone: t.e_phone, tg: t.e_tg, password: t.e_pw, name: t.e_name, contact: t.e_contact, date: t.e_ap_date, limit: t.e_ap_limit, dup: t.e_ap_dup, clinic: t.e_ap_clinic, time: t.e_ap_time, closed: t.e_ap_closed, doctor: t.e_ap_doc, unverified: t.e_ap_unv, no_tg: t.nt_off, forbidden: t.adm_forbidden, reviewed: t.e_reviewed, stars: t.e_stars, photos: t.e_photos, photo: t.ph_bad, slow: t.e_slow, unpaid: t.e_unpaid, paid: t.e_paid, invited: t.e_invited, invite: t.im_bad_link, advice: t.rf2_err, answered: t.e_answered, slot_taken: t.sl_taken, slot: t.sl_bad, voices: t.vo_many, audio: t.vo_bad, open: t.rx_open, address: t.rx_err_fill, region: t.rx_err_fill }[c] || t.be_err; }
   if (BE) ["en", "uz", "ru"].forEach(function (l) { T[l].acc_demo = T[l].be_online; T[l].cs_demo = T[l].be_online; });
 
   /* ---------------- sample directory ---------------- */
@@ -890,6 +893,12 @@
   var GOOGLE = BE ? String((window.SHIFOKOR_CONFIG || {}).google || "") : "", GSI = null, GMODE = "";
   /* Google's sign-in doesn't open inside Telegram's or Instagram's own browser */
   var inApp = /Telegram|Instagram|FBAN|FBAV|; wv\)/i.test(navigator.userAgent || "");
+  /* Android opens Chrome straight from an intent link; iPhone can't, so the link is copied for Safari */
+  var isAndroid = /Android/i.test(navigator.userAgent || "");
+  function inAppNote() {
+    var t = L(), u = location.href, open = isAndroid ? '<a class="btn ghost sm" href="intent://' + esc(u.replace(/^https?:\/\//, "")) + '#Intent;scheme=https;package=com.android.chrome;end">' + t.g_open_chrome + "</a>" : "";
+    return '<div class="inapp"><p class="fine">' + t.g_inapp + '</p><div class="btns">' + open + '<button class="btn ghost sm" type="button" data-act="copylink">' + ic("send") + t.g_copy + "</button></div></div>";
+  }
   function gsiLoad() {
     if (!GSI) GSI = new Promise(function (res, rej) {
       var s = document.createElement("script"); s.src = "https://accounts.google.com/gsi/client?hl=" + (lang === "uz" ? "uz" : lang); s.async = true;   /* without hl the first button follows the browser's language */
@@ -980,7 +989,7 @@
      Nothing at all for Google until GOOGLE_CLIENT_ID is set on the server. */
   function googleBlock(mode, top) {
     var t = L(), or = '<div class="ordiv"><span>' + t.g_or + "</span></div>", tg = tgBlock(mode);
-    var btn = tg + (GOOGLE ? '<div class="gsign"><div id="gbtn" data-g="' + mode + '"></div>' + (inApp ? '<p class="fine">' + t.g_inapp + "</p>" : "") + "</div>" : "");
+    var btn = tg + (GOOGLE ? '<div class="gsign"><div id="gbtn" data-g="' + mode + '"></div>' + (inApp ? inAppNote() : "") + "</div>" : "");
     if (mode === "login" && GNEW) btn = gNewBox() + btn;
     if (!btn) return "";
     if (mode === "register") return top ? btn + or : or + btn + '<p class="fine" style="text-align:center">' + t.g_reg_note + "</p>";
@@ -1043,7 +1052,7 @@
   }
   /* the code form sends itself as soon as the sixth digit is in */
   document.addEventListener("input", function (e) {
-    var i = e.target; if (!i || i.id !== "ev-code") return;
+    var i = e.target; if (!i || !(i.id === "ev-code" || i.dataset.auto)) return;
     var d = String(i.value).replace(/\D/g, "").slice(0, 6); if (i.value !== d) i.value = d;
     if (d.length === 6 && i.form) { if (i.form.requestSubmit) i.form.requestSubmit(); else i.form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true })); }
   });
@@ -1060,19 +1069,50 @@
       '<p class="fine" style="margin-top:14px">' + t.ev_spam + ' <a href="' + acc("/settings") + '">' + t.ev_change + "</a></p>";
     return pHead(t.ev_h, t.ev_p) + '<section class="pcard evcard"><div class="evicon">' + ic("mail") + "</div>" + body + '<p style="margin:18px 0 0"><a class="linkbtn" href="' + acc("/") + '">' + t.ev_later + "</a></p></section>";
   }
+  /* ---------------- confirming the phone: Telegram's contact button, or an SMS code ---------------- */
+  var PV = { code: "", at: 0, active: false, timer: null, err: "", sms: false, smsAt: 0 };
+  var phoneWays = function () { var n = BE && BE.notify(); return { tg: !!(n && n.tg && n.bot), sms: !!(n && n.sms) }; };
+  /* doctors and clinics are asked; a patient may confirm from the page too */
+  var needsPhone = function (u) { var w = phoneWays(); return !!(BE && u && u.remote && u.phone && !u.phoneVerified && u.role !== "patient" && (w.tg || w.sms)); };
+  function pvCode() {
+    if (!PV.code || Date.now() - PV.at > 540e3) { var b = new Uint8Array(18); crypto.getRandomValues(b); PV.code = btoa(String.fromCharCode.apply(null, b)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); PV.at = Date.now(); PV.active = false; }
+    return PV.code;
+  }
+  function pvPoll() {
+    clearTimeout(PV.timer);
+    if (!PV.active || !BE || current.path.indexOf("/account/phone") !== 0) return;
+    if (Date.now() - PV.at > 600e3) { PV.active = false; PV.err = L().tl_expired; render(true); return; }
+    BE.tgPhone(PV.code).then(function (j) {
+      if (j.status === "wait") { PV.timer = setTimeout(pvPoll, document.visibilityState === "visible" ? 2000 : 5000); return; }
+      PV = { code: "", at: 0, active: false, timer: null, err: "", sms: false, smsAt: 0 }; toast(L().pv_ok); render(true);
+    }, function (x) { var t = L(), c = x && x.code; PV.active = false; PV.code = ""; PV.err = c === "phone_other" ? t.pv_other : c === "phone_none" ? t.pv_none : beMsg(t, x); render(true); });
+  }
+  function pPhone(u) {
+    var t = L(), w = phoneWays();
+    if (!u.phone) return pHead(t.pv_h, "") + pCard("", pEmpty("phone", t.pv_nophone, "", '<a class="btn" href="' + acc("/settings") + '">' + t.pro_t.profile + "</a>"));
+    if (u.phoneVerified) return pHead(t.pv_h, "") + pCard("", pEmpty("check", t.pv_done, fmtPhone(u.phone), '<a class="btn" href="' + acc("/") + '">' + t.ev_go + "</a>"));
+    var href = w.tg ? "https://t.me/" + encodeURIComponent(BE.notify().bot) + "?start=login_" + pvCode() : "";
+    var tg = w.tg ? '<div class="pvway"><b>' + t.pv_tg_h + '</b><p class="muted">' + t.pv_tg_p + '</p><a class="btn tgbtn" href="' + href + '" target="_blank" rel="noopener" data-act="pv-tg">' + ic("send") + t.pv_tg_btn + "</a>" +
+      (PV.active ? '<div class="tgbox" role="status"><b>' + t.tl_wait_h + '</b><p class="muted">' + t.tl_wait_p + "</p></div>" : "") + "</div>" : "";
+    var sms = !w.sms ? "" : !PV.sms ? '<div class="pvway"><b>' + t.pv_sms_h + '</b><p class="muted">' + t.pv_sms_p(esc(fmtPhone(u.phone))) + '</p><button class="btn ghost" type="button" data-act="pv-sms">' + t.pv_sms_btn + "</button></div>"
+      : '<div class="pvway"><form id="pvform" class="evform" novalidate><div class="fld"><label for="pv-code">' + t.ev_code + '</label><input id="pv-code" class="evcode nums" data-auto="1" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••"></div><div class="btns"><button class="btn" type="submit">' + t.ev_btn + "</button></div></form></div>";
+    return pHead(t.pv_h, t.pv_p) + '<section class="pcard evcard"><div class="evicon">' + ic("phone") + '</div><p class="lead" style="margin:0 0 6px">' + esc(fmtPhone(u.phone)) + "</p>" + tg + sms +
+      '<div class="err" id="pv-err" aria-live="polite">' + esc(PV.err) + '</div><p class="fine" style="margin-top:14px"><a href="' + acc("/settings") + '">' + t.pv_change + '</a></p><p style="margin:12px 0 0"><a class="linkbtn" href="' + acc("/") + '">' + t.ev_later + "</a></p></section>";
+  }
+  function phoneBanner(u) { var t = L(); return '<section class="pcard evbanner"><span class="icobox">' + ic("phone") + "</span><div><b>" + t.pv_ban_h + '</b><p class="muted">' + t.pv_ban_p + '</p></div><a class="btn sm" href="' + acc("/phone") + '">' + t.ev_ban_btn + "</a></section>"; }
   function verBanner(u) { var t = L(); return '<section class="pcard evbanner"><span class="icobox">' + ic("mail") + "</span><div><b>" + t.ev_ban_h + '</b><p class="muted">' + t.ev_ban_p(esc(u.email)) + '</p></div><a class="btn sm" href="' + acc("/verify") + '">' + t.ev_ban_btn + "</a></section>"; }
 
   function viewRegister() {
     var t = L(), clinic = REGROLE === "clinic";
     var roles = ["patient", "doctor", "clinic"].map(function (r) { return '<button type="button" class="rolecard" data-regrole="' + r + '" aria-pressed="' + (REGROLE === r) + '"><span class="icobox">' + ic(r === "patient" ? "heart" : r === "doctor" ? "shield" : "hosp") + "</span><b>" + t.role[r] + "</b><span>" + t.role_d[r] + "</span></button>"; }).join("");
     var f = function (id, label, type, extra) { return '<div class="fld"><label for="' + id + '">' + label + '</label><input id="' + id + '" type="' + type + '"' + (extra || "") + "></div>"; };
-    return '<div class="wrap pad acc"><p class="authtop">' + t.have_acc + ' <a href="#/login">' + t.go_login + '</a></p><h1>' + t.reg_h + '</h1><p class="lead">' + t.reg_p + '</p><div class="demo" style="margin:16px 0 22px">' + t.acc_demo + '</div><div class="roles" role="group">' + roles + "</div>" + (REGROLE === "patient" ? '<div class="onetap">' + googleBlock("register", true) + "</div>" : "") +
+    return '<div class="wrap pad acc"><p class="authtop">' + t.have_acc + ' <a href="#/login">' + t.go_login + '</a></p><h1>' + t.reg_h + '</h1><p class="lead" style="margin-bottom:18px">' + t.reg_p + '</p><div class="roles" role="group">' + roles + "</div>" + (REGROLE === "patient" ? '<div class="onetap">' + googleBlock("register", true) + "</div>" : "") +
       '<form class="form" id="regform" novalidate>' + f("r-name", clinic ? t.f_clinicname : t.f_fullname, "text", ' autocomplete="' + (clinic ? "organization" : "name") + '"') +
       '<div class="two">' + f("r-email", t.f_email, "email", ' autocomplete="email" inputmode="email"') + f("r-phone", t.f_phone2, "tel", ' autocomplete="tel" inputmode="tel" placeholder="+998"') + '</div><p class="fine" style="margin:-4px 0 14px">' + t.or_note + "</p>" +
       f("r-tg", t.f_tg, "text", ' autocomplete="off" placeholder="' + t.f_tg_ph + '"') + regExtra(t) +
       '<div class="two">' + f("r-pw", t.f_pw, "password", ' autocomplete="new-password"') + f("r-pw2", t.f_pw2, "password", ' autocomplete="new-password"') + "</div>" +
       (REGROLE !== "patient" ? '<p class="fine regnote">' + ic("shield") + t.rg_note + "</p>" : "") +
-      '<div class="err" id="r-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.reg_btn + "</button>" + (REGROLE === "patient" ? "" : googleBlock("register")) + '<p class="muted" style="margin-top:14px;text-align:center">' + t.have_acc + ' <a href="#/login">' + t.go_login + "</a></p></form></div>";
+      '<div class="err" id="r-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.reg_btn + "</button>" + (REGROLE === "patient" ? "" : googleBlock("register")) + '<p class="muted" style="margin-top:14px;text-align:center">' + t.have_acc + ' <a href="#/login">' + t.go_login + '</a></p><p class="fine" style="margin-top:18px">' + t.acc_demo + "</p></form></div>";
   }
   /* ---------------- a forgotten password ----------------
      Step 1: phone or email; a 6-digit code goes out by Telegram, email or SMS (whichever the account has).
@@ -1102,11 +1142,21 @@
       '<div class="two"><div class="fld"><label for="rl-pw">' + t.fg_new + '</label><input id="rl-pw" type="password" autocomplete="new-password"></div><div class="fld"><label for="rl-pw2">' + t.f_pw2 + '</label><input id="rl-pw2" type="password" autocomplete="new-password"></div></div>' +
       '<div class="err" id="rl-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.fg_save + "</button></form></div>";
   }
+  /* sign in with a password, or (server only) with a 6-digit code sent by Telegram, SMS or email */
+  var LC = { mode: "pw", id: "", sent: "", at: 0, msg: "" };
   function viewLogin() {
-    var t = L();
-    return '<div class="wrap pad acc" style="max-width:520px"><h1>' + t.login_h + '</h1><div class="demo" style="margin:16px 0 22px">' + t.acc_demo + "</div>" + googleBlock("login") + '<form class="form" id="loginform" novalidate>' +
-      '<div class="fld"><label for="l-id">' + t.login_id + '</label><input id="l-id" autocomplete="username"></div><div class="fld"><label for="l-pw">' + t.f_pw + '</label><input id="l-pw" type="password" autocomplete="current-password"></div>' +
-      '<p class="fgline"><a href="#/forgot">' + t.fg_link + '</a></p><div class="err" id="l-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.login_btn + '</button><div class="authalt"><span>' + t.no_acc + '</span><a class="btn ghost block" href="#/register">' + t.go_reg + "</a></div></form></div>";
+    var t = L(), code = BE && LC.mode === "code", alt = "";
+    var idf = '<div class="fld"><label for="l-id">' + t.login_id + '</label><input id="l-id" autocomplete="username" value="' + esc(LC.id) + '"></div>';
+    var form;
+    if (!code) form = '<form class="form" id="loginform" novalidate>' + idf + '<div class="fld"><label for="l-pw">' + t.f_pw + '</label><input id="l-pw" type="password" autocomplete="current-password"></div>' +
+      '<p class="fgline"><a href="#/forgot">' + t.fg_link + '</a></p><div class="err" id="l-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.login_btn + "</button>" +
+      (BE ? '<button class="btn ghost block" type="button" data-act="lc-code" style="margin-top:10px">' + ic("mail") + t.lc_switch + "</button>" : "") + "</form>";
+    else if (!LC.sent) form = '<form class="form" id="lcform" novalidate><p class="muted" style="margin:0 0 12px">' + t.lc_p + "</p>" + idf + '<div class="err" id="l-err" aria-live="polite">' + esc(LC.msg) + '</div><button class="btn big block" type="submit">' + t.lc_send + "</button>" +
+      '<button class="btn ghost block" type="button" data-act="lc-pw" style="margin-top:10px">' + t.lc_back + "</button></form>";
+    else form = '<form class="form" id="lc2form" novalidate><p class="lead" style="margin:0 0 14px">' + t.lc_sent(t.lc_via[LC.sent], esc(LC.id)) + '</p><div class="fld"><label for="lc-code">' + t.ev_code + '</label><input id="lc-code" class="evcode nums" data-auto="1" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••"></div>' +
+      '<div class="err" id="l-err" aria-live="polite">' + esc(LC.msg) + '</div><button class="btn big block" type="submit">' + t.login_btn + '</button><p class="muted" style="margin-top:12px;text-align:center"><button class="linkbtn" type="button" data-act="lc-again">' + t.lc_again + '</button> · <button class="linkbtn" type="button" data-act="lc-pw">' + t.lc_back + "</button></p></form>";
+    alt = '<div class="authalt"><span>' + t.no_acc + '</span><a class="btn ghost block" href="#/register">' + t.go_reg + "</a></div>";
+    return '<div class="wrap pad acc" style="max-width:520px"><h1>' + t.login_h + "</h1>" + googleBlock("login") + form + alt + '<p class="fine" style="margin-top:18px">' + t.acc_demo + "</p></div>";
   }
 
   /* account editor keeps unsaved edits in ACC so adding a row does not lose what was typed */
@@ -2206,6 +2256,7 @@
   function panelPage(path0, q) {
     var pg = panelPage0(path0, q), u = me();
     if (pg.body && !pg.bare && !pg.redirect && pg.key !== "verify" && needsEmail(u)) pg.body = verBanner(u) + pg.body;
+    else if (pg.body && !pg.bare && !pg.redirect && pg.key !== "phone" && needsPhone(u)) pg.body = phoneBanner(u) + pg.body;
     return pg;
   }
   function panelPage0(path0, q) {
@@ -2223,6 +2274,7 @@
     if (path === "/pro") path = q.tab === "profile" ? "/settings" : "/" + (q.tab && q.tab !== "home" ? q.tab : "");
     if (path === "/visits" && role !== "patient") path = "/";
     if (path === "/verify") return { body: pVerify(u), key: "verify" };
+    if (path === "/phone") { if (PV.active) setTimeout(pvPoll, 0); return { body: pPhone(u), key: "phone" }; }
     var mineR = role === "doctor" ? ["/", "/requests", "/schedule", "/patients", "/earnings", "/reviews"] : role === "clinic" ? ["/", "/requests", "/calendar", "/team", "/branches", "/reviews"] : ["/", "/consults", "/record", "/visits", "/meds", "/ona"];
     /* another role's page, or one that doesn't exist: this account's overview */
     if (mineR.indexOf(path) < 0 && path !== "/settings" && path !== "/prefs" && path !== "/admin" && path.indexOf("/consult/") !== 0 && path.indexOf("/summary/") !== 0) return { redirect: acc("/") };
@@ -2645,6 +2697,7 @@
       var facts = [[t.adm_contact, [x.email, x.phone ? fmtPhone(x.phone) : "", x.tg].filter(Boolean).map(esc).join(" · ") || "—"], [t.adm_lic, pr.lic ? esc(pr.lic) : "—"]];
       var xd = (ADM.docs || []).filter(function (d) { return d.user_id === x.id; });
       facts.push([t.doc_h, xd.length ? xd.map(function (d) { return '<button class="linkbtn" type="button" data-docopen="' + d.id + '">' + esc(d.name || t.doc_kinds[d.kind]) + "</button> <small class=\"muted\">(" + t.doc_kinds[d.kind] + ")</small>"; }).join("<br>") : '<span class="muted">' + t.doc_none_adm + "</span>"]);
+      if (x.phone) facts.push([t.f_phone2, x.phone_verified ? '<span class="badge ok">' + t.pv_adm_ok + "</span>" : '<span class="badge warn">' + t.pv_adm_no + "</span>"]);
       if (EMAIL_CHECK && x.email) facts.push(["Email", x.email_verified ? '<span class="badge ok">' + t.adm_email_ok + "</span>" : '<span class="badge warn">' + t.adm_email_no + "</span>"]);
       if (x.role === "clinic" && pr.contact) facts.push([t.adm_cperson, esc(pr.contact) + (pr.contact_role ? " · " + esc(pr.contact_role) : "")]);
       if (x.role === "clinic") facts.push([t.adm_fac, f ? '<a href="#/f/' + f.key + '">' + esc(facLabel(f)) + "</a>" : pr.claim ? esc(pr.claim) : "—"]);
@@ -3282,6 +3335,11 @@
       if (BE) { el.disabled = true; BE.saveProfile({ role: gu.role, name: gu.name, email: gu.email || "", phone: gu.phone || "", tg: gu.tg || "", profile: gp }).then(function () { ACC = null; toast(t.off_done); render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
       var gl = users(); gl.forEach(function (x) { if (x.id === gu.id) x.profile = gp; }); saveUsers(gl); ACC = null; toast(t.off_done); render(true); return;
     }
+    if (ds.act === "lc-code" || ds.act === "lc-pw") { LC.id = $("l-id") ? $("l-id").value.trim() : LC.id; LC.mode = ds.act === "lc-code" ? "code" : "pw"; LC.sent = ""; LC.msg = ""; render(true); if ($("l-id") && !LC.id) $("l-id").focus(); return; }
+    if (ds.act === "lc-again") { LC.sent = ""; LC.msg = ""; render(true); return; }
+    if (ds.act === "copylink") { var cl = location.href; (navigator.clipboard ? navigator.clipboard.writeText(cl) : Promise.reject()).then(function () { toast(t.g_copied); }, function () { window.prompt(t.g_copy, cl); }); return; }
+    if (ds.act === "pv-tg" && BE) { PV.active = true; PV.err = ""; setTimeout(function () { render(true); pvPoll(); }, 300); return; }   /* the link itself opens Telegram */
+    if (ds.act === "pv-sms" && BE) { el.disabled = true; PV.err = ""; BE.phoneCode().then(function (j) { PV.sms = !j.verified; PV.smsAt = Date.now(); render(true); }, function (x) { el.disabled = false; PV.err = x && x.code === "wait" ? t.fg_wait : beMsg(t, x); render(true); }); return; }
     if (ds.gnew && GNEW && BE) {
       if (ds.gnew === "pro") { GNEW = null; return; }   /* the link goes to the sign-up page */
       el.disabled = true;
@@ -3453,7 +3511,7 @@
     if (id === "imform") { IM.text = $("im-text").value; IM.rows = imRows(IM.text); IM.results = null; IM.err = ""; render(true); return; }
     if (id === "claimform" && BE) {
       var cerr = $("cl-err"), pw1 = $("cl-pw").value, ctok = CL.token;
-      if (pw1.length < 6) { cerr.textContent = t.e_pw; return; }
+      if (pwBad(pw1)) { cerr.textContent = t.e_pw; return; }
       if (pw1 !== $("cl-pw2").value) { cerr.textContent = t.im_pw_mismatch; return; }
       if (!$("cl-ok").checked) { cerr.textContent = t.im_claim_need_ok; return; }
       var cb = e.target.querySelector('button[type="submit"]'); cb.disabled = true; cerr.textContent = "";
@@ -3577,7 +3635,7 @@
       var rv = function (x) { return $(x).value.trim(); }, name = rv("r-name"), em = rv("r-email").toLowerCase(), ph = rv("r-phone"), tg = rv("r-tg"), pw = $("r-pw").value, pw2 = $("r-pw2").value;
       var rprof = regProfile(), rbad = regCheck(t, rprof);
       if (rbad) { $("r-err").textContent = rbad[0]; $(rbad[1]).focus(); return; }
-      var er = checkContact(t, name, em, ph, tg) || (pw.length < 6 ? t.e_pw : pw !== pw2 ? t.e_pw2 : "") || (findByContact(em, ph) ? t.e_exists : "");
+      var er = checkContact(t, name, em, ph, tg) || (pwBad(pw) ? t.e_pw : pw !== pw2 ? t.e_pw2 : "") || (findByContact(em, ph) ? t.e_exists : "");
       if (er) { $("r-err").textContent = er; return; }
       var nextUrl = function () { var n = afterAuth(); return EMAIL_CHECK && em && n === "#/account" ? acc("/verify") : n; };
       if (BE) {
@@ -3606,6 +3664,29 @@
       BE.partnerLead(lead).then(function () { PT.sent = true; PT.busy = false; render(true); }, function (x) { PT.busy = false; pbtn.disabled = false; perr.textContent = x && x.code === "wait" ? t.pt_wait : x && x.code === "email" ? t.pt_err_email : x && (x.code === "contact" || x.code === "name") ? t.pt_need : beMsg(t, x); });
       return;
     }
+    if (id === "lcform" && BE) {
+      var lci = $("l-id").value.trim(), lce = $("l-err"), lcm = lci.indexOf("@") > 0;
+      if (!lci || (lcm ? !okEmail(lci) : !okPhone(lci))) { lce.textContent = t.fg_e_id; return; }
+      LC.id = lci; var lcb = e.target.querySelector("[type=submit]"); lcb.disabled = true;
+      BE.codeSend(lci).then(function (j) { if (j.sent) { LC.sent = j.sent; LC.at = Date.now(); LC.msg = ""; } else LC.msg = t.lc_none; render(true); if ($("lc-code")) $("lc-code").focus(); },
+        function (x) { lcb.disabled = false; lce.textContent = x && x.code === "wait" ? t.fg_wait : x && x.code === "invited" ? t.e_invited : beMsg(t, x); });
+      return;
+    }
+    if (id === "lc2form" && BE) {
+      var lcc = String($("lc-code").value).replace(/\D/g, ""), lc2e = $("l-err");
+      if (lcc.length !== 6) { lc2e.textContent = t.ev_e_len; return; }
+      var lc2b = e.target.querySelector("[type=submit]"); if (lc2b.disabled) return; lc2b.disabled = true;
+      BE.codeLogin(LC.id, lcc).then(function () { LC = { mode: "pw", id: "", sent: "", at: 0, msg: "" }; ACC = null; var mu = me(); toast(t.welcome(mu ? mu.name : "")); go(afterAuth()); },
+        function (x) { lc2b.disabled = false; lc2e.textContent = beMsg(t, x); });
+      return;
+    }
+    if (id === "pvform" && BE) {
+      var pvc = String($("pv-code").value).replace(/\D/g, ""), pve = $("pv-err");
+      if (pvc.length !== 6) { pve.textContent = t.ev_e_len; return; }
+      var pvb = e.target.querySelector("[type=submit]"); if (pvb.disabled) return; pvb.disabled = true;
+      BE.phoneVerify(pvc).then(function () { PV.sms = false; toast(t.pv_ok); render(true); }, function (x) { pvb.disabled = false; pve.textContent = beMsg(t, x); });
+      return;
+    }
     if (id === "evform") {
       var code = String($("ev-code").value).replace(/\D/g, ""), everr = $("ev-err");
       if (code.length !== 6) { everr.textContent = t.ev_e_len; $("ev-code").focus(); return; }
@@ -3624,7 +3705,7 @@
     if (id === "fg2form") {
       var fc = String($("fg-code").value).replace(/\D/g, ""), fp = $("fg-pw").value, f2 = $("fg2-err");
       if (fc.length !== 6) { f2.textContent = t.ev_e_len; return; }
-      if (fp.length < 6) { f2.textContent = t.e_pw; return; }
+      if (pwBad(fp)) { f2.textContent = t.e_pw; return; }
       if (fp !== $("fg-pw2").value) { f2.textContent = t.e_pw2; return; }
       if (BE) { var fb2 = e.target.querySelector("[type=submit]"); fb2.disabled = true; BE.pwReset(FG.id, fc, fp).then(function () { FG = { step: 1, id: "", sent: [], code: "", at: 0 }; ACC = null; toast(t.fg_done); go("#/account"); }, function (x) { fb2.disabled = false; var c = x && x.code; f2.textContent = c === "code" ? t.ev_e_code : c === "expired" ? t.ev_e_exp : c === "tries" ? t.ev_e_tries : beMsg(t, x); }); return; }
       if (fc !== FG.code) { f2.textContent = t.ev_e_code; return; }
@@ -3633,7 +3714,7 @@
     }
     if (id === "rlform" && BE) {
       var rp = $("rl-pw").value, rerr = $("rl-err");
-      if (rp.length < 6) { rerr.textContent = t.e_pw; return; }
+      if (pwBad(rp)) { rerr.textContent = t.e_pw; return; }
       if (rp !== $("rl-pw2").value) { rerr.textContent = t.e_pw2; return; }
       var rb2 = e.target.querySelector("[type=submit]"); rb2.disabled = true;
       BE.pwLink(RL.token, rp).then(function () { RL = { token: "", name: "", err: "", loading: false }; ACC = null; toast(t.fg_done); go("#/account"); }, function (x) { rb2.disabled = false; rerr.textContent = x && x.code === "reset" ? t.fg_bad_link : beMsg(t, x); });

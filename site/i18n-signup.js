@@ -1,9 +1,20 @@
 /* Copy for the doctor's and clinic's details at sign-up, and for confirming the email with a 6-digit code. */
 (function (T) {
   var add = function (lang, o) { Object.keys(o).forEach(function (k) { T[lang][k] = o[k]; }); };
-  ["uz", "ru", "en"].forEach(function (l) { T[l].pn_t.verify = { uz: "Emailni tasdiqlash", ru: "Подтверждение email", en: "Confirm your email" }[l]; });
+  ["uz", "ru", "en"].forEach(function (l) { T[l].pn_t.verify = { uz: "Emailni tasdiqlash", ru: "Подтверждение email", en: "Confirm your email" }[l]; T[l].pn_t.phone = { uz: "Telefonni tasdiqlash", ru: "Подтверждение телефона", en: "Confirm your phone" }[l]; });
 
   add("uz", {
+    lc_switch: "Parolsiz, kod bilan kirish", lc_p: "Telefon raqamingiz yoki emailingizni yozing: kodni Telegram, SMS yoki emailga yuboramiz.", lc_send: "Kod yuborish", lc_back: "Parol bilan kirish",
+    lc_sent: function (via, id) { return "Kod " + via + " yuborildi (" + id + "). 10 daqiqa amal qiladi."; }, lc_via: { tg: "Telegramga", sms: "SMS orqali", email: "emailingizga" },
+    lc_again: "Boshqa raqam yoki qayta yuborish", lc_none: "Bu raqam yoki email bilan kod yuborib bo‘lmadi. Raqamni tekshiring yoki parol, Google yoki Telegram bilan kiring.",
+    g_open_chrome: "Chrome’da ochish", g_copy: "Havolani nusxalash", g_copied: "Havola nusxalandi: Safari yoki Chrome’ga qo‘ying.",
+    pv_h: "Telefonni tasdiqlash", pv_p: "Bemorlar va jamoamiz bu raqam haqiqatan sizniki ekanini bilishi uchun.", pv_nophone: "Hisobingizda telefon raqami yo‘q",
+    pv_done: "Telefon tasdiqlangan", pv_tg_h: "Telegram orqali (tavsiya etiladi)", pv_tg_p: "Botda «📱 Raqamni yuborish» tugmasini bosing: Telegram raqamingizni o‘zi yuboradi.", pv_tg_btn: "Telegramda tasdiqlash",
+    pv_sms_h: "SMS kod orqali", pv_sms_p: function (p) { return p + " raqamiga 6 xonali kod yuboramiz."; }, pv_sms_btn: "SMS kod yuborish",
+    pv_change: "Raqamni o‘zgartirish", pv_ok: "Telefon tasdiqlandi.", pv_other: "Telegramdagi raqamingiz hisobdagi raqamdan boshqa. Profilda raqamni to‘g‘rilang yoki SMS bilan tasdiqlang.",
+    pv_none: "Raqam yuborilmadi. Botda «📱 Raqamni yuborish» tugmasini bosing.", pv_e_sms: "SMS yuborib bo‘lmadi. Telegram orqali tasdiqlang.",
+    pv_ban_h: "Telefon raqamingizni tasdiqlang", pv_ban_p: "Bir daqiqa: Telegram yoki SMS orqali. Tasdiqlangan raqam bemorlarga ishonch beradi.",
+    pv_adm_ok: "Telefon tasdiqlangan", pv_adm_no: "Telefon tasdiqlanmagan",
     rg_d_spec_h: "Mutaxassisligingiz", rg_d_spec_p: "Bemorlar sizni shu bo‘yicha qidiradi.",
     rg_d_bg_p: "Qayerda o‘qigansiz, ordinatura, oldingi ish joylari, sertifikatlar.",
     rg_d_work_p: "Hozir qayerda qabul qilasiz. Klinika ro‘yxatdan tanlang yoki nomini yozing.",
@@ -30,6 +41,17 @@
   });
 
   add("ru", {
+    lc_switch: "Войти без пароля, по коду", lc_p: "Введите телефон или email: мы отправим код в Telegram, по SMS или на email.", lc_send: "Отправить код", lc_back: "Войти с паролем",
+    lc_sent: function (via, id) { return "Код отправлен " + via + " (" + id + "). Действует 10 минут."; }, lc_via: { tg: "в Telegram", sms: "по SMS", email: "на email" },
+    lc_again: "Другой номер или отправить снова", lc_none: "Не удалось отправить код на этот номер или email. Проверьте его или войдите с паролем, через Google или Telegram.",
+    g_open_chrome: "Открыть в Chrome", g_copy: "Скопировать ссылку", g_copied: "Ссылка скопирована: вставьте её в Safari или Chrome.",
+    pv_h: "Подтверждение телефона", pv_p: "Чтобы пациенты и наша команда знали, что номер действительно ваш.", pv_nophone: "В аккаунте нет номера телефона",
+    pv_done: "Телефон подтверждён", pv_tg_h: "Через Telegram (рекомендуем)", pv_tg_p: "В боте нажмите «📱 Raqamni yuborish»: Telegram сам отправит ваш номер.", pv_tg_btn: "Подтвердить в Telegram",
+    pv_sms_h: "По SMS-коду", pv_sms_p: function (p) { return "Отправим 6-значный код на " + p + "."; }, pv_sms_btn: "Отправить SMS-код",
+    pv_change: "Изменить номер", pv_ok: "Телефон подтверждён.", pv_other: "Номер в Telegram отличается от номера в аккаунте. Исправьте номер в профиле или подтвердите по SMS.",
+    pv_none: "Номер не отправлен. Нажмите в боте «📱 Raqamni yuborish».", pv_e_sms: "Не удалось отправить SMS. Подтвердите через Telegram.",
+    pv_ban_h: "Подтвердите номер телефона", pv_ban_p: "Одна минута: через Telegram или SMS. Подтверждённый номер вызывает доверие у пациентов.",
+    pv_adm_ok: "Телефон подтверждён", pv_adm_no: "Телефон не подтверждён",
     rg_d_spec_h: "Ваша специальность", rg_d_spec_p: "По ней пациенты будут вас искать.",
     rg_d_bg_p: "Где учились, ординатура, прошлые места работы, сертификаты.",
     rg_d_work_p: "Где вы сейчас принимаете. Выберите клинику из списка или впишите название.",
@@ -56,6 +78,17 @@
   });
 
   add("en", {
+    lc_switch: "Sign in with a code, no password", lc_p: "Enter your phone or email: we’ll send a code by Telegram, SMS or email.", lc_send: "Send the code", lc_back: "Sign in with a password",
+    lc_sent: function (via, id) { return "We sent a code " + via + " (" + id + "). It works for 10 minutes."; }, lc_via: { tg: "to your Telegram", sms: "by SMS", email: "to your email" },
+    lc_again: "Another number, or send again", lc_none: "We couldn’t send a code to that phone or email. Check it, or sign in with a password, Google or Telegram.",
+    g_open_chrome: "Open in Chrome", g_copy: "Copy the link", g_copied: "Link copied: paste it into Safari or Chrome.",
+    pv_h: "Confirm your phone", pv_p: "So patients and our team know the number really is yours.", pv_nophone: "Your account has no phone number",
+    pv_done: "Phone confirmed", pv_tg_h: "With Telegram (recommended)", pv_tg_p: "In the bot, press “📱 Raqamni yuborish”: Telegram sends your number itself.", pv_tg_btn: "Confirm in Telegram",
+    pv_sms_h: "With an SMS code", pv_sms_p: function (p) { return "We’ll send a 6-digit code to " + p + "."; }, pv_sms_btn: "Send an SMS code",
+    pv_change: "Change the number", pv_ok: "Phone confirmed.", pv_other: "Your Telegram number is different from the one on your account. Fix it in your profile, or confirm by SMS.",
+    pv_none: "No number was shared. In the bot, press “📱 Raqamni yuborish”.", pv_e_sms: "Couldn’t send the SMS. Confirm with Telegram instead.",
+    pv_ban_h: "Confirm your phone number", pv_ban_p: "It takes a minute, by Telegram or SMS. A confirmed number builds patients’ trust.",
+    pv_adm_ok: "Phone confirmed", pv_adm_no: "Phone not confirmed",
     rg_d_spec_h: "Your specialty", rg_d_spec_p: "Patients search for you by it.",
     rg_d_bg_p: "Where you studied, residency, past jobs, certificates.",
     rg_d_work_p: "Where you see patients now. Pick a clinic from the list or type its name.",

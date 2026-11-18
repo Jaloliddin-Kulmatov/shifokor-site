@@ -348,6 +348,27 @@ create table if not exists app_email_codes (
 );
 -- the same email also carries a one-click link; only the link's hash is kept
 alter table app_email_codes add column if not exists link_hash text;
+-- failed sign-ins per account and per address: too many in 15 minutes locks that key for 15 minutes
+create table if not exists app_throttle (
+  k text primary key,
+  n int not null default 0,
+  first_at timestamptz not null default now(),
+  locked_until timestamptz
+);
+-- a phone number proven by an SMS code or by Telegram's own contact button; changing the number clears it
+alter table app_users add column if not exists phone_verified_at timestamptz;
+-- a 6-digit code to sign in without a password (by Telegram, SMS or email) or to confirm the phone (SMS);
+-- only its hash is kept, for 10 minutes and 5 tries
+create table if not exists app_login_codes (
+  user_id uuid primary key references app_users (id) on delete cascade,
+  purpose text not null,
+  channel text not null,
+  dest text,
+  code_hash text not null,
+  expires_at timestamptz not null,
+  tries int not null default 0,
+  sent_at timestamptz not null default now()
+);
 
 -- forgotten passwords: a 6-digit code sent by Telegram, email or SMS, or a one-time link an admin hands over.
 -- Only hashes are kept; a code lasts 30 minutes and 5 tries, a link 3 days.
@@ -435,6 +456,8 @@ alter table app_jobs enable row level security;
 alter table app_branches enable row level security;
 alter table app_staff enable row level security;
 alter table app_email_codes enable row level security;
+alter table app_throttle enable row level security;
+alter table app_login_codes enable row level security;
 alter table app_pw_resets enable row level security;
 alter table app_tg_logins enable row level security;
 alter table app_docs enable row level security;

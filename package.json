@@ -3,7 +3,8 @@
   "private": true,
   "description": "Shifokor: state clinic directory and online consultation for Uzbekistan",
   "scripts": {
-    "build": "node scripts/write-config.mjs"
+    "build": "node scripts/write-config.mjs",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "pg": "8.11.3"

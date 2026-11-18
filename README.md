@@ -91,14 +91,18 @@ Then redeploy. On the first request the server creates its tables (`app_users`, 
 
 - **Layout** (after SuperFlow/Mijozim): `api/app.js` only routes; the work lives in `api/_core` (database, errors, checks, sessions, roles), `api/_modules` (one module per area), `api/_worker` (job queue: reminders an hour before a booked consultation) and `api/_webapi` (REST API v1 at `/api/v1/...`). The site's own `POST /api/app { action }` calls are unchanged. Details and the endpoint list: `docs/architecture.md`.
 - The connection string lives only on the server (`api/_core/db.js`); the browser gets nothing but a sign-in token.
-- Accounts: patients, doctors and clinics sign up with an email or a +998 phone number and a password (stored as a scrypt hash). Sign-in works with either. Sessions last 30 days.
+- Accounts: patients, doctors and clinics sign up with an email or a +998 phone number and a password (stored as a scrypt hash), or with Google or Telegram. Sign-in works with either. New passwords need 8+ characters and can't be a common one like `12345678` (older shorter passwords still sign in). Sessions last 30 days.
+- Sign-in limits: 5 wrong passwords or codes for one account, or 30 from one address, within 15 minutes lock that account or address for 15 minutes (`app_throttle`). The page suggests signing in with a code, Google or Telegram meanwhile.
+- Sign-in with a code: "Parolsiz, kod bilan kirish" on the sign-in page sends a 6-digit code (10 minutes, 5 tries) to the account's Telegram chat, else by SMS to its phone, else to its email. A code that came by SMS or email also confirms that phone or email.
+- Email confirmation: after sign-up the person gets a 6-digit code and a one-tap "Tasdiqlash" link (`/#/confirm/<token>`, 30 minutes; works on any device, signed in or not). Google sign-ups are confirmed already.
+- Phone confirmation: doctors and clinics see "Telefon raqamingizni tasdiqlang" in their panel (`#/account/phone`): Telegram's own contact button (free) or an SMS code (Eskiz). Signing in with Telegram and sharing the number confirms it too; changing the number clears it. Admins see it on **Tekshiruv** next to the email. It isn't required for anything yet. Note: Eskiz must approve the new SMS texts ("kirish kodi", "telefonni tasdiqlash kodi") before they are delivered.
 - Applications and messages: patients see only their own; doctors see open applications for them and the ones they accepted; only the patient and the accepted doctor can write in a consultation.
 - Checks: a clinic takes visit requests only after an admin confirms it (for the hospital it claimed; claiming another hospital or changing the name or licence needs a new check). Doctors show "Checked" once confirmed. Verify with an official source, such as the hospital's official phone number or the licence register.
 - Notices: people link Telegram from their account ("Telegramni ulash" opens the bot; pressing Start links the chat). Patients hear when a visit is confirmed or declined and when a doctor accepts or replies; clinics hear about new and cancelled requests; doctors about applications sent to them. Without Telegram, visit answers go by SMS when Eskiz is set up. The site also shows unread counts on "Qabullarim" and on a clinic's account button.
 - Visit requests: only the patient who sent one and the clinic it went to can see it. A patient can have at most 5 open requests and one per clinic per day; days must be within the next 30 days (Tashkent time).
 - Chat and requests refresh every few seconds while the page is open.
 - Row-level security is on with no policies, so Supabase's public Data API can't read these tables even if its keys leak.
-- Not yet: rate limiting on sign-in, password reset, email or phone verification of accounts.
+- Tests: `npm test` runs the sign-in, code and confirmation tests in `test/` against a fake database (no PostgreSQL needed).
 
 Use test data only on servers outside Uzbekistan. Real patient data must be stored on servers in Uzbekistan.
 

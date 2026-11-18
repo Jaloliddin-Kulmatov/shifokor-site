@@ -68,7 +68,11 @@ async function loginContact(m) {
   if (!c || !m.from || c.user_id !== m.from.id) return N.tgSend(chat, "Iltimos, o‘z raqamingizni «📱 Raqamni yuborish va kirish» tugmasi bilan yuboring.");
   const phone = String(c.phone_number || "").replace(/\D/g, "");
   const r = await q("update app_tg_logins set phone = $2, confirmed_at = now() where id = (select id from app_tg_logins where chat_id = $1 and confirmed_at is null and created_at > now() - interval '10 minutes' order by created_at desc limit 1) returning id", [chat, /^[0-9]{7,15}$/.test(phone) ? phone : null]);
-  if (!r.rows[0]) return BOT.linkContact(m);   // no sign-in waiting: link this chat to an account from the bot itself
+  if (!r.rows[0]) {   // no sign-in waiting: link this chat to an account from the bot itself
+    await BOT.linkContact(m);
+    if (/^998\d{9}$/.test(phone)) await q("update app_users set phone_verified_at = coalesce(phone_verified_at, now()) where tg_chat = $1 and phone = $2", [chat, phone]);   // Telegram vouched for it
+    return;
+  }
   return done(chat);
 }
 async function loginButton(cb) {

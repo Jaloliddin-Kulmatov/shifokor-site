@@ -3,7 +3,7 @@ const crypto = require("crypto");
 const { q, migrate } = require("../_core/db");
 const { Fail, bad } = require("../_core/errors");
 const { UUID, str, opt, phoneOf, emailOf, tgOf, profileOf, today, dayOf } = require("../_core/validate");
-const { sha, hashPw, checkPw, newSession, need, listEnv, isAdmin } = require("../_core/auth");
+const { sha, hashPw, checkPw, pwOk, newSession, need, listEnv, isAdmin } = require("../_core/auth");
 const { Role, requireRole, requireAdmin } = require("../_core/roles");
 const site = require("../_core/site");
 const { notifyUser } = site;
@@ -11,6 +11,7 @@ const N = require("./notify");
 const { photoOf } = require("./files");
 const { send } = require("../_core/http");
 const G = require("../_core/google");
+const T = require("../_core/throttle");
 
 // what a doctor or clinic may fill in at sign-up (the rest of the profile is filled in later)
 const SIGNUP_KEYS = {
@@ -28,6 +29,31 @@ const isVerified = (u) => !!u.verified_at && (u.role !== "clinic" || (u.verified
 // pending: imported by an admin and the doctor hasn't opened their invite yet
 const userOut = (u) => ({ id: u.id, role: u.role, name: u.name, phone: u.phone || "", tg: u.tg || "", profile: u.profile || {}, updated_at: u.updated_at, verified: isVerified(u), pending: !!u.imported_at && !u.claimed_at,
   online: u.online_until && new Date(u.online_until).getTime() > Date.now() ? u.online_until : null, photo: u.photo_at ? new Date(u.photo_at).getTime() : 0 });
+// the account for a phone number or email as typed at sign-in (a 9-digit number gets 998 in front)
+async function byLogin(id, cols) {
+  const s = String(id || "").trim();
+  if (s.includes("@")) return (await q("select " + cols + " from app_users where email = $1", [s.toLowerCase()])).rows[0] || null;
+  let d = s.replace(/\D/g, "");
+  if (d.length === 9) d = "998" + d;
+  return /^998\d{9}$/.test(d) ? (await q("select " + cols + " from app_users where phone = $1", [d])).rows[0] || null : null;
+}
+const sixDigits = () => String(crypto.randomInt(0, 1000000)).padStart(6, "0");
+const codeHtml = (title, code, note) => '<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px;color:#14302f"><h2 style="margin:0 0 12px">Shifokor</h2><p>' + title + '</p><p style="font-size:32px;letter-spacing:8px;font-weight:700;margin:16px 0">' + code + '</p><p style="color:#5b6b6a">' + note + "</p></div>";
+// a code that was sent: { channel, dest, code_hash, expires_at, tries } after counting this try, or Fail
+async function useCode(userId, purpose, code) {
+  const r = (await q("update app_login_codes set tries = tries + 1 where user_id = $1 and purpose = $2 returning channel, dest, code_hash, expires_at, tries", [userId, purpose])).rows[0];
+  if (!r || new Date(r.expires_at).getTime() < Date.now()) throw new Fail(410, "expired");
+  if (r.tries > 5) throw new Fail(429, "tries");
+  return r.code_hash === sha(userId + ":" + code) ? r : null;
+}
+async function saveCode(userId, purpose, channel, dest, code) {
+  await q("insert into app_login_codes (user_id, purpose, channel, dest, code_hash, expires_at) values ($1, $2, $3, $4, $5, now() + interval '10 minutes') on conflict (user_id) do update set purpose = excluded.purpose, channel = excluded.channel, dest = excluded.dest, code_hash = excluded.code_hash, expires_at = excluded.expires_at, tries = 0, sent_at = now()", [userId, purpose, channel, dest, sha(userId + ":" + code)]);
+}
+async function codeTooSoon(userId) {
+  const last = (await q("select sent_at from app_login_codes where user_id = $1", [userId])).rows[0];
+  if (last && Date.now() - new Date(last.sent_at).getTime() < 60e3) throw new Fail(429, "wait");
+}
+
 // An invite link's doctor: imported, not yet claimed, and the link is under 30 days old.
 const INVITE_DAYS = 30;
 const newInvite = () => crypto.randomBytes(24).toString("base64url");
@@ -74,7 +100,7 @@ const actions = {
     if (!email && !phone) bad("contact");
     const tg = tgOf(b.tg);
     const pw = typeof b.password === "string" ? b.password : "";
-    if (pw.length < 6 || pw.length > 200) bad("password");
+    if (!pwOk(pw)) bad("password");
     try {
       const given = profileOf(b.profile), prof = Object.assign({}, DEFAULT_PROFILE[role]);
       SIGNUP_KEYS[role].forEach((k) => { if (given[k] !== undefined && given[k] !== "") prof[k] = given[k]; });
@@ -98,7 +124,7 @@ const actions = {
   async claim(b) {
     const u = await invited(b.token);
     const pw = typeof b.password === "string" ? b.password : "";
-    if (pw.length < 6 || pw.length > 200) bad("password");
+    if (!pwOk(pw)) bad("password");
     const r = await q("update app_users set pw_hash = $2, claimed_at = now(), invite_hash = null, invite_at = null, updated_at = now() where id = $1 and claimed_at is null returning id", [u.id, hashPw(pw)]);
     if (!r.rows[0]) throw new Fail(404, "invite");
     return { token: await newSession(u.id) };
@@ -106,6 +132,8 @@ const actions = {
 
   async login(b) {
     const id = str(b.id, 254);
+    const keys = T.keysOf(id, b._ip);
+    await T.check(keys);   // 5 wrong passwords for one account, or 30 from one address, wait 15 minutes
     let row = null;
     if (id.includes("@")) row = (await q("select id, pw_hash from app_users where email = $1", [id.toLowerCase()])).rows[0];
     else {
@@ -114,7 +142,8 @@ const actions = {
       if (d) row = (await q("select id, pw_hash from app_users where phone = $1", [d])).rows[0];
     }
     const ok = checkPw(b.password, row && row.pw_hash);   // always runs scrypt, so timing doesn't reveal unknown accounts
-    if (!row || !ok) throw new Fail(401, "login");
+    if (!row || !ok) { await T.fail(keys, { id: 5, ip: 30 }); throw new Fail(401, "login"); }
+    await T.clear(keys.filter((k) => k.indexOf("id:") === 0));
     return { token: await newSession(row.id) };
   },
 
@@ -134,6 +163,7 @@ const actions = {
     if (u) {
       if (u.imported_at && !u.claimed_at) throw new Fail(409, "invited");   // the team's invite link comes first
       await q("update app_users set tg_chat = $2, phone = coalesce(phone, $3), updated_at = now() where id = $1", [u.id, l.chat_id, phone && !u.phone && !found.some((x) => x.id !== u.id && x.phone === phone) ? phone : null]);
+      if (phone) await q("update app_users set phone_verified_at = coalesce(phone_verified_at, now()) where id = $1 and phone = $2", [u.id, phone]);   // Telegram vouched for it
       await q("update app_tg_logins set used_at = now() where id = $1", [l.id]);
       return { token: await newSession(u.id) };
     }
@@ -143,7 +173,7 @@ const actions = {
     const given = profileOf(b.profile), prof = Object.assign({}, DEFAULT_PROFILE[role]);
     SIGNUP_KEYS[role].forEach((k) => { if (given[k] !== undefined && given[k] !== "") prof[k] = given[k]; });
     try {
-      const r = await q("insert into app_users (role, name, phone, tg, pw_hash, profile, tg_chat) values ($1, $2, $3, $4, 'telegram', $5, $6) returning id", [role, name, phone, l.tg_user ? tgOf(l.tg_user) : null, prof, l.chat_id]);
+      const r = await q("insert into app_users (role, name, phone, tg, pw_hash, profile, tg_chat, phone_verified_at) values ($1, $2, $3, $4, 'telegram', $5, $6, case when $3::text is not null then now() end) returning id", [role, name, phone, l.tg_user ? tgOf(l.tg_user) : null, prof, l.chat_id]);
       await q("update app_tg_logins set used_at = now() where id = $1", [l.id]);
       return { token: await newSession(r.rows[0].id), created: true };
     } catch (e) {
@@ -200,6 +230,83 @@ const actions = {
     return { ok: true };
   },
 
+  // ---------- signing in with a 6-digit code instead of a password ----------
+  // { id: phone or email } → a code by the account's Telegram chat, else SMS to its phone, else its email.
+  // { sent: "tg" | "sms" | "email" }, or "" for an unknown account or one with no way to reach it (the same answer).
+  async code_send(b) {
+    const id = str(b.id, 254);
+    const keys = T.keysOf(id, b._ip);
+    await T.check(keys);
+    const u = await byLogin(id, "id, email, phone, tg_chat, imported_at, claimed_at");
+    if (!u) { await T.fail(keys.filter((k) => k.indexOf("ip:") === 0), { ip: 30 }); return { sent: "" }; }
+    if (u.imported_at && !u.claimed_at) throw new Fail(409, "invited");   // the team's invite link comes first
+    await codeTooSoon(u.id);
+    const code = sixDigits();
+    const text = "Shifokor: kirish kodi " + code + " (10 daqiqa). Код для входа: " + code + ". Sign-in code: " + code + ".\nKodni hech kimga aytmang. Agar siz so‘ramagan bo‘lsangiz, e’tibor bermang.";
+    let channel = "", dest = null;
+    if (u.tg_chat && (await N.tgSend(u.tg_chat, text))) channel = "tg";
+    else if (u.phone && N.SMS && (await N.sms(u.phone, text))) { channel = "sms"; dest = u.phone; }
+    else if (u.email && N.MAIL && (await N.mail(u.email, "Shifokor: kirish kodi " + code, text, codeHtml("Kirish kodi / Код для входа / Sign-in code:", code, "Kod 10 daqiqa amal qiladi. Kodni hech kimga aytmang.")))) { channel = "email"; dest = u.email; }
+    if (!channel) return { sent: "" };
+    await saveCode(u.id, "login", channel, dest, code);
+    return { sent: channel };
+  },
+  // { id, code } → signed in. A code that came by SMS or email also confirms that number or address.
+  async code_login(b) {
+    const id = str(b.id, 254), code = String(b.code || "").replace(/\D/g, "");
+    if (code.length !== 6) bad("code");
+    const keys = T.keysOf(id, b._ip);
+    await T.check(keys);
+    const u = await byLogin(id, "id");
+    if (!u) throw new Fail(410, "expired");
+    const r = await useCode(u.id, "login", code);
+    if (!r) { await T.fail(keys, { id: 5, ip: 30 }); throw new Fail(400, "code"); }
+    await q("delete from app_login_codes where user_id = $1", [u.id]);
+    if (r.channel === "sms") await q("update app_users set phone_verified_at = coalesce(phone_verified_at, now()) where id = $1 and phone = $2", [u.id, r.dest]);
+    if (r.channel === "email") await q("update app_users set email_verified_at = coalesce(email_verified_at, now()) where id = $1 and email = $2", [u.id, r.dest]);
+    await T.clear(keys.filter((k) => k.indexOf("id:") === 0));
+    return { token: await newSession(u.id) };
+  },
+
+  // ---------- confirming the account's phone ----------
+  // by SMS code (when Eskiz is set up) …
+  async phone_code(b, me) {
+    need(me);
+    if (!me.phone) bad("phone");
+    if (me.phone_verified_at) return { verified: true };
+    if (!N.SMS) throw new Fail(503, "no_sms");
+    await codeTooSoon(me.id);
+    const code = sixDigits();
+    if (!(await N.sms(me.phone, "Shifokor: telefonni tasdiqlash kodi " + code + " (10 daqiqa). Kodni hech kimga aytmang."))) throw new Fail(502, "sms");
+    await saveCode(me.id, "phone", "sms", me.phone, code);
+    return { sent: true };
+  },
+  async phone_verify(b, me) {
+    need(me);
+    const code = String(b.code || "").replace(/\D/g, "");
+    if (code.length !== 6) bad("code");
+    const r = await useCode(me.id, "phone", code);
+    if (!r) throw new Fail(400, "code");
+    if (r.dest !== me.phone) throw new Fail(410, "expired");   // the number was changed since
+    await q("update app_users set phone_verified_at = now() where id = $1 and phone = $2", [me.id, r.dest]);
+    await q("delete from app_login_codes where user_id = $1", [me.id]);
+    return { verified: true };
+  },
+  // … or by Telegram's own contact button: the site opened the bot with a code, as for "Sign in with Telegram".
+  // { code } → { status: "wait" } until the person shares their number there; it must be this account's number.
+  async tg_phone(b, me) {
+    need(me);
+    const code = String(b.code || "");
+    if (!/^[A-Za-z0-9_-]{20,40}$/.test(code)) bad("code");
+    const l = (await q("select * from app_tg_logins where code_hash = $1 and created_at > now() - interval '10 minutes' and used_at is null", [sha(code)])).rows[0];
+    if (!l || !l.confirmed_at) return { status: "wait", started: !!l };
+    await q("update app_tg_logins set used_at = now() where id = $1", [l.id]);
+    if (!l.phone) throw new Fail(409, "phone_none");   // they continued without sharing it
+    if (l.phone !== me.phone) throw new Fail(409, "phone_other");
+    await q("update app_users set phone_verified_at = now() where id = $1 and phone = $2", [me.id, l.phone]);
+    return { status: "ok" };
+  },
+
   // ---------- a forgotten password ----------
   // { id: phone or email } → a code by every channel this account has; { sent: [...] } names them (empty for an
   // unknown account too, so the answer doesn't tell who is registered)
@@ -226,7 +333,7 @@ const actions = {
     const id = str(b.id, 254), code = String(b.code || "").replace(/\D/g, "");
     if (code.length !== 6) bad("code");
     const pw = typeof b.password === "string" ? b.password : "";
-    if (pw.length < 6 || pw.length > 200) bad("password");
+    if (!pwOk(pw)) bad("password");
     let u = null;
     if (id.includes("@")) u = (await q("select id from app_users where email = $1", [id.toLowerCase()])).rows[0];
     else { let d = id.replace(/\D/g, ""); if (d.length === 9) d = "998" + d; u = (await q("select id from app_users where phone = $1", [d])).rows[0]; }
@@ -242,7 +349,7 @@ const actions = {
   async pw_link(b) {
     const u = await resetLink(b.token);
     const pw = typeof b.password === "string" ? b.password : "";
-    if (pw.length < 6 || pw.length > 200) bad("password");
+    if (!pwOk(pw)) bad("password");
     return setNewPassword(u.id, pw);
   },
 
@@ -266,7 +373,7 @@ const actions = {
     const prof = profileOf(b.profile), was = me.profile || {};
     const recheck = name !== me.name || String(prof.lic || "") !== String(was.lic || "") || (me.role === "clinic" && String(prof.fac || "") !== String(was.fac || ""));
     try {
-      await q("update app_users set name = $2, email = $3, phone = $4, tg = $5, profile = $6, verified_at = case when $7::boolean then null else verified_at end, email_verified_at = case when email is distinct from $3 then null else email_verified_at end, updated_at = now() where id = $1", [me.id, name, email, phone, tgOf(b.tg), prof, recheck]);
+      await q("update app_users set name = $2, email = $3, phone = $4, tg = $5, profile = $6, verified_at = case when $7::boolean then null else verified_at end, email_verified_at = case when email is distinct from $3 then null else email_verified_at end, phone_verified_at = case when phone is distinct from $4 then null else phone_verified_at end, updated_at = now() where id = $1", [me.id, name, email, phone, tgOf(b.tg), prof, recheck]);
     } catch (e) {
       if (e.code === "23505") throw new Fail(409, "exists");
       throw e;

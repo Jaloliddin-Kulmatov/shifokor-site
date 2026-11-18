@@ -17,12 +17,13 @@ api/
     schema.js       Every table, index and migration step (idempotent).
     errors.js       Fail(status, code), bad(code), connection-error reasons.
     validate.js     ids, text, phone, email, Telegram name, profile, dates (Tashkent, UTC+5).
-    auth.js         Passwords (scrypt), sessions (hashed tokens, 30 days), admin check.
+    auth.js         Passwords (scrypt, the 8+ character rule), sessions (hashed tokens, 30 days), admin check.
+    throttle.js     Failed sign-ins per account and per address; too many lock them for 15 minutes.
     roles.js        Role enum and policies: requireRole, requireAdmin, can.*  (like SuperFlow's roles.ts)
     site.js         This deployment's address; Telegram notice to a user.
     http.js         JSON responses, RFC 7807 problem details, request bodies.
   _modules/         Application: one module per area. Each exports its actions (use cases) and helpers.
-    users.js        sign-up (with the doctor's or clinic's first details), email codes, invites, sign-in, profile, online now, doctor photo, Telegram linking
+    users.js        sign-up (with the doctor's or clinic's first details), email codes and link, invites, sign-in (password, code, Google, Telegram), phone confirmation, profile, online now, doctor photo, Telegram linking
     consults.js     apply (with a booked time), cancel, move, chat, accept, finish, in-person, pay link
     consult-repo.js reading a consultation, system notes in its chat
     slots.js        doctors' weekly hours, free times, day-before reminder
@@ -61,7 +62,8 @@ api/
 Also: `POST /api/v1/auth/signup|login|logout`, `/consultations/{id}/finish|refer|cancel|reschedule|messages|call|followup|pay-link|medicines|medicine-orders`,
 `/appointments`, `/appointments/{id}/confirm|decline|cancel`, `/reviews`, `/reviews/{id}/reply`, `PUT /me/profile`, `POST /me/online`,
 `/branches`, `/branches/{id}`, `/staff`, `/staff/{id}/answer|branch`, `GET /clinic/calendar`,
-`/admin/users`, `/admin/users/{id}/verify`, `/admin/payouts`, `/admin/medicine-orders`, and `POST /api/v1/jobs/tick`.
+`/admin/users`, `/admin/users/{id}/verify`, `/admin/payouts`, `/admin/medicine-orders`, `POST /auth/code` and `/auth/code/login` (sign in with a 6-digit code),
+`/auth/email-link` (the one-tap email link), `/me/email/code|verify`, `/me/phone/code|verify`, and `POST /api/v1/jobs/tick`.
 Both run the same action, so the same checks apply. REST errors are problem details: `{ "type": "about:blank", "title": "<code>", "status": 409 }`.
 Sign in with `POST /api/v1/auth/login { "id": "<phone or email>", "password": "…" }` and send `Authorization: Bearer <token>`.
 
@@ -85,5 +87,5 @@ once a day, so for reminders exactly an hour before even when nobody is using th
 ## Not yet (next steps, as in SuperFlow)
 
 - Clinics with branches and staff accounts (doctors who work for a clinic), and a clinic's shared calendar.
-- Rate limiting on sign-in; password reset; phone verification.
-- Automated tests that run in CI against a real PostgreSQL.
+- Requiring a confirmed phone before a doctor takes paid consultations.
+- Automated tests that run in CI against a real PostgreSQL (`npm test` covers sign-in with a fake database for now).

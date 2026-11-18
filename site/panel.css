@@ -152,6 +152,9 @@ body.panelapp .top, body.panelapp .foot, body.panelapp .skip { display: none; }
 
 /* confirming the email */
 .evcard { max-width: 560px; }
+.pvway { margin: 16px 0 0; padding: 16px 0 0; border-top: 1px solid var(--line); }
+.pvway b { display: block; margin-bottom: 4px; }
+.pvway .btn { margin-top: 10px; }
 .evicon { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); margin-bottom: 14px; }
 .evicon svg { width: 28px; height: 28px; }
 .evform .fld { max-width: 260px; }

@@ -12,6 +12,7 @@
 const { migrate, CONN } = require("./_core/db");
 const { Fail, reasonOf } = require("./_core/errors");
 const { whoAmI } = require("./_core/auth");
+const { ipOf } = require("./_core/throttle");
 const { send, problem, bodyOf } = require("./_core/http");
 const site = require("./_core/site");
 const { P, O, M } = require("./_modules/services");
@@ -62,7 +63,8 @@ async function restApi(req, res, path) {
     await migrate();
     await jobs.maybeTick();
     const me = await whoAmI(req);
-    const result = await ACTIONS[name](input(m.params, bodyOf(req) || {}, query), me);
+    const inp = Object.assign({}, input(m.params, bodyOf(req) || {}, query), { _ip: ipOf(req) });   // never the caller's own _ip
+    const result = await ACTIONS[name](inp, me);
     return send(res, name === "create_consult" || name === "create_appt" || name === "review_create" || name === "signup" ? 201 : 200, output ? output(result) : result);
   } catch (e) {
     if (e instanceof Fail) return problem(res, e.status, e.code);
@@ -114,7 +116,8 @@ module.exports = async function handler(req, res) {
   if (!body) return send(res, 400, { error: "invalid" });
   const action = Object.prototype.hasOwnProperty.call(ACTIONS, body.action) ? ACTIONS[body.action] : null;
   if (!action) return send(res, 400, { error: "action" });
-  if (body.action === "ai_find" || body.action === "partner_lead") body._ip = String(req.headers["x-real-ip"] || req.headers["x-forwarded-for"] || "").split(",")[0].trim();   // set here, so a caller can't choose it
+  // the caller's address, for the actions that limit by it; set here, so a caller can't choose it
+  if (["ai_find", "partner_lead", "login", "code_send", "code_login"].includes(body.action)) body._ip = ipOf(req); else delete body._ip;
   try {
     await migrate();
     await jobs.maybeTick();

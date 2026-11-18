@@ -33,7 +33,7 @@
   }
 
   function toUser(u) {
-    return { id: u.id, role: u.role, name: u.name, email: u.email || "", phone: u.phone || "", tg: u.tg || "", profile: u.profile || {}, updated: String(u.updated_at || "").slice(0, 10), verified: !!u.verified, pending: !!u.pending, inviteAt: u.invite_at ? Date.parse(u.invite_at) : 0, tgLinked: !!u.tg_linked, emailVerified: !!u.email_verified, google: !!u.google, hasPw: u.has_pw !== false, admin: !!u.admin, remote: true,
+    return { id: u.id, role: u.role, name: u.name, email: u.email || "", phone: u.phone || "", tg: u.tg || "", profile: u.profile || {}, updated: String(u.updated_at || "").slice(0, 10), verified: !!u.verified, pending: !!u.pending, inviteAt: u.invite_at ? Date.parse(u.invite_at) : 0, tgLinked: !!u.tg_linked, emailVerified: !!u.email_verified, phoneVerified: !!u.phone_verified, google: !!u.google, hasPw: u.has_pw !== false, admin: !!u.admin, remote: true,
       onlineUntil: u.online ? Date.parse(u.online) : 0, photoUrl: u.photo ? C.api + "?photo=" + u.id + "&v=" + u.photo : "" };
   }
   function toConsult(c) {
@@ -176,6 +176,11 @@
     consultRx: async function (cid, rx) { await call("consult_rx", { id: cid, rx: rx }); await refresh(); },
     medOrder: async function (o) { var j = await call("med_order", o); await refresh(); return j; },
     emailCode: function () { return call("email_code"); },
+    codeSend: function (id) { return call("code_send", { id: id }); },
+    codeLogin: async function (id, code) { var j = await call("code_login", { id: id, code: code }); setToken(j.token); await refresh(); return j; },
+    phoneCode: function () { return call("phone_code"); },
+    phoneVerify: async function (code) { var j = await call("phone_verify", { code: code }); await refresh(); return j; },
+    tgPhone: async function (code) { var j = await call("tg_phone", { code: code }); if (j.status === "ok") await refresh(); return j; },
     emailLink: function (token) { return call("email_link", { token: token }); },
     emailVerify: async function (code) { var j = await call("email_verify", { code: code }); await refresh(); return j; },
     branchSave: async function (o) { var j = await call("branch_save", o); await refresh(); return j; },

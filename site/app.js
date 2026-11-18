@@ -1022,7 +1022,7 @@
   function verSend(force) {
     var u = me(), t = L(); if (!needsEmail(u) || VER.busy) return;
     if (!force && VER.uid === u.id) return;
-    VER.uid = u.id; VER.msg = "";
+    VER.uid = u.id; VER.msg = ""; VER.off = false;   /* every try starts fresh: a send that failed once may work now */
     if (!BE) { VER.code = String(Math.floor(Math.random() * 1e6)).padStart(6, "0"); VER.at = Date.now(); return; }
     if (!BE.notify().mail) { VER.off = true; return; }
     VER.busy = true;
@@ -1062,7 +1062,7 @@
     if (u.emailVerified) return pHead(t.ev_h, "") + pCard("", pEmpty("check", t.ev_done, t.ev_done_p(esc(u.email)), '<a class="btn" href="' + acc("/") + '">' + t.ev_go + "</a>"));
     verSend(false); setTimeout(verTick, 0);
     var left = Math.ceil((VER.at + 60e3 - Date.now()) / 1000);
-    var body = VER.off ? '<div class="note-box">' + t.ev_off + "</div>" :
+    var body = VER.off ? '<div class="note-box">' + t.ev_off + '</div><p style="margin:14px 0 0"><button class="btn ghost" type="button" data-act="evresend"' + (VER.busy ? " disabled" : "") + ">" + t.ev_retry + "</button></p>" :
       '<p class="lead" style="margin:0 0 16px">' + t.ev_sent(esc(u.email)) + "</p>" + (!BE && VER.code ? '<div class="demo" style="margin:0 0 16px">' + t.ev_demo(VER.code) + "</div>" : "") +
       '<form id="evform" class="evform" novalidate><div class="fld"><label for="ev-code">' + t.ev_code + '</label><input id="ev-code" class="evcode nums" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" placeholder="••••••"></div>' +
       '<div class="err" id="ev-err" aria-live="polite">' + esc(VER.msg) + '</div><div class="btns"><button class="btn" type="submit">' + t.ev_btn + '</button><button class="btn ghost" type="button" id="ev-resend" data-act="evresend"' + (left > 0 ? " disabled" : "") + ">" + (left > 0 ? t.ev_resend_in(left) : t.ev_resend) + "</button></div></form>" +

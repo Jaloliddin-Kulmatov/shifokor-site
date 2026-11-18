@@ -82,7 +82,7 @@
   /* the server's password rule (api/_core/auth.js pwOk), checked here first for a quicker answer */
   var PW_COMMON = "12345678 123456789 1234567890 87654321 11111111 00000000 password password1 password123 qwerty123 qwertyui qwertyuiop 1q2w3e4r abcd1234 shifokor shifokor1 shifokor123 parol123".split(" ");
   function pwBad(pw) { return pw.length < 8 || pw.length > 200 || PW_COMMON.indexOf(pw.toLowerCase()) > -1 || /^(.)\1+$/.test(pw); }
-  function beMsg(t, x) { var c = (x && x.code) || ""; return { exists: t.e_exists, login: t.e_login, locked: t.e_locked, no_sms: t.pv_e_sms, sms: t.pv_e_sms, code: t.ev_e_code, expired: t.ev_e_exp, tries: t.ev_e_tries, email: t.e_email, phone: t.e_phone, tg: t.e_tg, password: t.e_pw, name: t.e_name, contact: t.e_contact, date: t.e_ap_date, limit: t.e_ap_limit, dup: t.e_ap_dup, clinic: t.e_ap_clinic, time: t.e_ap_time, closed: t.e_ap_closed, doctor: t.e_ap_doc, unverified: t.e_ap_unv, no_tg: t.nt_off, forbidden: t.adm_forbidden, reviewed: t.e_reviewed, stars: t.e_stars, photos: t.e_photos, photo: t.ph_bad, slow: t.e_slow, unpaid: t.e_unpaid, paid: t.e_paid, invited: t.e_invited, invite: t.im_bad_link, advice: t.rf2_err, answered: t.e_answered, slot_taken: t.sl_taken, slot: t.sl_bad, voices: t.vo_many, audio: t.vo_bad, open: t.rx_open, address: t.rx_err_fill, region: t.rx_err_fill }[c] || t.be_err; }
+  function beMsg(t, x) { var c = (x && x.code) || ""; return { exists: t.e_exists, login: t.e_login, locked: t.e_locked, email_domain: t.e_email_domain, email_temp: t.e_email_temp, no_sms: t.pv_e_sms, sms: t.pv_e_sms, code: t.ev_e_code, expired: t.ev_e_exp, tries: t.ev_e_tries, email: t.e_email, phone: t.e_phone, tg: t.e_tg, password: t.e_pw, name: t.e_name, contact: t.e_contact, date: t.e_ap_date, limit: t.e_ap_limit, dup: t.e_ap_dup, clinic: t.e_ap_clinic, time: t.e_ap_time, closed: t.e_ap_closed, doctor: t.e_ap_doc, unverified: t.e_ap_unv, no_tg: t.nt_off, forbidden: t.adm_forbidden, reviewed: t.e_reviewed, stars: t.e_stars, photos: t.e_photos, photo: t.ph_bad, slow: t.e_slow, unpaid: t.e_unpaid, paid: t.e_paid, invited: t.e_invited, invite: t.im_bad_link, advice: t.rf2_err, answered: t.e_answered, slot_taken: t.sl_taken, slot: t.sl_bad, voices: t.vo_many, audio: t.vo_bad, open: t.rx_open, address: t.rx_err_fill, region: t.rx_err_fill }[c] || t.be_err; }
   if (BE) ["en", "uz", "ru"].forEach(function (l) { T[l].acc_demo = T[l].be_online; T[l].cs_demo = T[l].be_online; });
 
   /* ---------------- sample directory ---------------- */
@@ -1050,6 +1050,25 @@
     if (CF.state === "ok") return '<div class="wrap pad acc" style="max-width:520px"><section class="pcard evcard"><div class="evicon">' + ic("check") + "</div><h1>" + t.ev_done + '</h1><p class="lead">' + t.ev_cf_ok + '</p><a class="btn big block" href="' + home + '">' + go + "</a></section></div>";
     return '<div class="wrap pad acc" style="max-width:520px"><section class="pcard evcard"><div class="evicon">' + ic("mail") + "</div><h1>" + t.ev_cf_bad_h + '</h1><p class="lead">' + t.ev_cf_bad + '</p><a class="btn big block" href="' + (BE.userId() ? acc("/verify") : "#/login") + '">' + t.ev_cf_new + "</a></section></div>";
   }
+  /* "ali@gmial.com" → offer "gmail.com": a domain one or two letters away from a common one is most likely a typo */
+  var MAIL_DOMAINS = ["gmail.com", "mail.ru", "yandex.ru", "yandex.com", "yahoo.com", "icloud.com", "outlook.com", "hotmail.com", "inbox.ru", "list.ru", "bk.ru", "rambler.ru", "umail.uz", "mail.uz"];
+  function editDist(a, b) {
+    var p = [], i, j; for (j = 0; j <= b.length; j++) p[j] = j;
+    for (i = 1; i <= a.length; i++) { var prev = p[0]; p[0] = i; for (j = 1; j <= b.length; j++) { var tmp = p[j]; p[j] = Math.min(p[j] + 1, p[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = tmp; } }
+    return p[b.length];
+  }
+  function mailFix(email) {
+    var m = /^([^\s@]+)@([^\s@]+)$/.exec(String(email || "").trim().toLowerCase()); if (!m || MAIL_DOMAINS.indexOf(m[2]) > -1) return "";
+    var best = "", bd = 3; MAIL_DOMAINS.forEach(function (d) { var x = editDist(m[2], d); if (x < bd) { bd = x; best = d; } });
+    return best && m[2].length > 3 ? m[1] + "@" + best : "";
+  }
+  document.addEventListener("focusout", function (e) {
+    var i = e.target; if (!i || (i.id !== "r-email" && i.id !== "a-email")) return;
+    var fld = i.closest(".fld") || i.parentNode, h = fld.querySelector(".emailhint"), fix = mailFix(i.value);
+    if (!fix) { if (h) h.remove(); return; }
+    if (!h) { h = document.createElement("p"); h.className = "fine emailhint"; fld.appendChild(h); }
+    h.innerHTML = L().e_email_fix('<button class="linkbtn" type="button" data-act="emailfix" data-for="' + i.id + '" data-v="' + esc(fix) + '">' + esc(fix) + "</button>");
+  });
   /* the code form sends itself as soon as the sixth digit is in */
   document.addEventListener("input", function (e) {
     var i = e.target; if (!i || !(i.id === "ev-code" || i.dataset.auto)) return;
@@ -3337,6 +3356,7 @@
     }
     if (ds.act === "lc-code" || ds.act === "lc-pw") { LC.id = $("l-id") ? $("l-id").value.trim() : LC.id; LC.mode = ds.act === "lc-code" ? "code" : "pw"; LC.sent = ""; LC.msg = ""; render(true); if ($("l-id") && !LC.id) $("l-id").focus(); return; }
     if (ds.act === "lc-again") { LC.sent = ""; LC.msg = ""; render(true); return; }
+    if (ds.act === "emailfix") { var ef = $(ds.for); if (ef) { ef.value = ds.v; ef.dispatchEvent(new Event("input", { bubbles: true })); } var eh = el.closest(".emailhint"); if (eh) eh.remove(); return; }
     if (ds.act === "copylink") { var cl = location.href; (navigator.clipboard ? navigator.clipboard.writeText(cl) : Promise.reject()).then(function () { toast(t.g_copied); }, function () { window.prompt(t.g_copy, cl); }); return; }
     if (ds.act === "pv-tg" && BE) { PV.active = true; PV.err = ""; setTimeout(function () { render(true); pvPoll(); }, 300); return; }   /* the link itself opens Telegram */
     if (ds.act === "pv-sms" && BE) { el.disabled = true; PV.err = ""; BE.phoneCode().then(function (j) { PV.sms = !j.verified; PV.smsAt = Date.now(); render(true); }, function (x) { el.disabled = false; PV.err = x && x.code === "wait" ? t.fg_wait : beMsg(t, x); render(true); }); return; }

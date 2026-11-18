@@ -12,6 +12,7 @@ const { photoOf } = require("./files");
 const { send } = require("../_core/http");
 const G = require("../_core/google");
 const T = require("../_core/throttle");
+const { checkEmail } = require("../_core/emailcheck");
 
 // what a doctor or clinic may fill in at sign-up (the rest of the profile is filled in later)
 const SIGNUP_KEYS = {
@@ -101,6 +102,7 @@ const actions = {
     const tg = tgOf(b.tg);
     const pw = typeof b.password === "string" ? b.password : "";
     if (!pwOk(pw)) bad("password");
+    await checkEmail(email);   // a domain that takes mail, not a throwaway inbox
     try {
       const given = profileOf(b.profile), prof = Object.assign({}, DEFAULT_PROFILE[role]);
       SIGNUP_KEYS[role].forEach((k) => { if (given[k] !== undefined && given[k] !== "") prof[k] = given[k]; });
@@ -370,6 +372,7 @@ const actions = {
     const email = emailOf(b.email);
     const phone = phoneOf(b.phone);
     if (!email && !phone) bad("contact");
+    if (email && email !== me.email) await checkEmail(email);   // only a new address is checked
     const prof = profileOf(b.profile), was = me.profile || {};
     const recheck = name !== me.name || String(prof.lic || "") !== String(was.lic || "") || (me.role === "clinic" && String(prof.fac || "") !== String(was.fac || ""));
     try {

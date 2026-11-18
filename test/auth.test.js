@@ -3,6 +3,10 @@ process.env.RESEND_API_KEY = "test";   // email "sends" go to the fake fetch bel
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const db = require("./stub-db");
+// fake DNS: these domains take mail, "nomail.uz" has a null MX, anything else doesn't exist
+const MX = { "mail.uz": [{ exchange: "mx.mail.uz", priority: 10 }], "b.uz": [{ exchange: "mx.b.uz", priority: 10 }], "nomail.uz": [{ exchange: ".", priority: 0 }] };
+require("dns").promises.resolveMx = async (d) => { if (MX[d]) return MX[d]; throw Object.assign(new Error("not found"), { code: "ENOTFOUND" }); };
+const { checkEmail } = require("../api/_core/emailcheck");
 const { hashPw, pwOk, sha } = require("../api/_core/auth");
 const T = require("../api/_core/throttle");
 const site = require("../api/_core/site");
@@ -124,4 +128,31 @@ test("changing the phone or email in the profile clears its confirmation", async
   const upd = db.sql.find((s) => /update app_users set name/.test(s));
   assert.match(upd, /phone_verified_at = case when phone is distinct from \$4 then null/);
   assert.match(upd, /email_verified_at = case when email is distinct from \$3 then null/);
+});
+
+test("email check: a domain must take mail, throwaway inboxes are refused", async () => {
+  await checkEmail("ali@mail.uz");
+  await checkEmail("");
+  await fails(checkEmail("ali@gmial.cmo"), "email_domain");
+  await fails(checkEmail("ali@nomail.uz"), "email_domain");
+  await fails(checkEmail("ali@mailinator.com"), "email_temp");
+});
+
+test("email check: a DNS outage on our side lets the person through", async () => {
+  const real = require("dns").promises.resolveMx;
+  require("dns").promises.resolveMx = async () => { throw Object.assign(new Error("servfail"), { code: "ESERVFAIL" }); };
+  try { await checkEmail("ali@some-new-domain.uz"); } finally { require("dns").promises.resolveMx = real; }
+});
+
+test("signup refuses an email whose domain doesn't exist, before making the account", async () => {
+  db.on(() => []);
+  await fails(users.signup({ role: "patient", name: "Ali", email: "ali@asdfgh.qwe", password: "good-password-1" }), "email_domain");
+  assert.ok(!db.ran(/insert into app_users/));
+});
+
+test("profile: only a changed email is checked", async () => {
+  db.on(() => []);
+  const me = { id: "u1", role: "patient", name: "Ali", email: "old@nowhere.zz", profile: {} };
+  await users.save_profile({ name: "Ali", email: "old@nowhere.zz", profile: {} }, me);   // unchanged: not looked up
+  await fails(users.save_profile({ name: "Ali", email: "new@nowhere.zz", profile: {} }, me), "email_domain");
 });

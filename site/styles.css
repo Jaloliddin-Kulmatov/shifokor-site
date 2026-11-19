@@ -2017,6 +2017,7 @@ body.demo-on .docbar { bottom: calc(env(safe-area-inset-bottom, 0px) + 132px); }
 .tmcard { display: flex; gap: 14px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 18px; transition: transform .2s ease, box-shadow .2s ease; }
 .tmcard:hover { transform: translateY(-3px); box-shadow: 0 18px 36px -24px rgba(0, 50, 55, .45); }
 .tmav { flex: none; width: 64px; height: 64px; border-radius: 20px; display: grid; place-items: center; font: 800 1.35rem var(--font-display); color: #fff; letter-spacing: .02em; }
+.tmav.tmph { object-fit: cover; border-radius: 50%; padding: 0; box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px color-mix(in srgb, var(--accent) 45%, transparent); background: var(--line); }
 .tmav.g0 { background: linear-gradient(135deg, #0f6f6b, #3cc4c0); }
 .tmav.g1 { background: linear-gradient(135deg, #3b5bdb, #74a9f5); }
 .tmav.g2 { background: linear-gradient(135deg, #c2613f, #f0a36f); }

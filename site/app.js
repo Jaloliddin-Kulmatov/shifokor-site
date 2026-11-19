@@ -3081,11 +3081,13 @@
       '<div class="wrap pad ptsplit"><div><h2>' + t.pt_how_h + "</h2>" + how + '</div><div class="dcard" id="ptbox"><h2>' + t.pt_form_h + "</h2>" + form + "</div></div>";
   }
   /* the team, at the bottom of the home and About pages */
+  /* the team's photos, in the same order as t.tm in every language (from the team slide of the UzHack deck) */
+  var TEAM_PH = ["img/team-jaloliddin.jpg", "img/team-jamshid.jpg", "img/team-sardor.jpg"];
   function teamSec(id) {
     var t = L(); if (!t.tm) return "";
     var ini = function (n) { return n.split(" ").map(function (w) { return w.charAt(0); }).join("").slice(0, 2); };
     return '<div class="wrap pad teamsec"' + (id ? ' id="' + id + '"' : "") + '><div class="sechead"><div><h2>' + t.tm_h + '</h2><p class="lead" style="margin:4px 0 0">' + t.tm_p + "</p></div></div>" +
-      '<div class="teamgrid">' + t.tm.map(function (m, i) { return '<article class="tmcard"><span class="tmav g' + i + '" aria-hidden="true">' + esc(ini(m[0])) + "</span><div><h3>" + esc(m[0]) + '</h3><p class="tmrole">' + esc(m[1]) + "</p>" + (m[2] ? '<p class="muted tmx">' + esc(m[2]) + "</p>" : "") + "</div></article>"; }).join("") + "</div>" +
+      '<div class="teamgrid">' + t.tm.map(function (m, i) { return '<article class="tmcard">' + (TEAM_PH[i] ? '<img class="tmav tmph" src="' + TEAM_PH[i] + '" alt="' + esc(m[0]) + '" width="64" height="64" loading="lazy" decoding="async">' : '<span class="tmav g' + i + '" aria-hidden="true">' + esc(ini(m[0])) + "</span>") + "<div><h3>" + esc(m[0]) + '</h3><p class="tmrole">' + esc(m[1]) + "</p>" + (m[2] ? '<p class="muted tmx">' + esc(m[2]) + "</p>" : "") + "</div></article>"; }).join("") + "</div>" +
       '<p class="joinline" style="margin-top:16px">' + t.tm_join + ' <a href="#/partners">' + t.pt_nav + "</a></p></div>";
   }
   /* a check mark that draws itself, for "done" moments */

@@ -10,10 +10,10 @@
     ct_bad: function (w) { return "Video qo‘ng‘iroq ishlamayapti: " + why("uz", w) + "."; },
     ct_demo: "Buni shifokor.com saytida sinang.",
     ct_login: "Sinash uchun hisobga kiring.", ct_new_h: "Sinov xonasi", ct_new_p: "Xona oching va havolani ikkinchi telefonga yuboring.", ct_new: "Xona ochish",
-    ct_room: function (c) { return "Xona " + c; }, ct_share: "Havolani ikkinchi telefonda oching.",
+    ct_scan: "Telefon kamerasi bilan skanerlang", ct_room: function (c) { return "Xona " + c; }, ct_share: "Havolani ikkinchi telefonda oching.",
     ct_copy: "Nusxalash", ct_copied: "Nusxalandi.", ct_join_v: "Kirish (video)", ct_join_a: "Faqat ovoz", ct_peer: "Ikkinchi telefon", ct_wait: "Ikkinchi telefon kutilmoqda…",
     ct_limit: "Bugungi limit tugadi. Ertaga urinib ko‘ring.",
-    ct_how: "Qanday sinash", ct_steps: ["“Xona ochish”ni bosing.", "Havolani ikkinchi telefonga yuboring.", "Ikkalasida “Kirish”ni bosing va kameraga ruxsat bering.", "Bir-biringizni ko‘rsangiz, hammasi ishlayapti."],
+    ct_how: "Qanday sinash", ct_steps: ["“Xona ochish”ni bosing.", "Telefon kamerasi bilan QR kodni skanerlang yoki havolani boshqa qurilmada oching.", "Ikkalasida “Kirish”ni bosing va kameraga ruxsat bering.", "Bir-biringizni ko‘rsangiz, hammasi ishlayapti."],
     ct_row: "Video qo‘ng‘iroqni sinash", ct_row_btn: "Sinash", ct_row_p: ""
   });
 
@@ -23,10 +23,10 @@
     ct_bad: function (w) { return "Видеозвонок не работает: " + why("ru", w) + "."; },
     ct_demo: "Проверьте это на shifokor.com.",
     ct_login: "Войдите, чтобы проверить.", ct_new_h: "Тестовая комната", ct_new_p: "Откройте комнату и отправьте ссылку на второй телефон.", ct_new: "Открыть комнату",
-    ct_room: function (c) { return "Комната " + c; }, ct_share: "Откройте ссылку на втором телефоне.",
+    ct_scan: "Отсканируйте камерой телефона", ct_room: function (c) { return "Комната " + c; }, ct_share: "Откройте ссылку на втором телефоне.",
     ct_copy: "Копировать", ct_copied: "Скопировано.", ct_join_v: "Войти (видео)", ct_join_a: "Только звук", ct_peer: "Второй телефон", ct_wait: "Ждём второй телефон…",
     ct_limit: "Лимит на сегодня исчерпан. Попробуйте завтра.",
-    ct_how: "Как проверить", ct_steps: ["Нажмите «Открыть комнату».", "Отправьте ссылку на второй телефон.", "На обоих нажмите «Войти» и разрешите камеру.", "Если видите друг друга, всё работает."],
+    ct_how: "Как проверить", ct_steps: ["Нажмите «Открыть комнату».", "Отсканируйте QR-код камерой телефона или откройте ссылку на другом устройстве.", "На обоих нажмите «Войти» и разрешите камеру.", "Если видите друг друга, всё работает."],
     ct_row: "Проверка видеозвонка", ct_row_btn: "Проверить", ct_row_p: ""
   });
 
@@ -36,10 +36,10 @@
     ct_bad: function (w) { return "Video calls aren't working: " + why("en", w) + "."; },
     ct_demo: "Test this on shifokor.com.",
     ct_login: "Sign in to test.", ct_new_h: "Test room", ct_new_p: "Open a room and send the link to a second phone.", ct_new: "Open a room",
-    ct_room: function (c) { return "Room " + c; }, ct_share: "Open the link on the second phone.",
+    ct_scan: "Scan with your phone’s camera", ct_room: function (c) { return "Room " + c; }, ct_share: "Open the link on the second phone.",
     ct_copy: "Copy", ct_copied: "Copied.", ct_join_v: "Join (video)", ct_join_a: "Audio only", ct_peer: "Second phone", ct_wait: "Waiting for the second phone…",
     ct_limit: "Today's limit is used up. Try tomorrow.",
-    ct_how: "How to test", ct_steps: ["Press “Open a room”.", "Send the link to a second phone.", "Press “Join” on both and allow the camera.", "If you see each other, it works."],
+    ct_how: "How to test", ct_steps: ["Press “Open a room”.", "Scan the QR code with your phone’s camera, or open the link on another device.", "Press “Join” on both and allow the camera.", "If you see each other, it works."],
     ct_row: "Test a video call", ct_row_btn: "Test", ct_row_p: ""
   });
 })(window.SHIFOKOR_T);

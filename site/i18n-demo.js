@@ -3,6 +3,7 @@
   var add = function (lang, o) { Object.keys(o).forEach(function (k) { T[lang][k] = o[k]; }); };
 
   add("uz", {
+    dm_call: "Video", dm_call_h: "Haqiqiy video qo‘ng‘iroqni sinang", dm_call_p: "Bir tugma: xona ochiladi, telefon bilan QR kodni skanerlang va ikki qurilma o‘rtasida gaplashing. Hisob kerak emas.",
     dm_nav: "Sinab ko‘rish", dm_eyebrow: "Hakamlar va mehmonlar uchun", dm_h: "Shifokor’ni 3 daqiqada sinab ko‘ring",
     dm_p: "Ro‘yxatdan o‘tish shart emas. Tayyor bemor, shifokor va klinika hisoblari bor: birini tanlang, keyin pastdagi paneldan istalgan paytda boshqasiga o‘ting. Hammasi faqat shu brauzerda saqlanadi.",
     dm_roles: { patient: "Bemor", doctor: "Shifokor", clinic: "Klinika" },
@@ -26,6 +27,7 @@
   });
 
   add("ru", {
+    dm_call: "Видео", dm_call_h: "Попробуйте настоящий видеозвонок", dm_call_p: "Одна кнопка открывает комнату: отсканируйте QR-код телефоном и поговорите между двумя устройствами. Аккаунт не нужен.",
     dm_nav: "Попробовать", dm_eyebrow: "Для жюри и гостей", dm_h: "Попробуйте Shifokor за 3 минуты",
     dm_p: "Регистрация не нужна. Есть готовые аккаунты пациента, врача и клиники: выберите один и переключайтесь панелью внизу в любой момент. Всё хранится только в этом браузере.",
     dm_roles: { patient: "Пациент", doctor: "Врач", clinic: "Клиника" },
@@ -49,6 +51,7 @@
   });
 
   add("en", {
+    dm_call: "Video call", dm_call_h: "Try a real video call", dm_call_p: "One button opens a room: scan the QR code with your phone and talk between the two devices. No account needed.",
     dm_nav: "Try it", dm_eyebrow: "For judges and visitors", dm_h: "Try Shifokor in 3 minutes",
     dm_p: "No sign-up needed. A patient, a doctor and a clinic account are ready: pick one, then switch any time from the bar at the bottom. Everything stays in this browser only.",
     dm_roles: { patient: "Patient", doctor: "Doctor", clinic: "Clinic" },

@@ -117,7 +117,7 @@ module.exports = async function handler(req, res) {
   const action = Object.prototype.hasOwnProperty.call(ACTIONS, body.action) ? ACTIONS[body.action] : null;
   if (!action) return send(res, 400, { error: "action" });
   // the caller's address, for the actions that limit by it; set here, so a caller can't choose it
-  if (["ai_find", "partner_lead", "login", "code_send", "code_login"].includes(body.action)) body._ip = ipOf(req); else delete body._ip;
+  if (["ai_find", "partner_lead", "login", "code_send", "code_login", "call_test"].includes(body.action)) body._ip = ipOf(req); else delete body._ip;
   try {
     await migrate();
     await jobs.maybeTick();

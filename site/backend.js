@@ -9,6 +9,11 @@
   var DEMO = false; try { DEMO = localStorage.getItem("shifokor-demo") === "1"; } catch (e) {}
   if (DEMO) {
     window.SH_DEMO = true; window.SB = null;
+    /* a test video call (#/calltest) between two devices, on the real media server: no account needed */
+    if (C.api) window.SB_CALL = (function () {
+      var post = function (body) { return fetch(C.api, { method: body ? "POST" : "GET", headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) { var e = new Error(j.error || "server"); e.code = j.error || "server"; throw e; } return j; }); }); };
+      return { test: function (code) { return post({ action: "call_test", code: code || "" }); }, status: function () { return post({ action: "call_status" }); } };
+    })();
     if (C.api) window.SB_AI = function (messages, l) {
       return fetch(C.api, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "ai_find", messages: messages, lang: l }) })
         .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) { var e = new Error(j.error || "server"); e.code = j.error || "server"; throw e; } return j; }); });

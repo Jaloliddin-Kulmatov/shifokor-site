@@ -81,19 +81,22 @@ const actions = {
   // A test call room (#/calltest): anyone signed in opens one, and anyone signed in with its 6-letter code joins it from
   // another phone or computer. Each join gets its own identity, so the same account can join from two devices.
   // At most 2 people, 20 new rooms a day per account; the token lasts 30 minutes.
+  // a test room with a 6-letter code, for trying a call between two devices. Anyone may open one, also without an
+  // account (the judges' sandbox): guests get 10 new rooms a day per address and 15-minute tokens; a room holds 2 people.
   async call_test(b, me) {
-    need(me);
     if (!LIVEKIT) throw new Fail(503, "no_livekit");
     let code = String(b.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
     if (code) { if (code.length !== 6) bad("code"); }
     else {
-      const n = Number((await q("insert into app_ai_use (key, day, n) values ($1, current_date, 1) on conflict (key, day) do update set n = app_ai_use.n + 1 returning n", ["calltest:" + me.id])).rows[0].n);
-      if (n > 20) throw new Fail(429, "limit");
+      const who = me ? me.id : "ip:" + crypto.createHash("sha256").update("calltest:" + String(b._ip || "")).digest("hex").slice(0, 32);
+      const n = Number((await q("insert into app_ai_use (key, day, n) values ($1, current_date, 1) on conflict (key, day) do update set n = app_ai_use.n + 1 returning n", ["calltest:" + who])).rows[0].n);
+      if (n > (me ? 20 : 10)) throw new Fail(429, "limit");
       code = Array.from(crypto.randomBytes(6), (x) => CODE_CHARS[x % 32]).join("");
       try { const r = await lkApi("CreateRoom", { name: "t-" + code, empty_timeout: 300, max_participants: 2 }, { roomCreate: true }); if (!r.ok) console.error("livekit create room", r.status); }
       catch (e) { console.error("livekit create room", e.name); }
     }
-    return { url: LK.url, room: "t-" + code, code, token: lkToken("t-" + code, me.id + ":" + crypto.randomBytes(3).toString("hex"), me.name, 1800) };
+    const id = (me ? me.id : "guest") + ":" + crypto.randomBytes(3).toString("hex");
+    return { url: LK.url, room: "t-" + code, code, token: lkToken("t-" + code, id, me ? me.name : String(b.name || "Mehmon").slice(0, 40), me ? 1800 : 900) };
   },
 
   // the media-server room for this consultation's call, for its patient and doctor only; 503 when LiveKit isn't set up

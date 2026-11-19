@@ -375,7 +375,7 @@
     function start() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.RTCPeerConnection || !window.isSecureContext) { status(t.cl_unsup, "err"); btns(); return; }
       status(t.cl_asking, "wait");
-      var via = !o.demo && window.SB && SB.callRoom
+      var via = !o.demo && (o.roomInfo || (window.SB && SB.callRoom))
         ? (o.roomInfo ? o.roomInfo() : SB.callRoom(o.cid)).then(function (info) { return loadLk().then(function (LK) { return lkStart(info, LK); }, function (e) { warn(e); if (o.lkOnly) throw e; return direct(); }); }, function (e) { if (e && e.code === "no_livekit" && !o.lkOnly) return direct(); throw e; })
         : direct();
       via.catch(fail);

@@ -455,18 +455,25 @@
 
   /* ---------------- test call (#/calltest): try a LiveKit video call between two devices, with no consultation ---------------- */
   var CT = { st: null, loading: false };
+  var ctApi = function () { return BE ? { test: BE.callTest, status: BE.callStatus } : window.SB_CALL || null; };
+  /* the room link as a QR code, so a phone can join by pointing its camera at the screen (qrcode-generator, MIT) */
+  var QRLIB = null;
+  function ctQr(link) {
+    if (!QRLIB) QRLIB = new Promise(function (res, rej) { var sc = document.createElement("script"); sc.src = "https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"; sc.async = true; sc.onload = function () { window.qrcode ? res(window.qrcode) : rej(new Error("qr")); }; sc.onerror = function () { QRLIB = null; rej(new Error("qr")); }; document.head.appendChild(sc); });
+    QRLIB.then(function (qrcode) { var box = $("ct-qr"); if (!box) return; var qr = qrcode(0, "M"); qr.addData(link); qr.make(); box.innerHTML = qr.createSvgTag({ cellSize: 5, margin: 2, scalable: true }); }, function () { var box = $("ct-qr"); if (box) box.parentNode.remove(); });
+  }
   function ctLoad() {
-    if (!BE || CT.loading) return; CT.loading = true;
-    BE.callStatus().then(function (j) { CT.st = j; }, function () { CT.st = { livekit: false, ok: false, why: "net" }; }).then(function () { CT.loading = false; if (current.path.indexOf("/calltest") === 0) render(true); });
+    var api = ctApi(); if (!api || CT.loading) return; CT.loading = true;
+    api.status().then(function (j) { CT.st = j; }, function () { CT.st = { livekit: false, ok: false, why: "net" }; }).then(function () { CT.loading = false; if (current.path.indexOf("/calltest") === 0) render(true); });
   }
   function viewCallTest(code) {
     var t = L(), u = me(); code = String(code || "").toUpperCase();
-    if (BE && !CT.st) ctLoad();
-    var st = !BE ? '<p class="note-box">' + t.ct_demo + "</p>" : !CT.st ? '<p class="muted">' + t.ct_checking + "</p>" : CT.st.ok ? '<p class="ctstate ok">' + ic("check") + t.ct_ok + "</p>" : '<p class="ctstate bad">' + ic("siren") + (CT.st.livekit ? esc(t.ct_bad(CT.st.why)) : t.ct_off) + "</p>";
+    var api = ctApi(); if (api && !CT.st) ctLoad();
+    var st = !api ? '<p class="note-box">' + t.ct_demo + "</p>" : !CT.st ? '<p class="muted">' + t.ct_checking + "</p>" : CT.st.ok ? '<p class="ctstate ok">' + ic("check") + t.ct_ok + "</p>" : '<p class="ctstate bad">' + ic("siren") + (CT.st.livekit ? esc(t.ct_bad(CT.st.why)) : t.ct_off) + "</p>";
     var link = location.origin + location.pathname + "#/calltest/" + code, body;
-    if (!u) body = '<div class="dcard"><p>' + t.ct_login + '</p><div class="btns"><a class="btn" href="#/login">' + t.go_login + '</a><a class="btn ghost" href="#/register">' + t.go_reg + "</a></div></div>";
-    else if (code) body = '<div class="dcard"><h2>' + esc(t.ct_room(code)) + '</h2><p class="muted">' + t.ct_share + '</p><div class="ctlink"><input id="ct-link" readonly value="' + esc(link) + '" aria-label="' + esc(t.ct_room(code)) + '"><button class="btn ghost sm" type="button" data-act="ctcopy">' + t.ct_copy + "</button></div>" +
-      '<div class="btns" style="margin-top:14px"><button class="btn" type="button" data-ctjoin="video">' + ic("video") + t.ct_join_v + '</button><button class="btn ghost" type="button" data-ctjoin="audio">' + ic("mic") + t.ct_join_a + "</button></div></div>";
+    if (!api) body = "";
+    else if (code) { setTimeout(function () { ctQr(link); }, 0); body = '<div class="dcard ctroom"><div><h2>' + esc(t.ct_room(code)) + '</h2><p class="muted">' + t.ct_share + '</p><div class="ctlink"><input id="ct-link" readonly value="' + esc(link) + '" aria-label="' + esc(t.ct_room(code)) + '"><button class="btn ghost sm" type="button" data-act="ctcopy">' + t.ct_copy + "</button></div>" +
+      '<div class="btns" style="margin-top:14px"><button class="btn" type="button" data-ctjoin="video">' + ic("video") + t.ct_join_v + '</button><button class="btn ghost" type="button" data-ctjoin="audio">' + ic("mic") + t.ct_join_a + '</button></div></div><figure class="ctqr"><div id="ct-qr" aria-hidden="true"></div><figcaption>' + t.ct_scan + "</figcaption></figure></div>"; }
     else body = '<div class="dcard"><h2>' + t.ct_new_h + '</h2><p class="muted">' + t.ct_new_p + '</p><button class="btn" type="button" data-act="ctnew">' + ic("video") + t.ct_new + "</button></div>";
     return pageHead(t.ct_eyebrow, t.ct_h, t.ct_p) + '<div class="wrap pad" style="max-width:760px">' + st + body +
       '<h2 class="subh" style="margin-top:26px">' + t.ct_how + '</h2><ol class="ctsteps">' + t.ct_steps.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ol></div>";
@@ -3035,6 +3042,7 @@
     var card = function (k, icn) { return '<div class="trycard"><span class="icobox">' + ic(icn) + "</span><h3>" + t.dm_roles[k] + "</h3><p>" + t.dm_role_p[k] + '</p><button class="btn" type="button" data-act="' + (DEMO ? "demo-as" : "demo-go") + '" data-role="' + k + '">' + t.dm_enter(t.dm_roles[k]) + "</button></div>"; };
     return '<div class="wrap pad trypage"><p class="eyebrow">' + t.dm_eyebrow + "</p><h1>" + t.dm_h + '</h1><p class="lead">' + t.dm_p + "</p>" +
       '<div class="trygrid">' + card("patient", "heart") + card("doctor", "shield") + card("clinic", "hosp") + "</div>" +
+      '<a class="trycall" href="#/calltest">' + ic("video") + "<span><b>" + t.dm_call_h + "</b><small>" + t.dm_call_p + "</small></span></a>" +
       "<h2>" + t.dm_steps_h + '</h2><ol class="trysteps">' + t.dm_steps.map(function (x) { return "<li>" + x + "</li>"; }).join("") + "</ol>" +
       '<div class="note-box"><b>' + t.dm_note_h + '</b><p style="margin:6px 0 0">' + t.dm_note_p + "</p></div>" +
       (DEMO ? '<p style="margin-top:16px"><button class="btn ghost" type="button" data-act="demo-exit">' + t.dm_exit_long + "</button></p>" : "") + "</div>";
@@ -3079,7 +3087,7 @@
     var b = $("demobar"); if (!b) { b = document.createElement("div"); b.id = "demobar"; b.className = "demobar"; b.setAttribute("role", "region"); document.body.appendChild(b); }
     var t = L(), u = me(), r = u ? u.role : "";
     b.setAttribute("aria-label", t.dm_bar);
-    b.innerHTML = '<b class="dmt">' + t.dm_bar + '</b><span class="dmroles">' + ["patient", "doctor", "clinic"].map(function (k) { return '<button type="button" data-act="demo-as" data-role="' + k + '" aria-pressed="' + (r === k) + '">' + t.dm_roles[k] + "</button>"; }).join("") + '</span><a class="dmhelp" href="#/try">' + t.dm_help + '</a><button type="button" class="dmx" data-act="demo-exit">' + t.dm_exit + "</button>";
+    b.innerHTML = '<b class="dmt">' + t.dm_bar + '</b><span class="dmroles">' + ["patient", "doctor", "clinic"].map(function (k) { return '<button type="button" data-act="demo-as" data-role="' + k + '" aria-pressed="' + (r === k) + '">' + t.dm_roles[k] + "</button>"; }).join("") + '</span><a class="dmhelp dmcall" href="#/calltest">' + ic("video") + t.dm_call + '</a><a class="dmhelp" href="#/try">' + t.dm_help + '</a><button type="button" class="dmx" data-act="demo-exit">' + t.dm_exit + "</button>";
   }
   /* after signing in or registering, go back to the page the visitor was on (an application they started, say) */
   var NEXT_K = "shifokor-next";
@@ -3296,12 +3304,12 @@
       }
     }
     if (ds.aitry) { aiSend(ds.aitry); return; }
-    if (ds.act === "ctnew") { el.disabled = true; BE.callTest("").then(function (j) { go("#/calltest/" + j.code); }, function (x) { el.disabled = false; toast(x && x.code === "limit" ? t.ct_limit : x && x.code === "no_livekit" ? t.ct_off : beMsg(t, x)); }); return; }
+    if (ds.act === "ctnew") { if (!ctApi()) return; el.disabled = true; ctApi().test("").then(function (j) { go("#/calltest/" + j.code); }, function (x) { el.disabled = false; toast(x && x.code === "limit" ? t.ct_limit : x && x.code === "no_livekit" ? t.ct_off : beMsg(t, x)); }); return; }
     if (ds.act === "ctcopy") { var cl = $("ct-link"); if (cl) { cl.select(); (navigator.clipboard ? navigator.clipboard.writeText(cl.value) : Promise.reject()).then(function () { toast(t.ct_copied); }, function () { try { document.execCommand("copy"); toast(t.ct_copied); } catch (x) {} }); } return; }
     if (ds.ctjoin) {
       var ctc = current.path.slice(10).toUpperCase();
-      if (!window.ShifokorCall || !BE) return;
-      ShifokorCall.open({ cid: "test-" + ctc, role: "p", media: ds.ctjoin, title: t.ct_room(ctc), peer: t.ct_peer, t: t, demo: false, lkOnly: true, wait: t.ct_wait, roomInfo: function () { return BE.callTest(ctc); }, done: function (sec) { if (sec) toast(t.cl_ended(Math.floor(sec / 60) + ":" + pad(sec % 60))); render(true); } });
+      if (!window.ShifokorCall || !ctApi()) return;
+      ShifokorCall.open({ cid: "test-" + ctc, role: "p", media: ds.ctjoin, title: t.ct_room(ctc), peer: t.ct_peer, t: t, demo: false, lkOnly: true, wait: t.ct_wait, roomInfo: function () { return ctApi().test(ctc); }, done: function (sec) { if (sec) toast(t.cl_ended(Math.floor(sec / 60) + ":" + pad(sec % 60))); render(true); } });
       return;
     }
     if (ds.aiask) { AI.complaint = AI.msgs.filter(function (m) { return m.role === "user"; }).map(function (m) { return m.content; }).join(". ").slice(0, 1500); CS = null; AI.open = false; aiDraw(); go("#/consult?" + qs({ s: ds.aiask })); return; }

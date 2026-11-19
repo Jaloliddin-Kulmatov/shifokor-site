@@ -218,32 +218,115 @@ body.panelapp .top, body.panelapp .foot, body.panelapp .skip { display: none; }
 .sumtab th { text-transform: none; letter-spacing: 0; font-size: 0.92rem; }
 .sumtab th { font-family: var(--font-body); }
 
-/* each role its own colour and home page: patient teal, doctor blue, clinic violet */
-.pshell.role-doctor { --accent: #2D5BD0; --accent-ink: #FFFFFF; }
-.pshell.role-clinic { --accent: #7440C9; --accent-ink: #FFFFFF; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .pshell.role-doctor { --accent: #86A6F5; --accent-ink: #0B1633; }
-  :root:not([data-theme="light"]) .pshell.role-clinic { --accent: #BC97F2; --accent-ink: #1E0E36; }
+/* ===== Panels: one family (Onest), Samarkand tile colours per role, the do'ppi pattern as the signature ===== */
+body.panelapp {
+  --font-body: "Onest", "Segoe UI", system-ui, sans-serif; --font-display: "Onest", "Segoe UI", system-ui, sans-serif;
+  --bg: #F2F5F3; --ink: #13233A; --muted: #5A6878; --line: #DCE3DF; --wait: #B7791F; --r-card: 18px;
+  --shadow-soft: 0 1px 2px rgba(19, 35, 58, 0.05), 0 8px 24px -16px rgba(19, 35, 58, 0.25);
 }
-:root[data-theme="dark"] .pshell.role-doctor { --accent: #86A6F5; --accent-ink: #0B1633; }
-:root[data-theme="dark"] .pshell.role-clinic { --accent: #BC97F2; --accent-ink: #1E0E36; }
-.pshell.role-doctor, .pshell.role-clinic { --accent-soft: color-mix(in srgb, var(--accent) 13%, var(--surface)); }
-.pshell .pside { border-top: 4px solid var(--accent); }
-.pshell .pbrand small { color: var(--accent); font-weight: 700; }
-.phero { padding: 22px 24px; border-radius: var(--r-card); background: linear-gradient(120deg, color-mix(in srgb, var(--accent) 16%, var(--surface)), var(--surface) 70%); border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line)); }
-.phero h1 { margin: 0; font: 800 1.7rem var(--font-display); }
-.phero p { margin: 6px 0 0; color: var(--muted); }
+.pshell { --accent: #0E7C7B; --accent-ink: #FFFFFF; --side: #0B3D3E; --side-2: #0F5253; }
+.pshell.role-doctor { --accent: #2B4FB5; --side: #14275F; --side-2: #1B3478; }
+.pshell.role-clinic { --accent: #6B3FB8; --side: #2E1A57; --side-2: #3C2470; }
+.pshell { --accent-soft: color-mix(in srgb, var(--accent) 11%, var(--surface)); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body.panelapp { --bg: #0C1418; --ink: #E5ECEF; --muted: #93A3AD; --line: #22313A; }
+  :root:not([data-theme="light"]) .pshell { --accent: #4CC3BE; --accent-ink: #062224; --side: #08282A; --side-2: #0C3436; }
+  :root:not([data-theme="light"]) .pshell.role-doctor { --accent: #8EA9F4; --accent-ink: #0B1633; --side: #0E1B44; --side-2: #142458; }
+  :root:not([data-theme="light"]) .pshell.role-clinic { --accent: #BE9CF2; --accent-ink: #1E0E36; --side: #221340; --side-2: #2D1A52; }
+}
+:root[data-theme="dark"] body.panelapp { --bg: #0C1418; --ink: #E5ECEF; --muted: #93A3AD; --line: #22313A; }
+:root[data-theme="dark"] .pshell { --accent: #4CC3BE; --accent-ink: #062224; --side: #08282A; --side-2: #0C3436; }
+:root[data-theme="dark"] .pshell.role-doctor { --accent: #8EA9F4; --accent-ink: #0B1633; --side: #0E1B44; --side-2: #142458; }
+:root[data-theme="dark"] .pshell.role-clinic { --accent: #BE9CF2; --accent-ink: #1E0E36; --side: #221340; --side-2: #2D1A52; }
+body.panelapp { font-feature-settings: "ss01"; letter-spacing: -0.005em; }
+
+/* sidebar: deep role colour, light text, the pattern at its foot */
+.pshell .pside { background: linear-gradient(180deg, var(--side-2), var(--side) 60%); border-right: 0; color: #fff; overflow: hidden; }
+.pshell .pbrand, .pshell .pbrand b { color: #fff; }
+.pshell .pbrand small { color: rgba(255, 255, 255, 0.66); font-weight: 600; }
+.pshell .pbrand img { background: #fff; border-radius: 10px; padding: 3px; }
+.pshell .pside nav a { color: rgba(255, 255, 255, 0.74); position: relative; }
+.pshell .pside nav a:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.pshell .pside nav a[aria-current="page"] { background: #fff; color: var(--side); box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.45); }
+.pshell .pside nav a[aria-current="page"] .ic { color: var(--accent); }
+.pshell .pgroup { color: rgba(255, 255, 255, 0.5); }
+.pshell .pnavout { color: #FFB4A8 !important; }
+.pshell .puser { border-top-color: rgba(255, 255, 255, 0.12); position: relative; z-index: 1; }
+.pshell .puser b { color: #fff; }
+.pshell .puser small { color: rgba(255, 255, 255, 0.6); }
+.pshell .pside .pico { color: rgba(255, 255, 255, 0.7); }
+.pshell .pside .pico:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.pshell .pronum { background: #F2B544; color: #2A1A00; }
+.doppi { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.pside-art { position: absolute; width: 220px; height: 220px; right: -64px; bottom: 40px; color: #fff; opacity: 0.07; pointer-events: none; }
+
+/* top bar */
+.pshell .ptop { background: color-mix(in srgb, var(--bg) 85%, transparent); border-bottom-color: transparent; }
+.pshell .ptop .lang button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+
+/* page header: on the page itself, with the pattern drawing beside the greeting */
+.phero { position: relative; padding: 8px 160px 6px 0; min-height: 112px; }
+.phero h1 { margin: 0; font: 800 clamp(1.75rem, 1.2rem + 1.6vw, 2.5rem)/1.1 var(--font-display); letter-spacing: -0.03em; color: var(--ink); }
+.phero p { margin: 10px 0 0; color: var(--muted); font-size: 1.02rem; max-width: 60ch; }
 .phero .btns { margin-top: 14px; }
-.ptiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
-.ptile { display: grid; gap: 6px; align-content: start; justify-items: start; text-align: left; padding: 20px; border-radius: var(--r-card); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); color: var(--ink); text-decoration: none; transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s; }
-.ptile:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: 0 10px 28px color-mix(in srgb, var(--accent) 18%, transparent); }
-.ptile .psi { margin-bottom: 6px; }
-.ptile b { font: 800 1.05rem var(--font-display); }
-.ptile small { color: var(--muted); font-size: 0.88rem; line-height: 1.4; }
-.ptiles .ptile:first-child { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.ptiles .ptile:first-child small { color: color-mix(in srgb, var(--accent-ink) 80%, transparent); }
-.ptiles .ptile:first-child .psi { background: color-mix(in srgb, var(--accent-ink) 18%, transparent); color: var(--accent-ink); }
-.pnow { border: 2px solid var(--accent); }
-.pstats { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.phart { position: absolute; right: 8px; top: 0; width: 120px; height: 120px; color: var(--accent); }
+
+/* the one block that needs the person now: requests to answer */
+.pnow, .pshell #inbox { background: var(--surface); border: 0; border-radius: var(--r-card); box-shadow: inset 4px 0 0 var(--accent), 0 18px 40px -24px color-mix(in srgb, var(--accent) 60%, transparent); padding: 22px 22px 22px 26px; }
+.pnow .pcardh h2 { font-size: 1.15rem; }
+.pnow .procard, .pshell #inbox .visit { border: 1px solid var(--line); box-shadow: none; }
+
+/* quieter blocks */
+.pshell .pcard { border: 1px solid var(--line); box-shadow: none; }
+.pshell .pcontent .dcard:not(#inbox), .pshell .pcontent .procard, .pshell .pcontent .tlrow { border: 1px solid var(--line); box-shadow: none; }
+.pstats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); overflow: hidden; }
+.pstats .pstat { border-radius: 0; box-shadow: none; background: transparent; padding: 16px 18px; border-left: 1px solid var(--line); margin-left: -1px; }
+.pstats a.pstat:hover { transform: none; background: var(--accent-soft); }
+.pstats .psi { width: 38px; height: 38px; border-radius: 11px; }
+.pstats .psi .ic { width: 18px; height: 18px; }
+.pstats .pstat b { font-size: 1.45rem; letter-spacing: -0.02em; }
+
+/* patient: three ways to get help */
+.ptiles { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 14px; }
+.ptile { position: relative; overflow: hidden; display: grid; gap: 6px; align-content: end; justify-items: start; text-align: left; min-height: 168px; padding: 20px; border-radius: var(--r-card); background: var(--surface); border: 1px solid var(--line); color: var(--ink); text-decoration: none; transition: border-color 0.18s, transform 0.18s cubic-bezier(.2, .7, .2, 1); }
+.ptile:hover { border-color: var(--accent); }
+.ptile:active { transform: scale(0.985); }
+.ptile .psi { margin-bottom: auto; }
+.ptile b { font: 700 1.12rem var(--font-display); letter-spacing: -0.01em; }
+.ptile small { color: var(--muted); font-size: 0.9rem; line-height: 1.45; max-width: 34ch; }
+.ptiles .ptile:first-child { background: var(--side); border-color: var(--side); color: #fff; }
+.ptiles .ptile:first-child small { color: rgba(255, 255, 255, 0.75); }
+.ptiles .ptile:first-child .psi { background: rgba(255, 255, 255, 0.14); color: #fff; }
+.ptile-art { position: absolute; width: 190px; height: 190px; right: -46px; top: -46px; color: #fff; opacity: 0.16; }
+
+/* buttons answer a press */
+.pshell .btn { transition: transform 0.12s ease-out, background-color 0.15s, box-shadow 0.15s; }
+.pshell .btn:active { transform: scale(0.97); }
+
+/* the opening moment, once per page: the pattern draws, the heading rises, waiting requests come in one by one */
+@keyframes pdraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes prise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.pfirst .phart rect, .pfirst .phart path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: pdraw 1.3s cubic-bezier(.6, 0, .2, 1) forwards; }
+.pfirst .phart g:nth-of-type(2) path { animation-delay: 0.15s; }
+.pfirst .phart g:nth-of-type(3) path { animation-delay: 0.3s; }
+.pfirst .phart g:nth-of-type(4) path { animation-delay: 0.45s; }
+.pfirst .phart > path:last-child { animation-delay: 0.7s; }
+.pfirst .phero h1, .pfirst .phero p { animation: prise 0.6s cubic-bezier(.2, .7, .2, 1) both; }
+.pfirst .phero p { animation-delay: 0.08s; }
+.pfirst .pnow .procard, .pfirst #inbox .visit, .pfirst .ptile { animation: prise 0.5s cubic-bezier(.2, .7, .2, 1) both; }
+.pfirst .pnow .procard:nth-of-type(2), .pfirst #inbox .visit:nth-of-type(2), .pfirst .ptile:nth-child(2) { animation-delay: 0.08s; }
+.pfirst .pnow .procard:nth-of-type(3), .pfirst #inbox .visit:nth-of-type(3), .pfirst .ptile:nth-child(3) { animation-delay: 0.16s; }
+
 body.demo-on .pcontent { padding-bottom: 110px; }
-@media (max-width: 760px) { .phero { padding: 18px; } .phero h1 { font-size: 1.4rem; } }
+.pcontent .prostats:empty { display: none; }
+@media (max-width: 900px) {
+  .ptiles { grid-template-columns: 1fr; }
+  .ptile { min-height: 0; align-content: start; }
+  .ptile .psi { margin-bottom: 6px; }
+  .phero { padding-right: 84px; min-height: 0; }
+  .phart { width: 72px; height: 72px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pfirst .phart rect, .pfirst .phart path, .pfirst .phero h1, .pfirst .phero p, .pfirst .pnow .procard, .pfirst #inbox .visit, .pfirst .ptile { animation: none; stroke-dashoffset: 0; }
+  .ptile, .pshell .btn { transition: none; }
+}

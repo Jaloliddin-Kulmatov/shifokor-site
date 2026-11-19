@@ -217,3 +217,33 @@ body.panelapp .top, body.panelapp .foot, body.panelapp .skip { display: none; }
 }
 .sumtab th { text-transform: none; letter-spacing: 0; font-size: 0.92rem; }
 .sumtab th { font-family: var(--font-body); }
+
+/* each role its own colour and home page: patient teal, doctor blue, clinic violet */
+.pshell.role-doctor { --accent: #2D5BD0; --accent-ink: #FFFFFF; }
+.pshell.role-clinic { --accent: #7440C9; --accent-ink: #FFFFFF; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .pshell.role-doctor { --accent: #86A6F5; --accent-ink: #0B1633; }
+  :root:not([data-theme="light"]) .pshell.role-clinic { --accent: #BC97F2; --accent-ink: #1E0E36; }
+}
+:root[data-theme="dark"] .pshell.role-doctor { --accent: #86A6F5; --accent-ink: #0B1633; }
+:root[data-theme="dark"] .pshell.role-clinic { --accent: #BC97F2; --accent-ink: #1E0E36; }
+.pshell.role-doctor, .pshell.role-clinic { --accent-soft: color-mix(in srgb, var(--accent) 13%, var(--surface)); }
+.pshell .pside { border-top: 4px solid var(--accent); }
+.pshell .pbrand small { color: var(--accent); font-weight: 700; }
+.phero { padding: 22px 24px; border-radius: var(--r-card); background: linear-gradient(120deg, color-mix(in srgb, var(--accent) 16%, var(--surface)), var(--surface) 70%); border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line)); }
+.phero h1 { margin: 0; font: 800 1.7rem var(--font-display); }
+.phero p { margin: 6px 0 0; color: var(--muted); }
+.phero .btns { margin-top: 14px; }
+.ptiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.ptile { display: grid; gap: 6px; align-content: start; justify-items: start; text-align: left; padding: 20px; border-radius: var(--r-card); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-soft); color: var(--ink); text-decoration: none; transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s; }
+.ptile:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: 0 10px 28px color-mix(in srgb, var(--accent) 18%, transparent); }
+.ptile .psi { margin-bottom: 6px; }
+.ptile b { font: 800 1.05rem var(--font-display); }
+.ptile small { color: var(--muted); font-size: 0.88rem; line-height: 1.4; }
+.ptiles .ptile:first-child { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.ptiles .ptile:first-child small { color: color-mix(in srgb, var(--accent-ink) 80%, transparent); }
+.ptiles .ptile:first-child .psi { background: color-mix(in srgb, var(--accent-ink) 18%, transparent); color: var(--accent-ink); }
+.pnow { border: 2px solid var(--accent); }
+.pstats { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+body.demo-on .pcontent { padding-bottom: 110px; }
+@media (max-width: 760px) { .phero { padding: 18px; } .phero h1 { font-size: 1.4rem; } }

@@ -202,6 +202,7 @@
     adminPayout: function (o) { return call("admin_payout", o); },
     adminPayoutDelete: function (id) { return call("admin_payout_delete", { id: id }); },
     /* doctors imported by an admin: rows [{ name, phone, email, profile }] → { results: [{ i, id, url } | { i, error }] } */
+    adminAddClinic: function (o) { return call("admin_add_clinic", o); },
     adminImport: function (rows) { return call("admin_import", { rows: rows }); },
     adminInvite: function (id) { return call("admin_invite", { id: id }); },
     adminRemovePending: function (id) { return call("admin_remove_pending", { id: id }); },

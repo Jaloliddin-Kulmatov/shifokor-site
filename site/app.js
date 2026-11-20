@@ -1076,6 +1076,12 @@
     if (!h) { h = document.createElement("p"); h.className = "fine emailhint"; fld.appendChild(h); }
     h.innerHTML = L().e_email_fix('<button class="linkbtn" type="button" data-act="emailfix" data-for="' + i.id + '" data-v="' + esc(fix) + '">' + esc(fix) + "</button>");
   });
+  /* the doctor search in the application: redraw only the list, so typing keeps going */
+  document.addEventListener("input", function (e) {
+    if (!e.target || e.target.id !== "cs-find" || !CS) return;
+    CS.find = e.target.value; CS.findAll = false;
+    var dl = $("cs-doclist"); if (dl) dl.innerHTML = docPickList(CS, onlineDoctors(CS.spec));
+  });
   /* the code form sends itself as soon as the sixth digit is in */
   document.addEventListener("input", function (e) {
     var i = e.target; if (!i || !(i.id === "ev-code" || i.dataset.auto)) return;
@@ -1579,7 +1585,7 @@
   function csStart(q) {
     var u = me(), pr = (u && u.profile) || {};
     CSPH = [];
-    CS = { docQ: csKey(q), asap: (q.now === "1" || !!q.s) && !q.doc, type: "text", who: "self", name: u && u.role === "patient" ? u.name : "", age: "", sex: "f", phone: u && u.phone ? fmtPhone(u.phone) : "", region: pr.region || "", district: pr.district || "", complaint: "", since: "1", chronic: "", meds: "", allergy: "", spec: "", doc: q.doc || "", consent: false };
+    CS = { docQ: csKey(q), asap: (q.now === "1" || !!q.s) && !q.doc, type: "text", who: "self", name: u && u.role === "patient" ? u.name : "", age: "", sex: "f", phone: u && u.phone ? fmtPhone(u.phone) : "", region: pr.region || "", district: pr.district || "", complaint: "", since: "1", chronic: "", meds: "", allergy: "", spec: "", doc: q.doc || "", consent: false, fromNow: q.now === "1" };   /* fromNow: opened from a "first free doctor" link; switching to choosing a doctor stays */
     if (AI.complaint) { CS.complaint = AI.complaint; AI.complaint = ""; }
     var d = q.doc ? userById(q.doc) : null; if (d) CS.spec = (d.profile || {}).spec || ""; if (d && d.sample) CS.doc = ""; if (!d && q.s) CS.spec = q.s; if (d && q.slot && +q.slot > Date.now()) { CS.slot = +q.slot; CS.slotDay = Date.UTC(new Date(+q.slot + TK).getUTCFullYear(), new Date(+q.slot + TK).getUTCMonth(), new Date(+q.slot + TK).getUTCDate()) - TK; }
   }
@@ -1591,11 +1597,29 @@
   }
   var onlineDoctors = function (spec) { return users().filter(function (u) { var pr = u.profile || {}; return u.role === "doctor" && isOnline(u) && (!spec || pr.spec === spec); }); };
   var csKey = function (q) { return (q.doc || "") + (q.s ? "|" + q.s : "") + (q.slot ? "@" + q.slot : ""); };
+  /* the application's doctor picker: "any free doctor" first, then the doctors who take online consultations (of the
+     chosen specialty), filtered by the search box by name, specialty or workplace; online-now doctors and the chosen one first */
+  function docPickList(c, docs) {
+    var t = L(), q = String(c.find || "").trim().toLowerCase();
+    var hit = function (d) { var pr = d.profile || {}; return !q || [d.name, specName(pr), (pr.work || []).map(function (w) { return w && w.label; }).join(" ")].join(" ").toLowerCase().indexOf(q) > -1; };
+    var list = docs.filter(hit).sort(function (a, b) { return (b.id === c.doc) - (a.id === c.doc) || onlineNow(b) - onlineNow(a) || ratingOf(b.id).avg - ratingOf(a.id).avg; });
+    var more = list.length > 6 && !c.findAll, shown = more ? list.slice(0, 6) : list;
+    var card = function (d) {
+      var pr = d.profile || {}, p = cpOf(pr)[c.type], r = ratingOf(d.id), on = c.doc === d.id;
+      return '<button type="button" class="docopt' + (on ? " on" : "") + '" role="radio" aria-checked="' + on + '" data-csdoc="' + d.id + '">' + avatarOf(d, "sm") +
+        '<span class="docopt-main"><b>' + esc(d.name) + "</b><small>" + esc(specName(pr)) + (pr.years ? " · " + esc(t.exp(pr.years)) : "") + "</small>" +
+        '<span class="docopt-meta">' + (onlineNow(d) ? liveBadge() : "") + (r.n ? '<span class="docopt-rate">★ ' + avgTxt(r.avg) + " <small>(" + r.n + ")</small></span>" : "") + "</span></span>" +
+        '<span class="docopt-price">' + (p != null ? esc(money(p)) : '<small class="muted">' + t.cp_not_offered_s + "</small>") + "</span>" + ic("check") + "</button>";
+    };
+    var any = '<button type="button" class="docopt any' + (!c.doc ? " on" : "") + '" role="radio" aria-checked="' + !c.doc + '" data-csdoc=""><span class="pav sm docopt-any" aria-hidden="true">' + ic("chat") + '</span><span class="docopt-main"><b>' + t.cs_doc_any + "</b><small>" + t.cs_doc_any_p + "</small></span>" + ic("check") + "</button>";
+    return any + (shown.length ? shown.map(card).join("") : '<p class="muted cspick-none">' + (q ? t.cs_find_none : t.cs_doc_none) + "</p>") +
+      (more ? '<button type="button" class="linkbtn cspick-more" data-act="cs-findall">' + t.cs_find_more(list.length - 6) + "</button>" : "");
+  }
   /* where the apply panel's close button goes: the same doctors list, without the application */
   var apClose = function () { var q = Object.assign({}, current.q); delete q.doc; delete q.now; delete q.smp; delete q.slot; return "#/doctors" + (qs(q) ? "?" + qs(q) : ""); };
   /* the application form; embed = a panel over the doctors list (#/consult), so choosing a doctor and applying is one page */
   function viewConsult(q, embed) {
-    var t = L(); if (!CS || CS.docQ !== csKey(q) || (q.now === "1" && !CS.asap && !CS.complaint)) csStart(q);
+    var t = L(); if (!CS || CS.docQ !== csKey(q) || (q.now === "1" && !CS.fromNow)) csStart(q);
     var c = CS, fi = function (id, label, val, type, extra) { return '<div class="fld"><label for="' + id + '">' + label + '</label><input id="' + id + '" type="' + (type || "text") + '" value="' + esc(val || "") + '"' + (extra || "") + "></div>"; };
     var types = CS_KINDS.map(function (k) { return '<button type="button" class="rolecard" data-cstype="' + k + '" aria-pressed="' + (c.type === k) + '"><span class="icobox">' + ic(k === "text" ? "chat" : k === "audio" ? "mic" : "video") + "</span><b>" + t.cs_types[k][0] + "</b><span>" + t.cs_types[k][1] + "</span></button>"; }).join("");
     var dis = '<div class="two"><div class="fld"><label for="cs-region">' + t.f_region + '</label><select id="cs-region"><option value="">—</option>' + REG.slice().sort(function (a, b) { return nmL(a).localeCompare(nmL(b)); }).map(function (r) { return '<option value="' + r.code + '"' + (c.region === r.code ? " selected" : "") + ">" + esc(nmL(r)) + "</option>"; }).join("") + '</select></div><div class="fld"><label for="cs-district">' + t.f_district + '</label><select id="cs-district">' + districtOptions(c.region, c.district) + "</select></div></div>";
@@ -1612,7 +1636,7 @@
       fi("cs-chronic", t.cs_chronic, c.chronic) + '<div class="two">' + fi("cs-meds", t.cs_meds, c.meds) + fi("cs-allergy", t.cs_allergy, c.allergy) + "</div></details></fieldset>" +
       '<fieldset class="accsec"><legend>' + t.cs_doc_h + '</legend><div class="roles two-roles" role="group" style="margin-bottom:14px">' + [["1", t.asap_now, "chat"], ["0", t.asap_pick, "search"]].map(function (x) { return '<button type="button" class="rolecard" data-csasap="' + x[0] + '" aria-pressed="' + (!!c.asap === (x[0] === "1")) + '"><span class="icobox">' + ic(x[2]) + "</span><b>" + x[1][0] + "</b><span>" + x[1][1] + "</span></button>"; }).join("") + "</div>" +
       (c.asap ? (function () { var n = onlineDoctors(c.spec).filter(onlineNow).length; return '<p class="cpnote">' + (n ? liveBadge() + " " + t.asap_note_on(n) : t.asap_note_off) + "</p>"; })() : "") +
-      '<div class="two"><div class="fld"><label for="cs-spec">' + t.d_spec + '</label><select id="cs-spec"><option value="">' + t.cs_spec_any + "</option>" + DOC_SP.filter(function (k) { return k !== "other"; }).map(function (k) { return '<option value="' + k + '"' + (c.spec === k ? " selected" : "") + ">" + t.docsp[k] + "</option>"; }).join("") + '</select></div>' + (c.asap ? "</div>" : "") + '<div class="fld"' + (c.asap ? " hidden" : "") + '><label for="cs-doc">' + t.cs_doc_pick + '</label><select id="cs-doc"><option value="">' + t.cs_doc_any + "</option>" + docs.map(function (d) { var p = cpOf(d.profile)[c.type]; return '<option value="' + d.id + '"' + (c.doc === d.id ? " selected" : "") + ">" + esc(d.name) + " · " + esc(specName(d.profile || {})) + (p != null ? " · " + esc(money(p)) : "") + "</option>"; }).join("") + "</select></div>" + (c.asap ? "" : "</div>") + (function () {
+      '<div class="two"><div class="fld"><label for="cs-spec">' + t.d_spec + '</label><select id="cs-spec"><option value="">' + t.cs_spec_any + "</option>" + DOC_SP.filter(function (k) { return k !== "other"; }).map(function (k) { return '<option value="' + k + '"' + (c.spec === k ? " selected" : "") + ">" + t.docsp[k] + "</option>"; }).join("") + '</select></div>' + (c.asap ? "</div>" : "") + (c.asap ? "" : "</div>") + (c.asap ? "" : '<div class="cspick"><label class="cspick-h" for="cs-find">' + t.cs_doc_pick + '</label><div class="docfind">' + ic("search") + '<input id="cs-find" type="search" autocomplete="off" value="' + esc(c.find || "") + '" placeholder="' + esc(t.cs_find_ph) + '"></div><input type="hidden" id="cs-doc" value="' + esc(c.doc) + '"><div class="cspick-list" id="cs-doclist" role="radiogroup" aria-label="' + esc(t.cs_doc_pick) + '">' + docPickList(c, docs) + "</div></div>") + (function () {
         var d = !c.asap && c.doc ? userById(c.doc) : null; if (!d) return "";
         var cp = cpOf(d.profile), p = cp[c.type], anyP = CS_KINDS.some(function (k) { return cp[k] != null; });
         return '<p class="cpnote">' + (p != null ? ic("tag") + " <b>" + esc(t.cp_price_note(t.cs_types[c.type][0], money(p))) + ".</b> " + (p > 0 && payOn() ? t.cp_pay_online : t.cp_pay) : anyP ? t.cp_not_offered : t.cp_none) + "</p>";
@@ -2691,6 +2715,19 @@
     var read = function (enc) { return new Promise(function (res, rej) { var fr = new FileReader(); fr.onload = function () { res(String(fr.result || "")); }; fr.onerror = rej; fr.readAsText(file, enc); }); };
     return read("utf-8").then(function (s) { return s.indexOf("\uFFFD") > -1 ? read("windows-1251") : s; });
   }
+  /* admins add a clinic that agreed to be listed: no password; the clinic gets an invite link to claim it */
+  var AC = { url: "", err: "", busy: false, region: null };
+  function addClinicCard(q) {
+    var t = L(), v = function (k) { return esc(q[k] || ""); }, reg = AC.region != null ? AC.region : q.creg || "";
+    var fi = function (id, label, val, extra) { return '<div class="fld"><label for="' + id + '">' + label + '</label><input id="' + id + '" value="' + val + '"' + (extra || "") + "></div>"; };
+    var body = AC.url ? '<p class="ctstate ok">' + ic("check") + t.ac_done + '</p><p class="muted">' + t.ac_send + '</p><span class="imlink"><input readonly value="' + esc(AC.url) + '" aria-label="' + esc(t.im_link) + '"><button class="btn ghost sm" type="button" data-imcopy="' + esc(AC.url) + '">' + ic("copy") + t.im_copy + '</button></span><p style="margin-top:12px"><button class="linkbtn" type="button" data-act="ac-again">' + t.ac_again + "</button></p>"
+      : '<form class="form" id="acform" novalidate>' + fi("ac-name", t.f_clinicname, v("cname")) + '<div class="two">' + fi("ac-phone", t.f_phone2, v("cphone"), ' inputmode="tel" placeholder="+998"') + fi("ac-email", t.f_email + t.cs_opt, v("cemail"), ' inputmode="email"') + "</div>" +
+        '<div class="two"><div class="fld"><label for="ac-region">' + t.f_region + '</label><select id="ac-region"><option value="">—</option>' + REG.slice().sort(function (a, b) { return nmL(a).localeCompare(nmL(b)); }).map(function (r) { return '<option value="' + r.code + '"' + (reg === r.code ? " selected" : "") + ">" + esc(nmL(r)) + "</option>"; }).join("") + '</select></div><div class="fld"><label for="ac-district">' + t.f_district + '</label><select id="ac-district">' + districtOptions(reg, q.cdist || "") + "</select></div></div>" +
+        fi("ac-addr", t.ac_addr, v("caddr")) + '<div class="two">' + fi("ac-hours", t.ac_hours, v("chours")) + '<div class="fld"><label for="ac-own">' + t.ac_own + '</label><select id="ac-own"><option value="p"' + (q.cown !== "s" ? " selected" : "") + ">" + t.ac_own_p + '</option><option value="s"' + (q.cown === "s" ? " selected" : "") + ">" + t.ac_own_s + "</option></select></div></div>" +
+        '<div class="fld"><label for="ac-about">' + t.ac_about + '</label><textarea id="ac-about" maxlength="600">' + v("cabout") + "</textarea></div>" + fi("ac-lic", t.ac_lic + t.cs_opt, v("clic")) +
+        '<label class="chk"><input type="checkbox" id="ac-ok"><span>' + t.ac_agree + '</span></label><div class="err" id="ac-err" aria-live="polite">' + esc(AC.err) + '</div><button class="btn" type="submit"' + (AC.busy ? " disabled" : "") + ">" + ic("plus") + t.ac_btn + "</button></form>";
+    return '<section class="dcard" style="margin-bottom:26px"><h2>' + t.ac_h + '</h2><p class="muted" style="margin:4px 0 14px">' + t.ac_p + "</p>" + body + "</section>";
+  }
   function viewImport() {
     var t = L(); if (!ADM.list) admLoad();
     var rows = IM.rows, ok = rows ? rows.filter(function (r) { return !r.errs.length; }) : [];
@@ -2728,8 +2765,8 @@
     if (CL.loading) return '<div class="wrap pad"><p class="muted">…</p></div>';
     if (!CL.info) return '<div class="wrap pad" style="max-width:560px"><div class="empty">' + esc(CL.err) + "</div></div>";
     var i = CL.info, row = function (k, v) { return v ? "<dt>" + k + "</dt><dd>" + v + "</dd>" : ""; };
-    return '<div class="wrap pad acc" style="max-width:560px"><h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.im_claim_h + '</h1><p class="lead">' + t.im_claim_p(esc(i.name)) + "</p>" +
-      '<dl class="kv">' + row(t.d_spec, esc(i.spec ? specName({ spec: i.spec }) : "")) + row(t.f_phone2, '<span class="nums">' + esc(i.phone) + "</span>") + row(t.f_email, esc(i.email)) + "</dl>" +
+    return '<div class="wrap pad acc" style="max-width:560px"><h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + (i.role === "clinic" ? t.im_claim_h_cl : t.im_claim_h) + '</h1><p class="lead">' + t.im_claim_p(esc(i.name)) + "</p>" +
+      '<dl class="kv">' + row(t.d_spec, esc(i.role !== "clinic" && i.spec ? specName({ spec: i.spec }) : "")) + row(t.f_phone2, '<span class="nums">' + esc(i.phone) + "</span>") + row(t.f_email, esc(i.email)) + "</dl>" +
       '<form class="form" id="claimform" novalidate style="margin-top:18px"><div class="fld"><label for="cl-pw">' + t.im_pw + '</label><input id="cl-pw" type="password" autocomplete="new-password" minlength="6"></div><div class="fld"><label for="cl-pw2">' + t.im_pw2 + '</label><input id="cl-pw2" type="password" autocomplete="new-password" minlength="6"></div>' +
       '<label class="chk"><input type="checkbox" id="cl-ok"><span>' + t.im_claim_agree + '</span></label><div class="err" id="cl-err" aria-live="polite"></div><button class="btn big block" type="submit">' + t.im_claim_go + '</button></form><p class="fine" style="margin-top:12px">' + t.im_claim_fine + "</p></div>";
   }
@@ -2738,7 +2775,7 @@
     var t = L(), u = me();
     if (!BE || !u || !u.admin) return '<div class="wrap pad"><div class="empty">' + t.adm_forbidden + "</div></div>";
     if (q && q.tab === "stats") return '<div class="wrap pad" style="max-width:1080px">' + admTabs("stats") + '<h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.st_h + '</h1><p class="lead">' + t.st_p + "</p>" + viewStats() + "</div>";
-    if (q && q.tab === "import") return '<div class="wrap pad" style="max-width:980px">' + admTabs("import") + '<h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.im_h + "</h1>" + viewImport() + "</div>";
+    if (q && q.tab === "import") return '<div class="wrap pad" style="max-width:980px">' + admTabs("import") + addClinicCard(q) + '<h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.im_h + "</h1>" + viewImport() + "</div>";
     if (q && q.tab === "meds") return '<div class="wrap pad" style="max-width:900px">' + admTabs("meds") + '<h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.mo_h + "</h1>" + viewMedOrders() + "</div>";
     if (q && q.tab === "pay") return '<div class="wrap pad" style="max-width:900px">' + admTabs("pay") + '<h1 style="font-size:clamp(1.8rem,1.4rem + 2vw,2.4rem)">' + t.po_h + "</h1>" + viewPayouts() + "</div>";
     if (!ADM.list) { admLoad(); return '<div class="wrap pad"><p class="muted">…</p></div>'; }
@@ -3392,7 +3429,10 @@
       if (BE) { el.disabled = true; BE.saveProfile({ role: gu.role, name: gu.name, email: gu.email || "", phone: gu.phone || "", tg: gu.tg || "", profile: gp }).then(function () { ACC = null; toast(t.off_done); render(true); }, function (x) { el.disabled = false; toast(beMsg(t, x)); }); return; }
       var gl = users(); gl.forEach(function (x) { if (x.id === gu.id) x.profile = gp; }); saveUsers(gl); ACC = null; toast(t.off_done); render(true); return;
     }
+    if (el.hasAttribute("data-csdoc") && CS) { csCollect(); CS.doc = ds.csdoc; CS.slot = 0; CS.slotDay = 0; render(true); var dl = $("cs-doclist"); if (dl && CS.doc) dl.scrollIntoView({ block: "nearest" }); return; }
+    if (ds.act === "cs-findall" && CS) { CS.findAll = true; var dl2 = $("cs-doclist"); if (dl2) dl2.innerHTML = docPickList(CS, onlineDoctors(CS.spec)); return; }
     if (ds.act === "lc-code" || ds.act === "lc-pw") { LC.id = $("l-id") ? $("l-id").value.trim() : LC.id; LC.mode = ds.act === "lc-code" ? "code" : "pw"; LC.sent = ""; LC.msg = ""; render(true); if ($("l-id") && !LC.id) $("l-id").focus(); return; }
+    if (ds.act === "ac-again") { AC = { url: "", err: "", busy: false, region: null }; render(true); return; }
     if (ds.act === "lc-again") { LC.sent = ""; LC.msg = ""; render(true); return; }
     if (ds.act === "emailfix") { var ef = $(ds.for); if (ef) { ef.value = ds.v; ef.dispatchEvent(new Event("input", { bubbles: true })); } var eh = el.closest(".emailhint"); if (eh) eh.remove(); return; }
     if (ds.act === "copylink") { var cl = location.href; (navigator.clipboard ? navigator.clipboard.writeText(cl) : Promise.reject()).then(function () { toast(t.g_copied); }, function () { window.prompt(t.g_copy, cl); }); return; }
@@ -3722,6 +3762,17 @@
       BE.partnerLead(lead).then(function () { PT.sent = true; PT.busy = false; render(true); }, function (x) { PT.busy = false; pbtn.disabled = false; perr.textContent = x && x.code === "wait" ? t.pt_wait : x && x.code === "email" ? t.pt_err_email : x && (x.code === "contact" || x.code === "name") ? t.pt_need : beMsg(t, x); });
       return;
     }
+    if (id === "acform" && BE) {
+      var acv = function (k) { var el = $(k); return el ? el.value.trim() : ""; }, ace = $("ac-err");
+      if (!acv("ac-name")) { ace.textContent = t.g_need_clinic; $("ac-name").focus(); return; }
+      if (!okPhone(acv("ac-phone"))) { ace.textContent = t.e_phone; $("ac-phone").focus(); return; }
+      if (acv("ac-email") && !okEmail(acv("ac-email"))) { ace.textContent = t.e_email; $("ac-email").focus(); return; }
+      if (!$("ac-ok").checked) { ace.textContent = t.ac_e_agree; return; }
+      AC.busy = true; ace.textContent = "";
+      BE.adminAddClinic({ name: acv("ac-name"), phone: digits(acv("ac-phone")), email: acv("ac-email").toLowerCase(), profile: { ctype: "clinic", own: acv("ac-own") || "p", region: acv("ac-region"), district: acv("ac-district"), addr: acv("ac-addr"), hours: acv("ac-hours"), about: acv("ac-about"), lic: acv("ac-lic") } })
+        .then(function (j) { AC = { url: j.url, err: "", busy: false, region: null }; ADM.list = null; render(true); }, function (x) { AC.busy = false; AC.err = x && x.code === "exists" ? t.e_exists : beMsg(t, x); render(true); });
+      return;
+    }
     if (id === "lcform" && BE) {
       var lci = $("l-id").value.trim(), lce = $("l-err"), lcm = lci.indexOf("@") > 0;
       if (!lci || (lcm ? !okEmail(lci) : !okPhone(lci))) { lce.textContent = t.fg_e_id; return; }
@@ -3888,6 +3939,7 @@
     if (id === "r-spec") { $("r-spec-o").hidden = e.target.value !== "other"; return; }
     if (id === "im-agree") { IM.agree = e.target.checked; return; }
     if (id === "im-file" && e.target.files && e.target.files[0]) { imRead(e.target.files[0]).then(function (txt) { IM.text = txt; IM.rows = imRows(txt); IM.results = null; IM.err = ""; render(true); }, function () { toast(L().be_err); }); return; }
+    if (id === "ac-region") { AC.region = e.target.value; var acd = $("ac-district"); if (acd) acd.innerHTML = districtOptions(AC.region, ""); return; }
     if (id === "cs-region") { csCollect(); CS.district = ""; render(true); return; }
     if (id === "cs-spec") { csCollect(); CS.doc = ""; render(true); return; }
     if (id.indexOf("df-") === 0) { go("#/doctors?" + qs(dfQuery())); return; }

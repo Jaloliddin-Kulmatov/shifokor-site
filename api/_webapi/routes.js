@@ -42,6 +42,7 @@ const ROUTES = [
   ["POST", "/auth/reset", "pw_reset", (p, b) => b],
   ["POST", "/auth/reset-link", "pw_link", (p, b) => b],
   ["POST", "/admin/users/:id/reset-link", "admin_reset_link", (p) => ({ id: p.id })],
+  ["POST", "/admin/clinics", "admin_add_clinic", (p, b) => b],
   ["POST", "/me/email/verify", "email_verify", (p, b) => b],
   ["POST", "/auth/email-link", "email_link", (p, b) => b],
   ["POST", "/auth/code", "code_send", (p, b) => b],

@@ -74,7 +74,7 @@ async function setNewPassword(userId, pw) {
 async function invited(token) {
   const t = String(token || "");
   if (!/^[A-Za-z0-9_-]{30,40}$/.test(t)) throw new Fail(404, "invite");
-  const u = (await q("select id, name, email, phone, profile from app_users where invite_hash = $1 and claimed_at is null and invite_at > now() - interval '" + INVITE_DAYS + " days'", [sha(t)])).rows[0];
+  const u = (await q("select id, role, name, email, phone, profile from app_users where invite_hash = $1 and claimed_at is null and invite_at > now() - interval '" + INVITE_DAYS + " days'", [sha(t)])).rows[0];
   if (!u) throw new Fail(404, "invite");
   return u;
 }
@@ -120,7 +120,7 @@ const actions = {
   async claim_info(b) {
     const u = await invited(b.token);
     const d = String(u.phone || "");
-    return { name: u.name, phone: d ? "+" + d.slice(0, 5) + " ••• •• " + d.slice(-2) : "", email: u.email ? u.email.replace(/^(.).*(@.*)$/, "$1•••$2") : "", spec: (u.profile || {}).spec || "" };
+    return { role: u.role, name: u.name, phone: d ? "+" + d.slice(0, 5) + " ••• •• " + d.slice(-2) : "", email: u.email ? u.email.replace(/^(.).*(@.*)$/, "$1•••$2") : "", spec: (u.profile || {}).spec || "" };
   },
 
   async claim(b) {

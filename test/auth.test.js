@@ -156,3 +156,18 @@ test("profile: only a changed email is checked", async () => {
   await users.save_profile({ name: "Ali", email: "old@nowhere.zz", profile: {} }, me);   // unchanged: not looked up
   await fails(users.save_profile({ name: "Ali", email: "new@nowhere.zz", profile: {} }, me), "email_domain");
 });
+
+test("admins add a clinic with no password and get an invite link; others can't", async () => {
+  process.env.ADMIN_EMAILS = "boss@shifokor.test";
+  const admin = require("../api/_modules/admin").actions;
+  let row = null;
+  db.on((sql, p) => { if (/insert into app_users/.test(sql)) { row = { role: /'clinic'/.test(sql) ? "clinic" : "?", name: p[0], phone: p[2], pw: /'invite'/.test(sql), profile: p[3], invite: p[4] }; return [{ id: "c1" }]; } });
+  const r = await admin.admin_add_clinic({ name: "Test LOR", phone: "+998 95 600 04 04", profile: { region: "UZ26", district: "UZ26287", addr: "Boshliq 4", hours: "24/7", spec: "ignored" } }, { id: "a1", email: "boss@shifokor.test" });
+  assert.match(r.url, /#\/claim\/[A-Za-z0-9_-]{30,40}$/);
+  assert.equal(row.role, "clinic");
+  assert.equal(row.phone, "998956000404");
+  assert.ok(row.pw, "no password is set: 'invite' marker");
+  assert.equal(row.profile.district, "UZ26287");
+  assert.equal(row.profile.spec, undefined);
+  await assert.rejects(admin.admin_add_clinic({ name: "X", phone: "998956000404" }, { id: "u2", email: "someone@else.uz" }), (e) => e.status === 403 || e.code === "forbidden");
+});

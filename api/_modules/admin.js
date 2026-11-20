@@ -55,6 +55,26 @@ const actions = {
     return { results: out };
   },
 
+  // ---------- adding a clinic that agreed to be listed (admins) ----------
+  // { name, phone, email, profile: { ctype, own, region, district, addr, hours, about, lic, contact, contact_role } }.
+  // Like an imported doctor: no password yet; the clinic opens the invite link, sets its own password and edits the profile.
+  async admin_add_clinic(b, me) {
+    requireAdmin(me);
+    const name = str(b.name, 200) || bad("name");
+    const phone = phoneOf(b.phone) || bad("phone");
+    const email = emailOf(b.email);
+    const given = profileOf(b.profile), profile = Object.assign({}, DEFAULT_PROFILE.clinic);
+    ["ctype", "own", "region", "district", "addr", "hours", "about", "lic", "contact", "contact_role"].forEach((k) => { if (given[k] !== undefined && given[k] !== "") profile[k] = given[k]; });
+    const token = newInvite();
+    try {
+      const r = await q("insert into app_users (role, name, email, phone, pw_hash, profile, imported_at, invite_hash, invite_at) values ('clinic', $1, $2, $3, 'invite', $4, now(), $5, now()) returning id", [name, email, phone, profile, sha(token)]);
+      return { id: r.rows[0].id, url: site.url() + "/#/claim/" + token };
+    } catch (e) {
+      if (e && e.code === "23505") throw new Fail(409, "exists");   // that phone or email already has an account
+      throw e;
+    }
+  },
+
   // a fresh link for an imported doctor who hasn't claimed yet (links are shown once and last 30 days)
   async admin_invite(b, me) {
     requireAdmin(me);

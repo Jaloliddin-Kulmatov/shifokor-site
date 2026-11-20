@@ -786,7 +786,7 @@
   var saveUsers = function (l) { store.set(KU, l); };
   /* sample doctors and reviews (samples.js): marked "Namuna", never stored, never bookable */
   var SMP = window.SHIFOKOR_SAMPLES || { d: [], r: [] };
-  var withSamples = function () { return users().concat(SMP.d); };
+  var withSamples = function () { return users().concat(SMP.d, SMP.c || []); };
   var userById = function (id) { return withSamples().filter(function (u) { return u.id === id; })[0] || null; };
   /* real doctors first, then samples, each group in the chosen order */
   var realFirst = function (list, how) { return sortDocs(list.filter(function (u) { return !u.sample; }), how).concat(sortDocs(list.filter(function (u) { return u.sample; }), how)); };
@@ -840,10 +840,10 @@
   }
   function doctorsAt(clinic) {
     var fac = clinic.profile && clinic.profile.fac, staff = staffOfClinic(clinic.id).map(function (x) { return x.doctorId; });
-    return users().filter(function (u) { return u.role === "doctor" && (staff.indexOf(u.id) > -1 || (u.profile.work || []).some(function (w) { return (w.t === "c" && w.id === clinic.id) || (fac && w.t === "f" && w.key === fac); })); });
+    return withSamples().filter(function (u) { return u.role === "doctor" && (staff.indexOf(u.id) > -1 || (u.profile.work || []).some(function (w) { return (w.t === "c" && w.id === clinic.id) || (fac && w.t === "f" && w.key === fac); })); });
   }
   function clinicForFac(key) { var l = users().filter(function (u) { return u.role === "clinic" && u.profile && u.profile.fac === key; }); return (BE ? l.filter(function (u) { return u.verified; })[0] : l[0]) || null; }
-  var canBook = function (clinic) { return !BE || !!clinic.verified; };
+  var canBook = function (clinic) { return !clinic.sample && (!BE || !!clinic.verified); };
   /* clinics on Shifokor where a patient can book a visit with this doctor: the places on the doctor's profile and the clinics they joined as staff */
   /* a doctor who sees patients at their own office: on in their profile, with an address (and checked, on the server) */
   var hasOffice = function (u) { var o = u && u.role === "doctor" && !u.sample && (u.profile || {}).office; return !!(o && o.on && o.addr) && canBook(u); };
@@ -1295,16 +1295,16 @@
     if (f) pendingMap = { fac: [f], single: true };
     var place = d ? nmL(d) + ", " + nmL(REG[d.r]) : f ? placeOf(f) : "";
     var dl = f ? dirLinks(f) : null;
-    return '<div class="wrap"><a class="back" href="#/doctors">‹ ' + t.clinics_reg_h + '</a><div class="pf"><div><div class="who"><div class="ficon big c-' + (pr.ctype || "clinic") + '">' + ic(CAT_IC[pr.ctype || "clinic"]) + "</div><div><h1>" + esc(u.name) + '</h1><div class="spec">' + t.cat[pr.ctype || "clinic"] + '</div><div class="badges"><span class="badge">' + t.on_sh + "</span>" + (pr.own ? '<span class="badge ' + (pr.own === "s" ? "ok" : "plain") + '">' + t.own[pr.own] + "</span>" : "") + vBadge(u) + (ratingOf(u.id).n ? '<span class="badge plain rbadge">' + ratingLine(u.id) + "</span>" : "") + "</div>" + shareBtn("/klinika/" + u.id, u.name) + "</div></div>" +
-      (pr.about ? '<div class="sect"><p class="lead" style="margin:0">' + esc(pr.about) + "</p></div>" : "") +
+    return '<div class="wrap"><a class="back" href="#/doctors">‹ ' + t.clinics_reg_h + '</a><div class="pf' + (f ? "" : " nomap") + '"><div><div class="who"><div class="ficon big c-' + (pr.ctype || "clinic") + '">' + ic(CAT_IC[pr.ctype || "clinic"]) + "</div><div><h1>" + esc(u.name) + '</h1><div class="spec">' + t.cat[pr.ctype || "clinic"] + '</div><div class="badges">' + (u.sample ? smpBadge() : '<span class="badge">' + t.on_sh + "</span>") + (pr.own ? '<span class="badge ' + (pr.own === "s" ? "ok" : "plain") + '">' + t.own[pr.own] + "</span>" : "") + (u.sample ? "" : vBadge(u)) + (ratingOf(u.id).n ? '<span class="badge plain rbadge">' + ratingLine(u.id) + "</span>" : "") + "</div>" + shareBtn("/klinika/" + u.id, u.name) + "</div></div>" +
+      (u.sample ? '<p class="note-box">' + t.smp_clinic_note + "</p>" : "") + (pr.about ? '<div class="sect"><p class="lead" style="margin:0">' + esc(pr.about) + "</p></div>" : "") +
       '<div class="sect"><dl class="kv">' + (place ? "<dt>" + t.fac_where + "</dt><dd>" + esc(place) + "</dd>" : "") + (pr.addr ? "<dt>" + t.fac_addr + "</dt><dd>" + esc(pr.addr) + "</dd>" : "") + (pr.hours ? "<dt>" + t.fac_hours + "</dt><dd>" + esc(pr.hours) + "</dd>" : "") + (u.phone ? "<dt>" + t.fac_phone + '</dt><dd class="nums">' + esc(fmtPhone(u.phone)) + "</dd>" : "") + (pr.lic ? "<dt>" + t.c_lic + "</dt><dd>" + esc(pr.lic) + "</dd>" : "") + "</dl></div>" +
       ((pr.svc || []).some(function (x) { return x.name; }) ? '<div class="sect"><h2>' + t.svc_h + "</h2>" + svcTable(pr.svc, false) + (u.updated ? '<p style="margin-top:10px"><span class="confline">' + t.updated(fmt(fromIso(u.updated), { day: "numeric", month: "short" })) + "</span></p>" : "") + "</div>" : "") +
-      (canBook(u) ? apForm(u, pr.fac) : '<div class="sect"><div class="note-box">' + t.ap_unv + "</div></div>") +
+      (canBook(u) ? apForm(u, pr.fac) : u.sample ? "" : '<div class="sect"><div class="note-box">' + t.ap_unv + "</div></div>") +
       rvList(u) +
       (branchesOf(u.id).length ? '<div class="sect"><h2>' + t.cl_br_pub + '</h2><div class="brpub">' + branchesOf(u.id).map(function (b) { return '<div class="brp"><b>' + ic("pin") + esc(b.name) + "</b>" + (b.address || (b.region && regByCode[b.region]) ? '<span class="muted">' + esc([b.region && regByCode[b.region] ? nmL(regByCode[b.region]) : "", b.address].filter(Boolean).join(", ")) + "</span>" : "") + (b.hours ? "<span>" + esc(b.hours) + "</span>" : "") + (b.phone ? '<a class="nums" href="tel:+' + digits(b.phone) + '">' + esc(fmtPhone(b.phone)) + "</a>" : "") + "</div>"; }).join("") + "</div></div>" : "") +
       '<div class="sect"><h2>' + t.c_docs_h + "</h2>" + (docs.length ? '<div class="results" style="padding:0">' + docs.map(function (d) { return docCard(d, u); }).join("") + "</div>" : '<p class="muted">' + t.c_no_docs + "</p>") + "</div>" +
       '<p class="fine" style="margin-top:20px">' + t.acc_demo + "</p></div>" +
-      '<aside class="stick"><h2>' + t.fac_map + "</h2>" + (f ? '<div id="map" class="map small" role="region" aria-label="' + t.p_loc + '"></div>' : "") + '<div class="stack" style="margin-top:12px">' + (canBook(u) ? '<a class="btn block" href="#book" data-scroll="book">' + ic("cal") + t.ap_h + "</a>" : "") + tgBtn(u) + (dl ? '<a class="btn ghost block" href="' + dl.y + '" target="_blank" rel="noopener">' + ic("nav") + t.fac_dir_y + "</a>" : "") + "</div></aside></div></div>";
+      '<aside class="stick"' + (f ? "" : " hidden") + '><h2>' + t.fac_map + "</h2>" + (f ? '<div id="map" class="map small" role="region" aria-label="' + t.p_loc + '"></div>' : "") + '<div class="stack" style="margin-top:12px">' + (canBook(u) ? '<a class="btn block" href="#book" data-scroll="book">' + ic("cal") + t.ap_h + "</a>" : "") + tgBtn(u) + (dl ? '<a class="btn ghost block" href="' + dl.y + '" target="_blank" rel="noopener">' + ic("nav") + t.fac_dir_y + "</a>" : "") + "</div></aside></div></div>";
   }
   /* sharing a profile: the phone's share sheet, or the address copied */
   var pageUrl = function (path) { return location.origin + path; };
@@ -1446,7 +1446,7 @@
     /* nothing matched: drop the language, then the region, and show the closest doctors */
     var near = [], any = q.s || q.r || q.q || q.lg || q.on || q.fem;
     if (!list.length && any) [{ lg: "" }, { lg: "", r: "" }, { lg: "", r: "", on: "", fem: "" }].some(function (o) { var q2 = Object.assign({}, q, o); near = realFirst(match(q2), q.sort || "best").slice(0, 8); return near.length; });
-    var clinics = users().filter(function (u) { return u.role === "clinic" && (!q.r || (u.profile || {}).region === q.r); });
+    var clinics = users().concat(SMP.c || []).filter(function (u) { return u.role === "clinic" && (!q.r || (u.profile || {}).region === q.r); });
     var sel = function (id, label, opts, cur) { return '<label class="sel">' + label + ' <select id="' + id + '">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (cur === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>"; }).join("") + "</select></label>"; };
     var filters = '<form class="filters" id="docfilter">' +
       sel("df-s", t.d_spec, [["", t.all_specs]].concat(DOC_SP.map(function (k) { return [k, t.docsp[k]]; })), q.s || "") +
@@ -1460,7 +1460,7 @@
     /* one page for choosing a doctor and applying: the first free doctor, or any card's button, opens the application over this list */
     return '<div class="band deep ochero' + (any ? " searching" : "") + '"><div class="wrap bhead"><div class="eyebrow">' + t.nv_clinic + "</div><h1>" + t.oc_page_h + '</h1><p class="sub">' + t.oc_page_p + '</p><ol class="ocsteps">' + t.oc_page_steps.map(function (x, i) { return "<li><b>" + (i + 1) + "</b><span>" + x + "</span></li>"; }).join("") + '</ol><p style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap"><a class="btn light big" href="#/consult?' + qs(Object.assign({}, dfKeep(), { now: "1" })) + '">' + ic("video") + t.asap_now[0] + '</a></p></div></div>' +
       (any ? "" : hcCards()) + '<div class="wrap pad" style="padding-top:8px"><h2 class="subh">' + t.nv_panel + "</h2>" + filters + (ss.length ? '<p class="symhint">' + ic("search") + " " + t.sym_hint(esc(q.q), ss.map(function (k) { return t.docsp[k]; }).join(", ")) + "</p>" : "") + (list.some(function (u) { return u.sample; }) ? '<p class="fine smpline">' + t.smp_dir + "</p>" : "") + '<div class="results" style="padding:14px 0 0">' + (list.length ? '<p class="dfcount">' + t.df_found(list.length) + "</p>" + list.map(docCard).join("") : any ? '<div class="empty">' + t.df_none + ' <a href="#/doctors">' + t.df_clear + "</a></div>" + (near.length ? '<h2 class="subh" style="margin:22px 0 4px">' + t.df_near + "</h2>" + near.map(docCard).join("") : "") : '<div class="empty">' + t.no_doctors + "</div>") + "</div>" +
-      '<h2 style="margin:40px 0 14px;font-size:1.4rem">' + t.clinics_reg_h + '</h2><div class="results" style="padding:0">' + (clinics.length ? clinics.map(function (c) { var pr = c.profile || {}; return '<article class="fcard"><div class="ficon c-' + (pr.ctype || "clinic") + '">' + ic(CAT_IC[pr.ctype || "clinic"]) + '</div><div class="fmain"><h3><a href="#/c/' + c.id + '">' + esc(c.name) + '</a></h3><div class="spec">' + t.cat[pr.ctype || "clinic"] + '</div><div class="badges">' + (c.verified ? vBadge(c) : "") + "</div>" + (pr.district && disByCode[pr.district] ? '<div class="meta">' + ic("pin") + esc(nmL(disByCode[pr.district]) + ", " + nmL(REG[disByCode[pr.district].r])) + "</div>" : "") + '</div><div class="facts"><a class="btn ghost sm" href="#/c/' + c.id + '">' + t.view + "</a></div></article>"; }).join("") : '<div class="empty">' + t.no_clinics_reg + "</div>") + "</div></div>";
+      '<h2 style="margin:40px 0 14px;font-size:1.4rem">' + t.clinics_reg_h + '</h2><div class="results" style="padding:0">' + (clinics.length ? clinics.map(function (c) { var pr = c.profile || {}; return '<article class="fcard"><div class="ficon c-' + (pr.ctype || "clinic") + '">' + ic(CAT_IC[pr.ctype || "clinic"]) + '</div><div class="fmain"><h3><a href="#/c/' + c.id + '">' + esc(c.name) + '</a></h3><div class="spec">' + t.cat[pr.ctype || "clinic"] + '</div><div class="badges">' + (c.sample ? smpBadge() : c.verified ? vBadge(c) : "") + "</div>" + (pr.district && disByCode[pr.district] ? '<div class="meta">' + ic("pin") + esc(nmL(disByCode[pr.district]) + ", " + nmL(REG[disByCode[pr.district].r])) + "</div>" : "") + '</div><div class="facts"><a class="btn ghost sm" href="#/c/' + c.id + '">' + t.view + "</a></div></article>"; }).join("") : '<div class="empty">' + t.no_clinics_reg + "</div>") + "</div></div>";
   }
 
   /* ---------------- services and prices across doctors and clinics ---------------- */
@@ -3125,6 +3125,7 @@
     var ini = function (n) { return n.split(" ").map(function (w) { return w.charAt(0); }).join("").slice(0, 2); };
     return '<div class="wrap pad teamsec"' + (id ? ' id="' + id + '"' : "") + '><div class="sechead"><div><h2>' + t.tm_h + '</h2><p class="lead" style="margin:4px 0 0">' + t.tm_p + "</p></div></div>" +
       '<div class="teamgrid">' + t.tm.map(function (m, i) { return '<article class="tmcard">' + (TEAM_PH[i] ? '<img class="tmav tmph" src="' + TEAM_PH[i] + '" alt="' + esc(m[0]) + '" width="64" height="64" loading="lazy" decoding="async">' : '<span class="tmav g' + i + '" aria-hidden="true">' + esc(ini(m[0])) + "</span>") + "<div><h3>" + esc(m[0]) + '</h3><p class="tmrole">' + esc(m[1]) + "</p>" + (m[2] ? '<p class="muted tmx">' + esc(m[2]) + "</p>" : "") + "</div></article>"; }).join("") + "</div>" +
+      (t.pn_list && t.pn_list.length ? '<h3 class="pnh">' + t.pn_h + '</h3><div class="pngrid">' + t.pn_list.map(function (x) { return '<article class="pncard"><span class="pnlogo" aria-hidden="true">' + ic("hosp") + '</span><div><span class="badge ok">' + esc(x[3]) + "</span><h4>" + esc(x[0]) + '</h4><p class="muted">' + esc(x[1]) + '</p><p class="pnwhere">' + ic("pin") + esc(x[2]) + "</p></div></article>"; }).join("") + "</div>" : "") +
       '<p class="joinline" style="margin-top:16px">' + t.tm_join + ' <a href="#/partners">' + t.pt_nav + "</a></p></div>";
   }
   /* a check mark that draws itself, for "done" moments */

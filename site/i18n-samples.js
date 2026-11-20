@@ -3,6 +3,7 @@
   var add = function (lang, o) { Object.keys(o).forEach(function (k) { T[lang][k] = o[k]; }); };
 
   add("uz", {
+    smp_clinic_note: "Bu namuna klinika: nomi va shifokorlari o‘ylab topilgan, sayt klinika sahifasi qanday ishlashini ko‘rsatish uchun. Unga yozilib bo‘lmaydi.", 
     smp_badge: "Namuna",
     smp_note: "Bu namuna profil: shifokor, narxlar va sharhlar o‘ylab topilgan. Sayt qanday ishlashini ko‘rsatadi, maslahat so‘rab bo‘lmaydi.",
     smp_real: "Shu mutaxassislikdagi boshqa shifokorlar",
@@ -18,6 +19,7 @@
   });
 
   add("ru", {
+    smp_clinic_note: "Это пример клиники: название и врачи придуманы, чтобы показать, как работает страница клиники. Записаться в неё нельзя.", 
     smp_badge: "Пример",
     smp_note: "Это пример профиля: врач, цены и отзывы придуманы. Он показывает, как работает сайт; консультацию здесь запросить нельзя.",
     smp_real: "Другие врачи этой специальности",
@@ -33,6 +35,7 @@
   });
 
   add("en", {
+    smp_clinic_note: "This is a sample clinic: its name and doctors are made up to show how a clinic page works. It can’t be booked.", 
     smp_badge: "Sample",
     smp_note: "This is a sample profile: the doctor, prices and reviews are made up. It shows how the site works; you can’t ask for a consultation here.",
     smp_real: "Other doctors in this specialty",

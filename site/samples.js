@@ -72,5 +72,25 @@
     }
     D.forEach(function (d) { if (!d.photoUrl) d.photoUrl = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg(d)); });
   })();
-  window.SHIFOKOR_SAMPLES = { d: D, r: R };
+  /* Sample clinics: made-up names, marked "Namuna", never stored, can't be booked. Each lists the sample doctors
+     who "work" there, so a clinic page with its team can be shown before real clinics join. */
+  var C = [
+    { id: "smpc01", role: "clinic", sample: true, verified: false, name: "Farg‘ona Oilaviy Klinikasi", phone: "",
+      profile: { ctype: "polyclinic", own: "p", region: "UZ30", district: "UZ30401", hours: "Du–Sh, 8:00–20:00", about: "Butun oila uchun: oilaviy shifokor, bolalar va ayollar shifokori, terapevt va stomatolog bir joyda." },
+      docs: ["smp016", "smp017", "smp018", "smp019", "smp020"] },
+    { id: "smpc02", role: "clinic", sample: true, verified: false, name: "Vodiy Mutaxassislar Markazi", phone: "",
+      profile: { ctype: "special", own: "p", region: "UZ30", district: "UZ30412", hours: "Du–Ju, 9:00–18:00", about: "Tor mutaxassislar: kardiolog, nevrolog, LOR va ko‘z shifokori. Viloyatdan kelmasdan oldin onlayn maslahat." },
+      docs: ["smp087", "smp088", "smp089", "smp090"] },
+    { id: "smpc03", role: "clinic", sample: true, verified: false, name: "Toshkent Diagnostika Markazi", phone: "",
+      profile: { ctype: "special", own: "p", region: "UZ26", district: "UZ26269", hours: "Har kuni, 8:00–21:00", about: "Tekshiruv va mutaxassislar maslahati: yurak, asab, LOR, ko‘z, teri va endokrin kasalliklari." },
+      docs: ["smp071", "smp072", "smp073", "smp074", "smp075", "smp076"] },
+    { id: "smpc04", role: "clinic", sample: true, verified: false, name: "Chilonzor Oila Poliklinikasi", phone: "",
+      profile: { ctype: "polyclinic", own: "p", region: "UZ26", district: "UZ26294", hours: "Du–Sh, 8:00–18:00", about: "Oila shifokori, pediatr, ginekolog, terapevt va stomatolog. Tahlil natijalarini tushuntirib beramiz." },
+      docs: ["smp066", "smp067", "smp068", "smp069", "smp070"] }
+  ];
+  C.forEach(function (c) {
+    c.docs.forEach(function (id) { var d = D.filter(function (x) { return x.id === id; })[0]; if (d) d.profile.work = [{ t: "c", id: c.id, label: c.name }]; });
+    delete c.docs;
+  });
+  window.SHIFOKOR_SAMPLES = { d: D, r: R, c: C };
 })();

@@ -26,7 +26,7 @@
     aid: [["2 kundan beri boshim og‘riyapti", "Nevrolog yoki terapevt kerak. Bo‘sh shifokorlar:", "Nevrolog"], ["Bolamning isitmasi bor, 38.5", "Pediatrga murojaat qiling. Hozir onlayn:", "Pediatr"], ["Tishim og‘riyapti, yuzim shishdi", "Stomatologga boring. Yaqin klinikalar:", "Stomatolog"]],
     aid_typing: "Shifo_AI yozmoqda",
     tm_nav: "Jamoa", tm_h: "Jamoa", tm_p: "Shifokor’ni UM_Wolves jamoasi qilmoqda — UzHack 2026, «Smart Healthcare» yo‘nalishi.",
-    tm: [["Jaloliddin Qulmatov", "Asoschi · web dasturchi va AI muhandis", "icom.ai.kr va Storyling asoschisi"], ["Jamshid Rabbimov", "DevOps va backend muhandis", "UNINETWORKS.uz jamoa rahbari"], ["Sardor Talatov", "Loyiha menejeri va backend dasturchi", ""]],
+    pn_h: "Hamkorlarimiz", pn_list: [["Yakkasaroy LOR servis 24/7", "Quloq, burun va tomoq (LOR) klinikasi: jarrohlik, endoskopik tashxis va ambulator davolash, 24 soat.", "Toshkent, Yakkasaroy tumani", "Pilot hamkor"]], tm: [["Jaloliddin Qulmatov", "Asoschi · web dasturchi va AI muhandis", "icom.ai.kr va Storyling asoschisi"], ["Jamshid Rabbimov", "DevOps va backend muhandis", "UNINETWORKS.uz jamoa rahbari"], ["Sardor Talatov", "Loyiha menejeri va backend dasturchi", ""]],
     tm_join: "Biz bilan ishlashni xohlaysizmi?"
   });
 
@@ -54,7 +54,7 @@
     aid: [["Второй день болит голова", "Нужен невролог или терапевт. Свободные врачи:", "Невролог"], ["У ребёнка температура 38.5", "Обратитесь к педиатру. Сейчас онлайн:", "Педиатр"], ["Болит зуб, опухла щека", "Вам к стоматологу. Ближайшие клиники:", "Стоматолог"]],
     aid_typing: "Shifo_AI печатает",
     tm_nav: "Команда", tm_h: "Команда", tm_p: "Shifokor делает команда UM_Wolves — UzHack 2026, направление «Smart Healthcare».",
-    tm: [["Жалолиддин Кулматов", "Основатель · веб-разработчик и AI-инженер", "основатель icom.ai.kr и Storyling"], ["Жамшид Раббимов", "DevOps и backend-инженер", "тимлид UNINETWORKS.uz"], ["Сардор Талатов", "Менеджер проекта и backend-разработчик", ""]],
+    pn_h: "Наши партнёры", pn_list: [["Yakkasaroy LOR servis 24/7", "ЛОР-клиника: операции, эндоскопическая диагностика и амбулаторное лечение, круглосуточно.", "Ташкент, Яккасарайский район", "Пилотный партнёр"]], tm: [["Жалолиддин Кулматов", "Основатель · веб-разработчик и AI-инженер", "основатель icom.ai.kr и Storyling"], ["Жамшид Раббимов", "DevOps и backend-инженер", "тимлид UNINETWORKS.uz"], ["Сардор Талатов", "Менеджер проекта и backend-разработчик", ""]],
     tm_join: "Хотите работать с нами?"
   });
 
@@ -82,7 +82,7 @@
     aid: [["My head has hurt for 2 days", "A neurologist or internist can help. Free doctors:", "Neurologist"], ["My child has a fever, 38.5", "See a pediatrician. Online now:", "Pediatrician"], ["Toothache and a swollen cheek", "You need a dentist. Nearby clinics:", "Dentist"]],
     aid_typing: "Shifo_AI is typing",
     tm_nav: "Team", tm_h: "Team", tm_p: "Shifokor is built by the UM_Wolves team — UzHack 2026, Smart Healthcare track.",
-    tm: [["Jaloliddin Kulmatov", "Founder · web developer and AI engineer", "founder of icom.ai.kr and Storyling"], ["Jamshid Rabbimov", "DevOps and backend engineer", "Team lead at UNINETWORKS.uz"], ["Sardor Talatov", "Project manager and backend developer", ""]],
+    pn_h: "Our partners", pn_list: [["Yakkasaroy LOR servis 24/7", "Ear, nose and throat (ENT) clinic: surgery, endoscopic diagnosis and outpatient treatment, open 24 hours.", "Tashkent, Yakkasaroy district", "Pilot partner"]], tm: [["Jaloliddin Kulmatov", "Founder · web developer and AI engineer", "founder of icom.ai.kr and Storyling"], ["Jamshid Rabbimov", "DevOps and backend engineer", "Team lead at UNINETWORKS.uz"], ["Sardor Talatov", "Project manager and backend developer", ""]],
     tm_join: "Want to work with us?"
   });
 })(window.SHIFOKOR_T);

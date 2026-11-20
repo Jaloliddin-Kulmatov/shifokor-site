@@ -2072,3 +2072,19 @@ body.demo-on .docbar { bottom: calc(env(safe-area-inset-bottom, 0px) + 132px); }
 .cspick-more { margin: 4px 0 0 4px; }
 .cspick-none { margin: 6px 4px; }
 @media (prefers-reduced-motion: reduce) { .docopt { transition: none; } }
+
+/* partners, under the team */
+.pnh { margin: 26px 0 10px; font-size: 1.15rem; }
+.pngrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.pncard { display: flex; gap: 14px; align-items: flex-start; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 18px; }
+.pnlogo { flex: none; width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+.pnlogo .ic { width: 26px; height: 26px; }
+.pncard h4 { margin: 8px 0 4px; font-size: 1.05rem; }
+.pncard .muted { margin: 0; font-size: .92rem; line-height: 1.45; }
+.pnwhere { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; font-size: .88rem; color: var(--muted); }
+.pnwhere .ic { width: 15px; height: 15px; }
+@media (max-width: 520px) { .pngrid { grid-template-columns: 1fr; } }
+
+/* a clinic page without a map: the content takes the full width */
+.pf.nomap { grid-template-columns: minmax(0, 1fr); }
+.pf.nomap > div:first-child { max-width: 860px; }
